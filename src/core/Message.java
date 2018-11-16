@@ -48,6 +48,9 @@ public class Message implements Comparable<Message> {
 
 	/** Application ID of the application that created the message */
 	private String	appID;
+	
+	/** The type of the message. By default is MESSAGE */
+	protected MessageType type;
 
 	static {
 		reset();
@@ -77,6 +80,7 @@ public class Message implements Comparable<Message> {
 		this.requestMsg = null;
 		this.properties = null;
 		this.appID = null;
+		this.type = MessageType.MESSAGE;
 
 		Message.nextUniqueId++;
 		addNodeOnPath(from);
@@ -358,6 +362,16 @@ public class Message implements Comparable<Message> {
 	 */
 	public void setAppID(String appID) {
 		this.appID = appID;
+	}
+	
+	/**
+	 * Class that wraps the different type of messages the simulator works  
+	 * with.
+	 * @author mc
+	 *
+	 */
+	 public static enum MessageType{
+		MESSAGE, DIRECTIVE, METRIC;
 	}
 
 }
