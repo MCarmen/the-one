@@ -4,14 +4,15 @@
  */
 package core;
 
-import input.EventQueue;
-import input.ExternalEvent;
-import input.ScheduledUpdatesQueue;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+
+import input.EventQueue;
+import input.ExternalEvent;
+import input.ScheduledUpdatesQueue;
+import input.control.ControlMessageEventGenerator;
 
 /**
  * World contains all the nodes and is responsible for updating their
@@ -143,11 +144,12 @@ public class World {
 	}
 
 	/**
-	 * Update (move, connect, disconnect etc.) all hosts in the world.
-	 * Runs all external events that are due between the time when
-	 * this method is called and after one update interval.
+	 * Update (move, connect, disconnect etc.) all hosts in the world. Runs all
+	 * external events that are due between the time when this method is called and
+	 * after one update interval.
 	 */
-	public void update () {
+	public void update() {
+		List<ExternalEvent> externalEvents;
 		double runUntil = SimClock.getTime() + this.updateInterval;
 
 		setNextEventQueue();
@@ -155,9 +157,17 @@ public class World {
 		/* process all events that are due until next interval update */
 		while (this.nextQueueEventTime <= runUntil) {
 			simClock.setTime(this.nextQueueEventTime);
-			ExternalEvent ee = this.nextEventQueue.nextEvent();
-			ee.processEvent(this);
-			updateHosts(); // update all hosts after every event
+			if (this.nextEventQueue instanceof ControlMessageEventGenerator) {
+				externalEvents = ((ControlMessageEventGenerator) this.nextEventQueue).nextEvents();
+			} else {
+				externalEvents = new ArrayList<ExternalEvent>(1);
+				externalEvents.add(this.nextEventQueue.nextEvent());
+			}
+			for (ExternalEvent externalEvent : externalEvents) {
+				externalEvent.processEvent(this);
+				updateHosts(); // update all hosts after every event
+			}
+
 			setNextEventQueue();
 		}
 
