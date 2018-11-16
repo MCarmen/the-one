@@ -23,6 +23,6 @@ public class MetricMessageEventGenerator extends ControlMessageEventGenerator {
 	protected ExternalEvent getEvent(int from, int to, String id, double time) {
 		// TODO Auto-generated method stub
 		return new MetricMessageCreateEvent(from, to, id, time);
-	}
+	}	
 	
 }
