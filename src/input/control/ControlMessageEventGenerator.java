@@ -45,7 +45,7 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 	 * from where to choose to be the event's to field.  
 	 * @see input.EventQueue#nextEvent()
 	 */
-	public List<ExternalEvent> nextEvents(int[] fromHostRange, int[] toHostRange) {
+	private List<ExternalEvent> nextEvents(int[] fromHostRange, int[] toHostRange) {
 		int responseSize = 0; /* zero stands for one way messages */
 		int msgSize = 0;
 		int interval = drawNextEventTimeDiff();
@@ -68,5 +68,15 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 		}
 
 		return nextEvents;
+	}
+	
+	/**
+	 * Returns a collection with the next control message 
+	 * creation events.
+	 * @return The next events collection.
+	 * @see input.EventQueue#nextEvent() 
+	 */
+	public List<ExternalEvent> nextEvents(){
+		return this.nextEvents(this.hostRange, this.toHostRange);
 	}
 }
