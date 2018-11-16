@@ -25,5 +25,7 @@ public class MetricMessageCreateEvent extends ControlMessageCreateEvent {
 		return super.toString() + " [" + fromAddr + "->" + toAddr + "] " +
 		 " CREATE_METRIC";
 	}
+	
+	
 
 }
