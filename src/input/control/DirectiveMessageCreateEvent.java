@@ -13,7 +13,7 @@ public class DirectiveMessageCreateEvent extends ControlMessageCreateEvent {
 	 * @param size Size of the message
 	 * @param time Time, when the message is created
 	 */
-	public DirectiveMessageCreateEvent(int from, int to, String id, int size, double time) {
+	public DirectiveMessageCreateEvent(int from, int to, String id, double time) {
 		super(from, to, id, time);
 		// TODO Auto-generated constructor stub
 	}
