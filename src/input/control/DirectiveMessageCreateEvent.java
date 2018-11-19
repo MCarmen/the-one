@@ -1,5 +1,9 @@
 package input.control;
 
+import core.DTNHost;
+import core.Message;
+import core.control.DirectiveMessage;
+
 /**
  * class for external event for creating a directive message.
  */
@@ -17,7 +21,16 @@ public class DirectiveMessageCreateEvent extends ControlMessageCreateEvent {
 		super(from, to, id, time);
 		// TODO Auto-generated constructor stub
 	}
+		
 	
+	@Override
+	protected Message getMessage(DTNHost from, DTNHost to, String id, int size) {
+		// TODO Auto-generated method stub
+		return new DirectiveMessage(from, to, id, size);
+	}
+
+
+
 	@Override
 	public String toString() {
 		return super.toString() + " [" + fromAddr + "->" + toAddr + "] " +
