@@ -1,6 +1,8 @@
 package input.control;
 
-import core.World;
+import core.DTNHost;
+import core.Message;
+import core.control.MetricMessage;
 
 /**
  * class for external event for creating a metric message.
@@ -26,6 +28,10 @@ public class MetricMessageCreateEvent extends ControlMessageCreateEvent {
 		 " CREATE_METRIC";
 	}
 	
-	
+	@Override
+	protected Message getMessage(DTNHost from, DTNHost to, String id, int size) {
+		// TODO Auto-generated method stub
+		return new MetricMessage(from, to, id, size);
+	}
 
 }
