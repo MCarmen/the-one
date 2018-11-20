@@ -102,6 +102,10 @@ public abstract class MessageRouter {
 
 	/** applications attached to the host */
 	private HashMap<String, Collection<Application>> applications = null;
+	
+	/** the controller instance in case this router is configured to be a 
+	 * controller */
+	protected controller controller;
 
 	/**
 	 * Constructor. Creates a new message router based on the settings in
@@ -670,5 +674,18 @@ public abstract class MessageRouter {
 		return getClass().getSimpleName() + " of " +
 			this.getHost().toString() + " with " + getNrofMessages()
 			+ " messages";
+	}
+	
+	protected boolean amIAController() {
+		
+	}
+	
+	private static enum ReceivedStateCode {
+		MESSAGE_DESTINATION_REACHED_CODE, 
+		MESSAGE_DESTINATION_UNREACHED_CODE, 
+		METRIC_DESTINATION_REACHED_CODE,
+		METRIC_DESTINATION_UNREACHED_CODE, 
+		DIRECTIVE_CONTROLLER_REACHED_CODE, 
+		DIRECTIVE_DESTINATION_REACHED_CODE
 	}
 }
