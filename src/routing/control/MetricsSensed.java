@@ -3,7 +3,9 @@
  */
 package routing.control;
 
+import core.Message;
 import core.SimClock;
+import core.control.MetricCode;
 
 /*
   class MetricsSensed{
@@ -47,9 +49,24 @@ public class MetricsSensed {
 	public void addDrop() {
 		this.dropsPerWT++;
 	}
-	
+
+	/**
+	 * Method that fills the message with the drops sensed at the point of 
+	 * calling this method. If there is no drop, the message is not modified, 
+	 * and the window sensing time is reset to the current simulation time.
+	 * @param message the message to be filled with the drops sensed untill now.
+	 * @return true if the message has been modified with the drops sensed. If
+	 * there have been no drops it returns false.
+	 */
 	public boolean fillMessageWithMetric(Message message) {
+		boolean messageFilled = (this.dropsPerWT > 0);
+		if (this.dropsPerWT > 0) {
+			message.addProperty(MetricCode.DROPS_CODE.toString(), 
+					new DropsPerTime(this.dropsPerWT, SimClock.getTime()-this.sensingWindowTime));
+		}
+		this.reset();
 		
+		return messageFilled;
 	}
 	
 	
@@ -61,7 +78,7 @@ public class MetricsSensed {
 		/** Drops sensed. */
 		private int nrofDrops;
 		/** Time while we have been sensing. */
-		private long time;
+		private double time;
 
 		/**
 		 * Constructor that initalizes the object with the drops sensed during 
@@ -69,7 +86,7 @@ public class MetricsSensed {
 		 * @param drops drops sensed
 		 * @param time sensing time.
 		 */
-		public DropsPerTime(int drops, long time) {
+		public DropsPerTime(int drops, double time) {
 			this.nrofDrops = drops;
 			this.time = time;
 		}
@@ -78,7 +95,7 @@ public class MetricsSensed {
 			return nrofDrops;
 		}
 
-		public long getTime() {
+		public double getTime() {
 			return time;
 		}
 				
