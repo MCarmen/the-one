@@ -10,7 +10,6 @@ import core.Message;
  * A metric message that is created at a node or passed between nodes.
  */
 public class MetricMessage extends Message implements ControlMessage {
-	public static final String NROF_DROPS_CODE = "drops";
 	/**
 	 * Creates a new MetricMessage.
 	 * @param from Who the message is (originally) from
