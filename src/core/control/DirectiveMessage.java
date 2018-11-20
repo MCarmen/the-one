@@ -11,7 +11,6 @@ import core.Message.MessageType;
  * A directive message that is created at a node or passed between nodes.
  */
 public class DirectiveMessage extends Message implements ControlMessage {
-	public static final String NROF_COPIES_CODE = "copies";
 	/**
 	 * Creates a new directive message.
 	 * @param from Who the message is (originally) from
