@@ -843,6 +843,30 @@ public class Settings {
 
 		return loadObject(className, argsClass, args);
 	}
+	
+	/**
+	 * Creates (and dynamically loads the class of) an object that
+	 * initializes itself, through its constructor, with the objects 
+	 * passed as parameters.
+	 * @param className Name of the class of the object
+	 * @param argsName Name(es) of the argument(s) or null if no-argument
+	 * constructor should be called
+	 * @param args Argument(s) for null if no-argunment
+	 * @return The new object
+	 * @throws SettingsError if object couldn't be created
+	 */	
+	public Object createInitializedObject(String className, String[] argsName,
+			Object[] args) {
+		Class<?>[] argsClass = null;		
+		if (argsName != null) {
+			argsClass = new Class<?>[argsName.length];
+			for (int i = 0; i < argsName.length; i++) {
+				argsClass[i] = this.getClass(argsName[i]);				
+			}
+		}
+			
+		return loadObject(className, argsClass, args);
+	}
 
 	/**
 	 * Creates (and dynamically loads the class of) an object using the
@@ -854,6 +878,7 @@ public class Settings {
 	public Object createObject(String className) {
 		return loadObject(className, null, null);
 	}
+	
 
 	/**
 	 * Dynamically loads and creates an object.
