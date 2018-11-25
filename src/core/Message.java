@@ -246,6 +246,14 @@ public class Message implements Comparable<Message> {
 	}
 
 	/**
+	 * Returns the type of the message: message, directive or metric	
+	 * @return the type of the message.
+	 */
+	public MessageType getType() {
+		return type;
+	}
+
+	/**
 	 * Returns a string representation of the message
 	 * @return a string representation of the message
 	 */
@@ -307,6 +315,16 @@ public class Message implements Comparable<Message> {
 		}
 		return this.properties.get(key);
 	}
+	
+	/**
+	 * Tests if the specified key is a key in the properties map.
+	 * @param key the possible key.
+	 * @return true if the specified key is a key in this properties map 
+	 * as determined by the equals method; false otherwise.
+	 */
+	public boolean containsProperty​(String key) {
+		return this.properties.containsKey(key);
+	}	
 
 	/**
 	 * Updates a value for an existing property. For storing the value first
@@ -367,7 +385,6 @@ public class Message implements Comparable<Message> {
 	/**
 	 * Class that wraps the different type of messages the simulator works  
 	 * with.
-	 * @author mc
 	 *
 	 */
 	 public static enum MessageType{
