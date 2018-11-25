@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+
 import core.Application;
 import core.Connection;
 import core.DTNHost;
@@ -20,6 +21,11 @@ import core.Settings;
 import core.SettingsError;
 import core.SimClock;
 import core.SimError;
+import core.control.ControlMessage;
+import core.control.DirectiveMessage;
+import core.control.MetricMessage;
+import routing.control.Controller;
+import routing.control.MetricsSensed;
 import routing.util.RoutingInfo;
 import util.Tuple;
 
@@ -103,9 +109,21 @@ public abstract class MessageRouter {
 	/** applications attached to the host */
 	private HashMap<String, Collection<Application>> applications = null;
 	
-	/** the controller instance in case this router is configured to be a 
+	/** host type -setting id ({@value}) in the Group name space */
+	public static final String TYPE_S = "type";
+	/** Default setting value for type specifying the type of a group 
+	 * (controller or host) */
+	public static final String CONTROLLER_TYPE = "controller";	
+	/** namespace of the controller settings ({@value}) */
+	public static final String CONTROL_NS = "control";
+	/** engine -setting id ({@value}) in the controller name space */ 
+	public static final String NROF_CONTROLLERS_S = "nrofControllers";		
+		/** the controller instance in case this router is configured to be a 
 	 * controller */
-	protected controller controller;
+	protected Controller controller;
+	/** Metrics  handler. */
+	protected MetricsSensed metricsSensed;
+	
 
 	/**
 	 * Constructor. Creates a new message router based on the settings in
@@ -145,6 +163,9 @@ public abstract class MessageRouter {
 		else {
 			sendQueueMode = Q_MODE_RANDOM;
 		}
+		
+		this.controller = this.amIAController(s) ? new Controller(s, this) : null;
+		this.metricsSensed = this.isControlModeOn() ? new MetricsSensed() : null; 		
 	}
 
 	/**
@@ -381,17 +402,53 @@ public abstract class MessageRouter {
 		isFinalRecipient = aMessage.getTo() == this.host;
 		isFirstDelivery = isFinalRecipient &&
 		!isDeliveredMessage(aMessage);
-
-		if (!isFinalRecipient && outgoing!=null) {
-			// not the final recipient and app doesn't want to drop the message
-			// -> put to buffer
-			addToMessages(aMessage, false);
-		} else if (isFirstDelivery) {
-			this.deliveredMessages.put(id, aMessage);
-		} else if (outgoing == null) {
+		
+		TransferredCode receivedStateCode = this.getTransferredCode(aMessage);
+		
+		switch(receivedStateCode) {
+			case MESSAGE_DESTINATION_REACHED_CODE:
+				if(isFirstDelivery) {
+					this.deliveredMessages.put(id, aMessage);
+				}
+				break;
+			case MESSAGE_DESTINATION_UNREACHED_CODE: case METRIC_DESTINATION_UNREACHED_CODE:
+				if(outgoing != null) {
+					this.addToMessages(aMessage, false);
+				}
+				break;
+			case METRIC_DESTINATION_REACHED_CODE:
+				if(this.controller.isACentralizedController() && (outgoing != null)) {
+					this.addToMessages(aMessage, false);
+				}
+				if(isFirstDelivery) {
+					this.deliveredMessages.put(id, aMessage);
+					this.controller.addMetric((ControlMessage)aMessage);
+				}
+				break;
+			case DIRECTIVE_CONTROLLER_REACHED_CODE:
+				if(outgoing != null) {
+					this.addToMessages(aMessage, false);
+				}
+				if(isFirstDelivery) {
+					this.deliveredMessages.put(id, aMessage);
+					this.controller.addDirective((ControlMessage)aMessage);
+				}
+				break;
+			case DIRECTIVE_DESTINATION_REACHED_CODE:
+				if(outgoing != null) {
+					this.addToMessages(aMessage, false);
+				}
+				if(isFirstDelivery) {
+					this.deliveredMessages.put(id, aMessage);
+				}
+				this.applyDirective(aMessage);
+				break;				
+		}
+				
+		if((outgoing == null) && (isFinalRecipient) && (!isFirstDelivery)) {
 			// Blacklist messages that an app wants to drop.
 			// Otherwise the peer will just try to send it back again.
-			this.blacklistedMessages.put(id, null);
+			this.blacklistedMessages.put(id, null);			
 		}
 
 		for (MessageListener ml : this.mListeners) {
@@ -481,15 +538,36 @@ public abstract class MessageRouter {
 	}
 
 	/**
-	 * Creates a new message to the router.
-	 * @param m The message to create
+	 * In case the message to be created is a normal one it is created straight 
+	 * away. If the message to be created is a new metric, the router delegates
+	 * the fulfillment of the message, with the metric information, to 
+	 * {@link MetricsSensed#fillMessageWithMetric(Message)}. If there is no 
+	 * metric available this method returns false.
+	 * If the message to be created is a new directive, the router delegates the
+	 * the fulfillment of the message with the directive to 
+	 * {@link Controller#fillMessageWithDirective(ControlMessage)}.
+	 * If there is no directive to be generated this method returns false.
+	 * If an standard message, or metric or directive is finally created, it is 
+	 * added to the list of messages of the router.
+	 * @param m The message to create.
 	 * @return True if the creation succeeded, false if not (e.g.
 	 * the message was too big for the buffer)
 	 */
 	public boolean createNewMessage(Message m) {
-		m.setTtl(this.msgTtl);
-		addToMessages(m, true);
-		return true;
+		boolean messageCreated = false;
+		if (m instanceof DirectiveMessage) {
+			messageCreated = this.controller.fillMessageWithDirective(m);
+		}else if (m instanceof MetricMessage) {
+			messageCreated = this.metricsSensed.fillMessageWithMetric(m);
+		}else{
+			messageCreated = true;
+		}
+		if (messageCreated) {
+			m.setTtl(this.msgTtl);
+			addToMessages(m, true);	
+		}
+		
+		return messageCreated;
 	}
 
 	/**
@@ -507,6 +585,12 @@ public abstract class MessageRouter {
 
 		for (MessageListener ml : this.mListeners) {
 			ml.messageDeleted(removed, this.host, drop);
+		}
+		
+		//in case the simulation is running in control mode we report the 
+		//drop.
+		if(this.metricsSensed != null) {
+			this.metricsSensed.addDrop();
 		}
 	}
 
@@ -676,11 +760,89 @@ public abstract class MessageRouter {
 			+ " messages";
 	}
 	
-	protected boolean amIAController() {
-		
+	/**
+	 * Method that checks in the settings whether the node is a controller.
+	 * Sets the property {@link #iamAController} with the result of the checking.
+	 * @param s the settings
+	 * @return true if the node is a controller, false otherwise.
+	 */
+	protected boolean amIAController(Settings s) {
+		return ((s.contains(TYPE_S)) && 
+				(s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
+	
 	}
 	
-	private static enum ReceivedStateCode {
+	public boolean isAController() {
+		return (this.controller != null);
+	}
+	
+	 
+	
+	/**
+	 * Method that checks whether there is at least one controller in the 
+	 * scenario.
+	 * @return True if there is at least one controller in the scenario. 
+	 * False otherwise.
+	 */	
+    protected boolean isControlModeOn() {
+    	Settings s = new Settings(CONTROL_NS);
+		int nrofControllers;
+		boolean isControlModeOn = false;
+		
+		if(s.contains(NROF_CONTROLLERS_S)){
+			nrofControllers = s.getInt(NROF_CONTROLLERS_S);
+			s.ensurePositiveValue(nrofControllers, NROF_CONTROLLERS_S);
+			isControlModeOn = (nrofControllers > 0) ? true : false;
+		} 
+		
+		return isControlModeOn;
+    }
+    
+ 
+    
+    /**
+     * Method that applies the directive specified in the directivesMessage
+     * passed as a parameter
+     * @param message The directive the controller will be configured with. 
+     */
+    protected abstract void applyDirective(Message message);    
+	
+	/**
+	 * Method that analyzes the received message passed as a parameter and
+	 * determines the following variables: the type of the message(normal,
+	 * directive, or metric) and if we are the final destination of the message, and
+	 * if we are a controller.
+	 * 
+	 * @param m Received message in the {@link #incomingMessages}.
+	 * @return A code indicating the type of the message, if we are the final
+	 *         destination and if we are a controller.
+	 */
+	protected TransferredCode getTransferredCode(Message message) {
+		TransferredCode receivedMessageCode = null;
+		boolean isFinalRecipient = message.getTo() == this.host;
+
+		switch (message.getType()) {
+			case MESSAGE:
+				receivedMessageCode = (isFinalRecipient) ? 
+						TransferredCode.MESSAGE_DESTINATION_REACHED_CODE : 
+						TransferredCode.MESSAGE_DESTINATION_UNREACHED_CODE;
+				break;
+			case METRIC:
+				receivedMessageCode = this.isAController() ?
+					TransferredCode.METRIC_DESTINATION_REACHED_CODE :
+					TransferredCode.METRIC_DESTINATION_UNREACHED_CODE;	
+				break;	
+			case DIRECTIVE:
+				receivedMessageCode = this.isAController() ?
+					TransferredCode.DIRECTIVE_CONTROLLER_REACHED_CODE :
+					TransferredCode.DIRECTIVE_DESTINATION_REACHED_CODE;
+				break;
+		}
+						
+		return receivedMessageCode;
+	}
+    
+	private static enum TransferredCode {
 		MESSAGE_DESTINATION_REACHED_CODE, 
 		MESSAGE_DESTINATION_UNREACHED_CODE, 
 		METRIC_DESTINATION_REACHED_CODE,
