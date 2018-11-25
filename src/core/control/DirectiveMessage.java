@@ -4,13 +4,11 @@
 package core.control;
 
 import core.DTNHost;
-import core.Message;
-import core.Message.MessageType;
 
 /**
  * A directive message that is created at a node or passed between nodes.
  */
-public class DirectiveMessage extends Message implements ControlMessage {
+public class DirectiveMessage extends ControlMessage {
 	/**
 	 * Creates a new directive message.
 	 * @param from Who the message is (originally) from
