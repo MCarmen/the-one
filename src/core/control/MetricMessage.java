@@ -4,12 +4,11 @@
 package core.control;
 
 import core.DTNHost;
-import core.Message;
 
 /**
  * A metric message that is created at a node or passed between nodes.
  */
-public class MetricMessage extends Message implements ControlMessage {
+public class MetricMessage extends ControlMessage {
 	/**
 	 * Creates a new MetricMessage.
 	 * @param from Who the message is (originally) from
