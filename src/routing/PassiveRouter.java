@@ -5,6 +5,7 @@
 package routing;
 
 import core.Connection;
+import core.Message;
 import core.Settings;
 
 /**
@@ -39,5 +40,11 @@ public class PassiveRouter extends MessageRouter {
 	@Override
 	public MessageRouter replicate() {
 		return new PassiveRouter(this);
+	}
+
+	@Override
+	protected void applyDirective(Message message) {
+		// TODO Auto-generated method stub
+		
 	}
 }
