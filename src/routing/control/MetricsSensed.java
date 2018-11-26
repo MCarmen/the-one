@@ -54,7 +54,7 @@ public class MetricsSensed {
 	 * Method that fills the message with the drops sensed at the point of 
 	 * calling this method. If there is no drop, the message is not modified, 
 	 * and the window sensing time is reset to the current simulation time.
-	 * @param message the message to be filled with the drops sensed untill now.
+	 * @param message the message to be filled with the drops sensed until now.
 	 * @return true if the message has been modified with the drops sensed. If
 	 * there have been no drops it returns false.
 	 */
