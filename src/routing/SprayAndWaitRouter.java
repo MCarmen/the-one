@@ -78,12 +78,8 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 	@Override
 	public boolean createNewMessage(Message msg) {
-		makeRoomForNewMessage(msg.getSize());
-
-		msg.setTtl(this.msgTtl);
 		msg.addProperty(MSG_COUNT_PROPERTY, Integer.valueOf(initialNrofCopies));
-		addToMessages(msg, true);
-		return true;
+		return super.createNewMessage(msg);
 	}
 
 	@Override
