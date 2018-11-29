@@ -84,9 +84,10 @@ public class Controller {
 	 * @param router
 	 */
     protected void initializeDirectiveEngine(Settings s, MessageRouter router) {
-		String directiveEngine_str = CONTROL_PACKAGE;
+		String directiveEngine_str = CONTROL_PACKAGE + ".";
+		
 		directiveEngine_str += (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : AGGREGATION_ENGINE;
-		String[] argsName = {"java.util.Map<core.control.DirectiveCode, Double>"};
+		String[] argsName = {"java.util.Map"};
 		Object[] args = {Controller.getControlConfiguration(router)};
 		
 		this.directiveEngine= (DirectiveEngine)s.createInitializedObject(
