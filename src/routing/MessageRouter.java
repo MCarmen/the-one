@@ -199,6 +199,8 @@ public abstract class MessageRouter {
 				addApplication(app.replicate());
 			}
 		}
+		this.controller = r.controller;
+		this.metricsSensed = r.metricsSensed;
 	}
 
 	/**
@@ -554,13 +556,11 @@ public abstract class MessageRouter {
 	 * the message was too big for the buffer)
 	 */
 	public boolean createNewMessage(Message m) {
-		boolean messageCreated = false;
+		boolean messageCreated = true;
 		if (m instanceof DirectiveMessage) {
 			messageCreated = this.controller.fillMessageWithDirective(m);
 		}else if (m instanceof MetricMessage) {
 			messageCreated = this.metricsSensed.fillMessageWithMetric(m);
-		}else{
-			messageCreated = true;
 		}
 		if (messageCreated) {
 			m.setTtl(this.msgTtl);
