@@ -1,14 +1,10 @@
 package routing.control;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import core.Message;
 import core.Settings;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import routing.MessageRouter;
-import routing.SprayAndWaitRouter;
 
 /**
  * This class implements a controller able to collect network metric messages
@@ -36,16 +32,18 @@ public class Controller {
 
 	/**
 	 * Constructor that initializes the engine used to generate directives, 
-	 * based on the settings configuration and on the router configuration.
-	 * It also sets if the controller is a centralized one (case where there is
-	 * just one controller). 
+	 * based on the settings configuration and on the router configuration. 
+	 * It sets if the controller is a centralized one (case where there is
+	 * just one controller).
+	 * It initializes the controlProperties with an empty map mean to be 
+	 * fed by the routers themselves.  
 	 * @param settings Settings of the name space: GROUP_NS and GROUP_NS+i
 	 */
 	public Controller(Settings settings, MessageRouter router) {
 		// TODO Auto-generated constructor stub
 		Settings s = new Settings(CONTROL_NS);
 		int nrofControllers;
-		this.initializeDirectiveEngine(s, router);
+		this.setDirectiveEngine(s);
 		
 		if(s.contains(NROF_CONTROLLERS_S)){
 			nrofControllers = s.getInt(NROF_CONTROLLERS_S);
@@ -54,44 +52,40 @@ public class Controller {
 		}
 		
 	}
-	
+		
 	/**
-	 * Factory method that builds a map with information from the router, to be 
-	 * used by the engine to generate a directive. For instance, 
+	 * Method that adds an entry to the engine controlProperties map. 
+	 * This entry corresponds to a router property to be used by the engine to 
+	 * generate a directive. For instance, 
 	 * an SprayAndWaitRouter contains the nrof_copies of the message. 
-	 * The directive could be nrof_copies/2.
-	 * @param router the router.
-	 * @return A map with the router settings to be used to generate a 
-	 * directive. If there is no setting to be adjusted by a directive the map
-	 * will be empty.  
+	 * @param code the code of the router property.
+	 * @param initialValue The value of this property
 	 */
-	protected static Map<DirectiveCode, Double> getControlConfiguration(MessageRouter router){
-		Map<DirectiveCode, Double> controlConfiguration = 
-				new HashMap<DirectiveCode, Double>();
-		
-		if (router instanceof SprayAndWaitRouter) { 
-			controlConfiguration.put(DirectiveCode.NROF_COPIES_CODE, 
-					Double.valueOf(((SprayAndWaitRouter)router).getInitialNrofCopies()));
-		}
-		
-		return controlConfiguration;
-	}
+    public void putControlProperty(DirectiveCode code, Double initialValue) {
+    	this.directiveEngine.putControlProperty(code, initialValue);
+    }
+
+	/**
+	 * Method that adds all the entries in the map parameter, to the engine 
+	 * controlProperties map.  
+	 * @param properties the properties of the router to be added to the 
+	 * properties engine map.
+	 */
+    public void putControlProperties(ControlPropertyMap properties) {
+    	this.directiveEngine.putControlProperties(properties);
+    }
 	
 	/**
-	 * Method that initializes the engine used to generate directives, 
-	 * based on the settings configuration and on the router configuration. 
+	 * Method that builds the engine used to generate directives, 
+	 * based on the settings configuration. 
 	 * @param settings Settings of the name space: controller
-	 * @param router
 	 */
-    protected void initializeDirectiveEngine(Settings s, MessageRouter router) {
+    protected void setDirectiveEngine(Settings s) {
 		String directiveEngine_str = CONTROL_PACKAGE + ".";
 		
-		directiveEngine_str += (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : AGGREGATION_ENGINE;
-		String[] argsName = {"java.util.Map"};
-		Object[] args = {Controller.getControlConfiguration(router)};
-		
-		this.directiveEngine= (DirectiveEngine)s.createInitializedObject(
-				directiveEngine_str, argsName, args);
+		directiveEngine_str += (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : AGGREGATION_ENGINE;		
+		this.directiveEngine= (DirectiveEngine)s.createObject(
+				directiveEngine_str);
     }   
     
     
