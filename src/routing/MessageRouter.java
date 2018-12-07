@@ -24,6 +24,7 @@ import core.SimError;
 import core.control.ControlMessage;
 import core.control.DirectiveMessage;
 import core.control.MetricMessage;
+import routing.control.ControlPropertyMap;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
 import routing.util.RoutingInfo;
@@ -419,10 +420,10 @@ public abstract class MessageRouter {
 				}
 				break;
 			case METRIC_DESTINATION_REACHED_CODE:
-				if(this.controller.isACentralizedController() && (outgoing != null)) {
+				if(!this.controller.isACentralizedController() && (outgoing != null)) {
 					this.addToMessages(aMessage, false);
 				}
-				if(isFirstDelivery) {
+				if(!isDeliveredMessage(aMessage)) {
 					this.deliveredMessages.put(id, aMessage);
 					this.controller.addMetric((ControlMessage)aMessage);
 				}
@@ -431,7 +432,7 @@ public abstract class MessageRouter {
 				if(outgoing != null) {
 					this.addToMessages(aMessage, false);
 				}
-				if(isFirstDelivery) {
+				if(!isDeliveredMessage(aMessage)) {
 					this.deliveredMessages.put(id, aMessage);
 					this.controller.addDirective((ControlMessage)aMessage);
 				}
@@ -440,7 +441,7 @@ public abstract class MessageRouter {
 				if(outgoing != null) {
 					this.addToMessages(aMessage, false);
 				}
-				if(isFirstDelivery) {
+				if(!isDeliveredMessage(aMessage)) {
 					this.deliveredMessages.put(id, aMessage);
 				}
 				this.applyDirective(aMessage);
@@ -775,8 +776,7 @@ public abstract class MessageRouter {
 	public boolean isAController() {
 		return (this.controller != null);
 	}
-	
-	 
+		 
 	
 	/**
 	 * Method that checks whether there is at least one controller in the 
@@ -841,6 +841,13 @@ public abstract class MessageRouter {
 						
 		return receivedMessageCode;
 	}
+	
+    protected void initControlPropertyMap(ControlPropertyMap properties) {
+    	if(this.controller != null) { //if I am a controller
+    		this.controller.putControlProperties(properties);
+    	}
+    }
+
     
 	private static enum TransferredCode {
 		MESSAGE_DESTINATION_REACHED_CODE, 
