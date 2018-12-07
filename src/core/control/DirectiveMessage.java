@@ -4,6 +4,7 @@
 package core.control;
 
 import core.DTNHost;
+import core.Message;
 
 /**
  * A directive message that is created at a node or passed between nodes.
@@ -21,6 +22,14 @@ public class DirectiveMessage extends ControlMessage {
 		super(from, to, id, size);
 		// TODO Auto-generated constructor stub
 		this.type = MessageType.DIRECTIVE;
+	}
+
+	@Override
+	public Message replicate() {
+		// TODO Auto-generated method stub
+		DirectiveMessage m = new DirectiveMessage(this.getFrom(), this.getTo(), this.getId(), this.getSize());
+		m.copyFrom(this);
+		return m;
 	}
 
 }
