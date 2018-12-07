@@ -1,6 +1,7 @@
 package routing.control;
 
 import core.control.ControlMessage;
+import core.control.DirectiveCode;
 
 /**
  * Interface for the Engines that generate directives
@@ -34,4 +35,26 @@ public interface DirectiveEngine {
 	 * fields and the method returns true.
 	 */
 	public boolean generateDirective(ControlMessage message);
+		
+	/**
+	 * Method that adds an entry to the engine controlProperties map. 
+	 * This entry corresponds to a router property to be used by the engine to 
+	 * generate a directive. For instance, 
+	 * an SprayAndWaitRouter contains the nrof_copies of the message. 
+	 * @param code the code of the router property.
+	 * @param value The value of this property
+	 */
+    public void putControlProperty(DirectiveCode code, Double value);
+    
+	/**
+	 * Method that adds all the entries in the ControlProperties passed as a 
+	 * parameter to the engine controlProperties map. 
+	 * These entries correspond to router properties, to be used by the engine to 
+	 * generate a directive. For instance, 
+	 * an SprayAndWaitRouter contains the nrof_copies of the message. 
+	 * @param code the code of the router property.
+	 * @param value The value of this property
+	 */
+    public void putControlProperties(ControlPropertyMap properties);    
+
 }
