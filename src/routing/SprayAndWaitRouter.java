@@ -12,6 +12,7 @@ import core.DTNHost;
 import core.Message;
 import core.Settings;
 import core.control.DirectiveCode;
+import routing.control.SprayAndWaitControlPropertyMap;
 
 /**
  * Implementation of Spray and wait router as depicted in
@@ -39,6 +40,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 		initialNrofCopies = snwSettings.getInt(NROF_COPIES);
 		isBinary = snwSettings.getBoolean( BINARY_MODE);
+		this.initControlPropertyMap(new SprayAndWaitControlPropertyMap(this));
 	}
 
 	/**
@@ -49,6 +51,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		super(r);
 		this.initialNrofCopies = r.initialNrofCopies;
 		this.isBinary = r.isBinary;
+		this.initControlPropertyMap(new SprayAndWaitControlPropertyMap(this));
 	}
 
 	@Override
@@ -144,11 +147,6 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 		/* reduce the amount of copies left */ 
 		nrofCopies = (Integer)msg.getProperty(MSG_COUNT_PROPERTY);
-		/* applying any possible change to the initialNrofCopies after the 
-		 * application of a directive. */
-		if(nrofCopies > this.initialNrofCopies) {
-			nrofCopies = this.initialNrofCopies;
-		}
 		if (isBinary) {
 			/* in binary S'n'W the sending node keeps ceil(n/2) copies */
 			nrofCopies = (int)Math.ceil(nrofCopies/2.0);
@@ -171,8 +169,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	@Override
 	protected void applyDirective(Message message) {
 		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-			this.initialNrofCopies = ((Integer) message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString()))
-					.intValue();
+			this.initialNrofCopies = ((Double) message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())).intValue();
 		}
 	}
 	
