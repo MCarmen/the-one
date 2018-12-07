@@ -4,6 +4,7 @@
 package core.control;
 
 import core.DTNHost;
+import core.Message;
 
 /**
  * A metric message that is created at a node or passed between nodes.
@@ -22,5 +23,13 @@ public class MetricMessage extends ControlMessage {
 		// TODO Auto-generated constructor stub
 		this.type = MessageType.METRIC;		
 	}
+
+	@Override
+	public Message replicate() {
+		// TODO Auto-generated method stub
+		MetricMessage m = new MetricMessage(this.getFrom(), this.getTo(), this.getId(), this.getSize());
+		m.copyFrom(this);
+		return m;
+	}	
 
 }
