@@ -2,7 +2,6 @@ package routing.control;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
@@ -28,20 +27,31 @@ public class AggregationEngine implements DirectiveEngine {
 	/** Control configuration the directive will be based on. For instance, 
 	 * the control configuration could contain the nrof_copies of the routing 
 	 * algorithm. The directive could be nrof_copies/2. */
-	private Map<DirectiveCode, Double> controlConfiguration;
+	private ControlPropertyMap controlProperties;
+	
 	/**
 	 * Constructor that creates the lists of workingOnMetrics and 
-	 * workingOnDirectives and sets the control configuration to be 
-	 * used to generate directives. 
+	 * workingOnDirectives.
 	 */
-	public AggregationEngine(Map<DirectiveCode, Double> controlConfiguration) {
-		// TODO Auto-generated constructor stub
+	public AggregationEngine() {
 		this.workingOnMetrics = new ArrayList<MetricMessage>();
-		this.workingOnDirectives = new ArrayList<DirectiveMessage>();	
-		this.controlConfiguration = controlConfiguration;
+		this.workingOnDirectives = new ArrayList<DirectiveMessage>();
+		this.controlProperties = new ControlPropertyMap();
+	}
+	
+
+	@Override
+    public void putControlProperty(DirectiveCode code, Double value) {
+    	this.controlProperties.putProperty(code, value);
+    }
+	
+	@Override
+	public void putControlProperties(ControlPropertyMap properties) {
+		this.controlProperties.putProperties(properties);		
 	}
 
-	/* (non-Javadoc)
+	
+	/** 
 	 * @see routing.control.DirectiveEngine#addMetric(core.control.ControlMessage)
 	 */
 	@Override
@@ -79,11 +89,11 @@ public class AggregationEngine implements DirectiveEngine {
 	@Override
 	public boolean generateDirective(ControlMessage message) {
 		boolean generatedDirective = false;
-		Double newNrofCopies = this.controlConfiguration.get(DirectiveCode.NROF_COPIES_CODE);
+		double newNrofCopies = this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE).doubleValue();
 		int nrofConsideredMetrics = 0;
 		int totalDrops = 0;
-		double dropsAverage = 0;
-		double nextDropsReading = 0;
+		double dropsAverage;
+		MetricsSensed.DropsPerTime nextDropsReading;
 		int nrofConsideredDirectives = 0;
 		int totalNrofCopies = 0;
 		double nrofCopiesAverage = 0;
@@ -93,16 +103,16 @@ public class AggregationEngine implements DirectiveEngine {
 		if(!this.workingOnMetrics.isEmpty()) {
 			for (MetricMessage metric : this.workingOnMetrics) {
 				if (metric.containsProperty​(MetricCode.DROPS_CODE.toString())) {
-					nextDropsReading = ((Double)metric.getProperty(MetricCode.DROPS_CODE.toString())).doubleValue();
-					if (nextDropsReading > 0) {
-						totalDrops += nextDropsReading;
+					nextDropsReading = (MetricsSensed.DropsPerTime)metric.getProperty(MetricCode.DROPS_CODE.toString());
+					if (nextDropsReading != null) {
+						totalDrops += nextDropsReading.getNrofDrops();
 						nrofConsideredMetrics ++;
 					}					  
 				}
 			}
 			if(nrofConsideredMetrics > 0) {
 				dropsAverage = totalDrops / nrofConsideredMetrics;
-				newNrofCopies = this.controlConfiguration.get(DirectiveCode.NROF_COPIES_CODE)/2;
+				newNrofCopies = (int)Math.ceil((this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE)/2));
 			}
 			this.workingOnMetrics.clear();
 		} //end working with the workingOnMetrics list
@@ -110,19 +120,19 @@ public class AggregationEngine implements DirectiveEngine {
 		if(!this.workingOnDirectives.isEmpty()) {			
 			for (DirectiveMessage directive : workingOnDirectives) {
 				if(directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-					nextNrofCopiesReading = ((Double)directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())).doubleValue();
+					nextNrofCopiesReading = (Double)(directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString()));
 					totalNrofCopies += nextNrofCopiesReading;
 					nrofConsideredDirectives ++;
 				}
 			}
 			if (nrofConsideredDirectives > 0) {
 				nrofCopiesAverage = totalNrofCopies / nrofConsideredDirectives;
-				newNrofCopies = (newNrofCopies + nrofCopiesAverage) / 2;
+				newNrofCopies = (int)Math.ceil((newNrofCopies + nrofCopiesAverage) / 2);
 			}
 			this.workingOnDirectives.clear();
 		} //end working with the workingOnDirectives list
 		
-		if (newNrofCopies != ((Double)this.controlConfiguration.get(DirectiveCode.NROF_COPIES_CODE)).doubleValue()) {
+		if (newNrofCopies != this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE)) {
 			((DirectiveMessage)message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopies);
 			generatedDirective = true;
 		}
