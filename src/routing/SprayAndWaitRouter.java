@@ -81,6 +81,11 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 	@Override
 	public boolean createNewMessage(Message msg) {
+		boolean messageCreaged = super.createNewMessage(msg);
+		if((messageCreaged) && (msg.getType() == Message.MessageType.DIRECTIVE)) {
+			//we apply to ourselves the directive we have just generated.
+			this.initialNrofCopies = ((Double)msg.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())).intValue();
+		}			
 		msg.addProperty(MSG_COUNT_PROPERTY, Integer.valueOf(initialNrofCopies));
 		return super.createNewMessage(msg);
 	}
