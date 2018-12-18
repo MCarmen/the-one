@@ -557,18 +557,24 @@ public abstract class MessageRouter {
 	 * the message was too big for the buffer)
 	 */
 	public boolean createNewMessage(Message m) {
-		boolean messageCreated = true;
+		boolean msgCreated = true;
 		if (m instanceof DirectiveMessage) {
-			messageCreated = this.controller.fillMessageWithDirective(m);
+			msgCreated = this.controller.fillMessageWithDirective(m);
+			// We add the directive to the deliveredMessages list so it will 
+			// not be considered by the controller that generated it in case 
+			// it receives it.
+			if (msgCreated) {
+				this.deliveredMessages.put(m.getId(), m);
+			}
 		}else if (m instanceof MetricMessage) {
-			messageCreated = this.metricsSensed.fillMessageWithMetric(m);
+			msgCreated = this.metricsSensed.fillMessageWithMetric(m);
 		}
-		if (messageCreated) {
+		if (msgCreated) {
 			m.setTtl(this.msgTtl);
 			addToMessages(m, true);	
 		}
 		
-		return messageCreated;
+		return msgCreated;
 	}
 
 	/**
