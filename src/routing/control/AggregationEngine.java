@@ -122,7 +122,7 @@ public class AggregationEngine implements DirectiveEngine {
 				if(directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 					nextNrofCopiesReading = (Double)(directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString()));
 					totalNrofCopies += nextNrofCopiesReading;
-					nrofConsideredDirectives ++;
+					nrofConsideredDirectives++;
 				}
 			}
 			if (nrofConsideredDirectives > 0) {
