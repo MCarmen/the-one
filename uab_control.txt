@@ -3,7 +3,7 @@
 #
 
 ## Scenario settings
-Scenario.name = default_scenario
+Scenario.name = control
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 10000s ~ 3h
@@ -29,13 +29,19 @@ highspeedInterface.transmitSpeed = 10M
 highspeedInterface.transmitRange = 30
 
 ## control specific settings 
-# engine: If not specified, by default is "AggregattionEngine"
 # nrofControllers: the number of controllers in the simulation. If not specified
 # by default is 0, meaning the simulation is not running in control mode.
-control.nrofControllers = 3
+control.nrofControllers = 5
+# engine: If not specified, by default is "AggregattionEngine"
+control.engine = EWMAEngine
+# EWMAEngine smoothes the value of the received drops and number of copies of a message with the formules:
+# sdrops = (1-dropsAlpha) * sdrops + dropsAlpha * drops_messured.
+# sNrofCopies = (1-nrofCopiesAlpha) * sNrofCopies + nrofCopiesAlpha * nrofCopiesAlpha_messured.
+EWMAEngine.dropsAlpha = 0.2
+EWMAEngine.nrofCopiesAlpha = 0.2
 
 # Define n different node groups
-Scenario.nrofHostGroups = 5
+Scenario.nrofHostGroups = 2
 
 ## Group-specific settings:
 # groupID : Group's identifier. Used as the prefix of host names
@@ -77,55 +83,17 @@ Group.speed = 0.5, 0.5
 Group.msgTtl = 300
 Group.sendQueue = FIFO
 
-Group.nrofHosts = 40
+Group.nrofHosts = 20
 Group.groupID = pedestrians
-#Group.radius = 1000
-Group.radius = 300
-Group.centerzonex = 2585
-Group.centerzoney = 686
 
 # group1 (controller) specific settings
-Group1.groupID = controller0
+Group1.groupID = controller
 Group1.type = controller
-Group1.nrofHosts = 1
-Group1.nrofInterfaces = 1
-Group1.interface1 = highspeedInterface
-Group1.centerzonex = 2494
-Group1.centerzoney = 790
+Group1.nrofHosts = 5
 
 
-Group2.groupID = controller1
-Group2.type = controller
-Group2.nrofHosts = 1
-Group2.nrofInterfaces = 1
-Group2.interface1 = highspeedInterface
-Group2.centerzonex = 2452
-Group2.centerzoney = 843
-
-Group3.groupID = controller2
-Group3.type = controller
-Group3.nrofHosts = 1
-Group3.nrofInterfaces = 1
-Group3.interface1 = highspeedInterface
-Group3.centerzonex = 1684
-Group3.centerzoney = 1017
-
-# group4 (pedestrians) specific settings
-Group4.groupID = engineer
-Group4.centerzonex = 2452
-Group4.centerzoney = 843
-
-Group4.groupID = medicina
-Group4.centerzonex = 1684
-Group4.centerzoney = 1017
-
-Group4.groupID = filosofia
-Group4.centerzonex = 2071
-Group4.centerzoney = 549
-
-Group5.groupID = sociologia
-Group5.centerzonex = 1980
-Group5.centerzoney = 645
+# group2 (pedestrians) specific settings
+Group2.groupID = engineer
 
 
 ## Message creation parameters 
@@ -135,38 +103,42 @@ Events.nrof = 3
 Events1.class = MessageEventGenerator
 # (following settings are specific for the MessageEventGenerator class)
 # Creation interval in seconds (one new message every 25 to 35 seconds)
-Events1.interval = 5,10
+Events1.interval = 25,35
 # Message sizes (500kB - 1MB)
 Events1.size = 500k,1M
 # range of message source/destination addresses
-Events1.hosts = 0,162
-Events1.tohosts = 0,162
+Events1.hosts = 0,25
+Events1.tohosts = 0,25
 # Message ID prefix
 Events1.prefix = M
 
 # Class of the second event generator
-Events2.class = MetricMessageGenerator
+Events2.class = control.MetricMessageEventGenerator
 # (following settings are specific for the MessageEventGenerator class)
 # Creation interval in seconds
-Events2.interval = 10
+Events2.interval = 40
+# Message size (500kB)
+Events2.size = 500k
 # Nodes sending metrics
-Events2.hosts = 3,162
+Events2.hosts = 5,25
 # Controllers
-Events2.tohosts = 0,3
+Events2.tohosts = 0,5
 # Message ID prefix
 Events2.prefix = S
 
 # Class of the third event generator
-Events3.class = ControlMessageGenerator
+Events3.class = control.DirectiveMessageEventGenerator
 # (following settings are specific for the MessageEventGenerator class)
 # Creation interval in seconds
-Events3.interval = 20
+Events3.interval = 45
+# Message size (500kB)
+Events3.size = 500k
 # Controllers sending directives
-Events3.hosts = 0,3
+Events3.hosts = 0,5
 # Nodes receiving directives
-Events3.tohosts = 3,162
+Events3.tohosts = 5,25
 # Message ID prefix
-Events3.prefix = C
+Events3.prefix = D
 
 
 ## Movement model settings
@@ -185,14 +157,17 @@ MapBasedMovement.mapFile1 = data/uab.osm.wkt
 ## Reports - all report names have to be valid report classes
 
 # how many reports to load
-Report.nrofReports = 2
+Report.nrofReports = 5
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
 Report.reportDir = reports/
 # Report classes to load
 Report.report1 = MessageStatsReport
-Report.report2 = ControlStatsReport
+Report.report2 = control.ControlStatsReport
+Report.report3 = control.MetricStatsReport
+Report.report4 = control.DirectiveStatsReport
+Report.report5 = control.StandardMessageStatsReport
 
 ## Default settings for some routers settings
 #epidemic
@@ -200,8 +175,10 @@ Report.report2 = ControlStatsReport
 
 #sprayandwait
 SprayAndWaitRouter.nrofCopies = [1;10;20;30;40;50;60;70;80;90;100]
+#SprayAndWaitRouter.nrofCopies = [20]
 SprayAndWaitRouter.binaryMode = true
 Report.reportDir = [reports/spray/1; reports/spray/10; reports/spray/20; reports/spray/30; reports/spray/40; reports/spray/50; reports/spray/60; reports/spray/70; reports/spray/80; reports/spray/90; reports/spray/100]
+#Report.reportDir = [reports/spray/20]
 
 #prophet
 #ProphetRouter.secondsInTimeUnit = 30
@@ -214,7 +191,7 @@ Report.reportDir = [reports/spray/1; reports/spray/10; reports/spray/20; reports
 Optimization.cellSizeMult = 5
 Optimization.randomizeUpdateOrder = true
 
-ProphetRouter.secondsInTimeUnit = 30
+#ProphetRouter.secondsInTimeUnit = 30
 
 # Define POI data files
 
