@@ -39,7 +39,7 @@ public class Controller {
 	 * fed by the routers themselves.  
 	 * @param settings Settings of the name space: GROUP_NS and GROUP_NS+i
 	 */
-	public Controller(Settings settings, MessageRouter router) {
+	public Controller(MessageRouter router) {
 		// TODO Auto-generated constructor stub
 		Settings s = new Settings(CONTROL_NS);
 		int nrofControllers;
@@ -84,7 +84,7 @@ public class Controller {
 		String directiveEngine_str = CONTROL_PACKAGE + ".";
 		
 		directiveEngine_str += (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : AGGREGATION_ENGINE;		
-		this.directiveEngine= (DirectiveEngine)s.createObject(
+		this.directiveEngine= (DirectiveEngine)s.createIntializedObject(
 				directiveEngine_str);
     }   
     
