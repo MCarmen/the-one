@@ -165,7 +165,7 @@ public abstract class MessageRouter {
 			sendQueueMode = Q_MODE_RANDOM;
 		}
 		
-		this.controller = this.amIAController(s) ? new Controller(s, this) : null;
+		this.controller = this.amIAController(s) ? new Controller(this) : null;
 		this.metricsSensed = this.isControlModeOn() ? new MetricsSensed() : null; 		
 	}
 
