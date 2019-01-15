@@ -3,6 +3,7 @@ package routing.control;
 import java.util.ArrayList;
 import java.util.List;
 
+import core.Settings;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
@@ -17,39 +18,23 @@ import core.control.MetricMessage;
  * to the received directives.
  *
  */
-public class AggregationEngine implements DirectiveEngine {
+public class AggregationEngine extends DirectiveEngine {
 	/** List where to add the received metrics to be aggregated */
 	private List<MetricMessage> workingOnMetrics;
 	
 	/** List where to add the received directives to be aggregated */
 	private List<DirectiveMessage> workingOnDirectives;
 
-	/** Control configuration the directive will be based on. For instance, 
-	 * the control configuration could contain the nrof_copies of the routing 
-	 * algorithm. The directive could be nrof_copies/2. */
-	private ControlPropertyMap controlProperties;
-	
 	/**
 	 * Constructor that creates the lists of workingOnMetrics and 
 	 * workingOnDirectives.
 	 */
-	public AggregationEngine() {
+	public AggregationEngine(Settings settings) {
+		super(settings);
 		this.workingOnMetrics = new ArrayList<MetricMessage>();
 		this.workingOnDirectives = new ArrayList<DirectiveMessage>();
-		this.controlProperties = new ControlPropertyMap();
 	}
 	
-
-	@Override
-    public void putControlProperty(DirectiveCode code, Double value) {
-    	this.controlProperties.putProperty(code, value);
-    }
-	
-	@Override
-	public void putControlProperties(ControlPropertyMap properties) {
-		this.controlProperties.putProperties(properties);		
-	}
-
 	
 	/** 
 	 * @see routing.control.DirectiveEngine#addMetric(core.control.ControlMessage)
