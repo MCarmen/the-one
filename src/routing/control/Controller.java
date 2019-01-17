@@ -77,14 +77,15 @@ public class Controller {
 	
 	/**
 	 * Method that builds the engine used to generate directives, 
-	 * based on the settings configuration. 
+	 * based on the settings configuration of the specified engine. 
 	 * @param settings Settings of the name space: controller
 	 */
     protected void setDirectiveEngine(Settings s) {
-		String directiveEngine_str = CONTROL_PACKAGE + ".";
+		String engineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : AGGREGATION_ENGINE;
+		Settings engineSettings = new Settings(engineNameSpace);
+		String directiveEngine_str = CONTROL_PACKAGE + "." + engineNameSpace;
 		
-		directiveEngine_str += (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : AGGREGATION_ENGINE;		
-		this.directiveEngine= (DirectiveEngine)s.createIntializedObject(
+		this.directiveEngine= (DirectiveEngine)engineSettings.createIntializedObject(
 				directiveEngine_str);
     }   
     
