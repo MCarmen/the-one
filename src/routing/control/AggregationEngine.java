@@ -97,7 +97,7 @@ public class AggregationEngine extends DirectiveEngine {
 			}
 			if(nrofConsideredMetrics > 0) {
 				dropsAverage = totalDrops / nrofConsideredMetrics;
-				newNrofCopies = (int)Math.ceil((this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE)/2));
+				newNrofCopies = (int)Math.ceil(newNrofCopies / 2);
 			}
 			this.workingOnMetrics.clear();
 		} //end working with the workingOnMetrics list
