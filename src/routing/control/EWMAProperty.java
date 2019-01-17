@@ -34,8 +34,12 @@ public class EWMAProperty{
 		this(EWMAProperty.NOT_SET_VALUE, alpha);
 	}	
 	
-	public double getsProperty() {
+	public double getValue() {
 		return sProperty;
+	}
+	
+	public boolean isSet() {
+		return  !(this.sProperty == EWMAProperty.NOT_SET_VALUE);
 	}
 
 	/**
@@ -50,6 +54,4 @@ public class EWMAProperty{
 		this.sProperty = (this.sProperty == EWMAProperty.NOT_SET_VALUE) ? newValue
 				: (1 - this.alpha) * this.sProperty + this.alpha * newValue;
 	}
-	
-
 }
