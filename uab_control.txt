@@ -31,14 +31,23 @@ highspeedInterface.transmitRange = 30
 ## control specific settings 
 # nrofControllers: the number of controllers in the simulation. If not specified
 # by default is 0, meaning the simulation is not running in control mode.
-control.nrofControllers = 5
 # engine: If not specified, by default is "AggregattionEngine"
-control.engine = EWMAEngine
-# EWMAEngine smoothes the value of the received drops and number of copies of a message with the formules:
-# sdrops = (1-dropsAlpha) * sdrops + dropsAlpha * drops_messured.
+# For different engines, the sub-parameters are engine-specific
+# For EWMAEngine, the parameters are: 
+# dropsAlpha : used in the EWMA: sdrops = (1-dropsAlpha) * sdrops + dropsAlpha * drops_messured.
+# nrofCopiesAlpha : used in the EWMA: 
 # sNrofCopies = (1-nrofCopiesAlpha) * sNrofCopies + nrofCopiesAlpha * nrofCopiesAlpha_messured.
+# directivesAlpha : used in the EWMA function to pondarate the number of copies considered after 
+# evaluating the drops in regard to the number of copies got from other directives. By default is 0.
+# dropsThreshold : if the drops mesured >= dropsThreshold the number of copies of the message is decreased.
+# If not specified, by default, is set to 0.
+control.nrofControllers = 5
+control.engine = EWMAEngine
+
 EWMAEngine.dropsAlpha = 0.2
 EWMAEngine.nrofCopiesAlpha = 0.2
+EWMAEngine.directivesAlpha = 0.2
+EWMAEngine.dropsThreshold = 10
 
 # Define n different node groups
 Scenario.nrofHostGroups = 2
@@ -174,11 +183,11 @@ Report.report5 = control.StandardMessageStatsReport
 #Report.reportDir = reports/epidemic
 
 #sprayandwait
-SprayAndWaitRouter.nrofCopies = [1;10;20;30;40;50;60;70;80;90;100]
-#SprayAndWaitRouter.nrofCopies = [20]
+#SprayAndWaitRouter.nrofCopies = [1;10;20;30;40;50;60;70;80;90;100]
+SprayAndWaitRouter.nrofCopies = [100]
 SprayAndWaitRouter.binaryMode = true
-Report.reportDir = [reports/spray/1; reports/spray/10; reports/spray/20; reports/spray/30; reports/spray/40; reports/spray/50; reports/spray/60; reports/spray/70; reports/spray/80; reports/spray/90; reports/spray/100]
-#Report.reportDir = [reports/spray/20]
+#Report.reportDir = [reports/spray/1; reports/spray/10; reports/spray/20; reports/spray/30; reports/spray/40; reports/spray/50; reports/spray/60; reports/spray/70; reports/spray/80; reports/spray/90; reports/spray/100]
+Report.reportDir = [reports/spray/100]
 
 #prophet
 #ProphetRouter.secondsInTimeUnit = 30
