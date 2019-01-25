@@ -24,6 +24,8 @@ import core.SimError;
 import core.control.ControlMessage;
 import core.control.DirectiveMessage;
 import core.control.MetricMessage;
+import core.control.listener.DirectiveListener;
+import report.control.directive.DirectiveDetails;
 import routing.control.ControlPropertyMap;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
@@ -445,6 +447,8 @@ public abstract class MessageRouter {
 					this.deliveredMessages.put(id, aMessage);
 				}
 				this.applyDirective(aMessage);
+				this.reportAppliedDirective(aMessage);
+
 				break;				
 		}
 				
@@ -557,24 +561,27 @@ public abstract class MessageRouter {
 	 * the message was too big for the buffer)
 	 */
 	public boolean createNewMessage(Message m) {
-		boolean msgCreated = true;
+		boolean msgHasBeenCreated = true;
 		if (m instanceof DirectiveMessage) {
-			msgCreated = this.controller.fillMessageWithDirective(m);
+			DirectiveDetails directiveDetails;
+			directiveDetails = this.controller.fillMessageWithDirective(m);
 			// We add the directive to the deliveredMessages list so it will 
 			// not be considered by the controller that generated it in case 
 			// it receives it.
-			if (msgCreated) {
+			msgHasBeenCreated = (directiveDetails != null) ? true : false;
+			if (msgHasBeenCreated) {
 				this.deliveredMessages.put(m.getId(), m);
 			}
+			this.reportDirectiveCreated(directiveDetails);
 		}else if (m instanceof MetricMessage) {
-			msgCreated = this.metricsSensed.fillMessageWithMetric(m);
+			msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m);
 		}
-		if (msgCreated) {
+		if (msgHasBeenCreated) {
 			m.setTtl(this.msgTtl);
 			addToMessages(m, true);	
 		}
 		
-		return msgCreated;
+		return msgHasBeenCreated;
 	}
 
 	/**
@@ -808,10 +815,11 @@ public abstract class MessageRouter {
     
     /**
      * Method that applies the directive specified in the directivesMessage
-     * passed as a parameter
+     * passed as a parameter and informs the listeners. This method should be 
+     * overwrite by the subclasses.
      * @param message The directive the controller will be configured with. 
      */
-    protected abstract void applyDirective(Message message);    
+    protected abstract void applyDirective(Message message);
 	
 	/**
 	 * Method that analyzes the received message passed as a parameter and
@@ -848,12 +856,45 @@ public abstract class MessageRouter {
 		return receivedMessageCode;
 	}
 	
+	/**
+	 * Method that sets in the controller the router properties to be set up by 
+	 * a controller. 
+	 * @param properties the router properties to be set up.
+	 */
     protected void initControlPropertyMap(ControlPropertyMap properties) {
     	if(this.controller != null) { //if I am a controller
     		this.controller.putControlProperties(properties);
     	}
     }
 
+    /**
+     * Method that reports to all the DirectiveListeners about the creation
+     * of a directive.
+     * @param directiveDetails the details of the created directive or null
+     * if no directive has been created.
+     */
+    protected void reportDirectiveCreated(DirectiveDetails directiveDetails) {
+    	if(directiveDetails != null) {
+    		for (MessageListener ml : this.mListeners) {
+    			if (ml instanceof DirectiveListener) {
+    				((DirectiveListener)ml).directiveCreated(directiveDetails);
+    			}
+    		}
+    	}
+    }
+    
+    /**
+     * Method that reports to all the DirectiveListeners about that a directive
+     * has been applied.
+     * @param message The message containing the directive.
+     */
+    protected void reportAppliedDirective(Message message){
+		for (MessageListener ml : this.mListeners) {
+			if (ml instanceof DirectiveListener) {
+				((DirectiveListener)ml).directiveApplied(message, this.host);
+			}
+		}
+    }
     
 	private static enum TransferredCode {
 		MESSAGE_DESTINATION_REACHED_CODE, 

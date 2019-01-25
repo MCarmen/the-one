@@ -166,7 +166,7 @@ MapBasedMovement.mapFile1 = data/uab.osm.wkt
 ## Reports - all report names have to be valid report classes
 
 # how many reports to load
-Report.nrofReports = 5
+Report.nrofReports = 7
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
@@ -177,6 +177,9 @@ Report.report2 = control.ControlStatsReport
 Report.report3 = control.MetricStatsReport
 Report.report4 = control.DirectiveStatsReport
 Report.report5 = control.StandardMessageStatsReport
+Report.report6 = control.directive.AppliedDirectiveReport
+Report.report7 = control.directive.NewDirectiveReport
+
 
 ## Default settings for some routers settings
 #epidemic

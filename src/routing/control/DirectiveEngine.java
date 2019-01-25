@@ -3,6 +3,7 @@ package routing.control;
 import core.Settings;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
+import report.control.directive.DirectiveDetails;
 
 /**
  * Abstract class for the Engines that generate directives
@@ -21,6 +22,9 @@ public abstract class DirectiveEngine {
 	 */
 	protected Settings settings;
 	
+	/** Container for the details of the directive */ 
+	protected DirectiveDetails directiveDetails;
+	
 	/**
 	 * Initializes the property settings.
 	 * @param settings settings corresponding to the namespace core.engine.
@@ -28,6 +32,7 @@ public abstract class DirectiveEngine {
 	public DirectiveEngine(Settings settings) {
 		this.settings = settings;
 		this.controlProperties = new ControlPropertyMap();
+		this.directiveDetails = new DirectiveDetails();
 	}
 	
 	/**
@@ -56,7 +61,7 @@ public abstract class DirectiveEngine {
 	 * returns false, otherwise, the message is fulfilled with the directive 
 	 * fields and the method returns true.
 	 */
-	public abstract boolean generateDirective(ControlMessage message);
+	public abstract DirectiveDetails generateDirective(ControlMessage message);
 		
 	/**
 	 * Method that adds an entry to the engine controlProperties map. 

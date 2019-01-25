@@ -9,6 +9,7 @@ import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
 import core.control.MetricCode;
 import core.control.MetricMessage;
+import report.control.directive.DirectiveDetails;
 
 /**
  * Implementation of a Directive Engine {@link  routing.control.DirectiveEngine}.
@@ -50,6 +51,7 @@ public class AggregationEngine extends DirectiveEngine {
 	@Override
 	public void addDirective(ControlMessage directive) {
 		this.workingOnDirectives.add((DirectiveMessage)directive);
+		this.directiveDetails.addDirectiveUsed(directive.getId());
 	}
 
 	/** 
@@ -72,8 +74,8 @@ public class AggregationEngine extends DirectiveEngine {
 	 * directive.
 	 */
 	@Override
-	public boolean generateDirective(ControlMessage message) {
-		boolean generatedDirective = false;
+	public DirectiveDetails generateDirective(ControlMessage message) {
+		DirectiveDetails currentDirectiveDetails = null;
 		double newNrofCopies = this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE).doubleValue();
 		int nrofConsideredMetrics = 0;
 		int totalDrops = 0;
@@ -119,9 +121,12 @@ public class AggregationEngine extends DirectiveEngine {
 		
 		if (newNrofCopies != this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE)) {
 			((DirectiveMessage)message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopies);
-			generatedDirective = true;
+			this.directiveDetails.init(message);
+			currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
 		}
 				
-		return generatedDirective;
+		this.directiveDetails.reset();
+
+		return currentDirectiveDetails;
 	}
 }

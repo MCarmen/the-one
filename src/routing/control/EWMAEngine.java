@@ -1,11 +1,11 @@
 package routing.control;
 
-import core.Message;
 import core.Settings;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
 import core.control.MetricCode;
+import report.control.directive.DirectiveDetails;
 
 
 
@@ -122,12 +122,13 @@ public class EWMAEngine extends DirectiveEngine {
 			nextNrofCopiesReading = (double)directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 			this.sNrofMsgCopiesAverage.aggregateValue(nextNrofCopiesReading);
 		}
+		this.directiveDetails.addDirectiveUsed(directive.getId());
 	}
 
 	@Override
-	public boolean generateDirective(ControlMessage message) {
+	public DirectiveDetails generateDirective(ControlMessage message) {
 		double newNrofCopies = this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE).doubleValue();
-		boolean generatedDirective = false;
+		DirectiveDetails currentDirectiveDetails = null;
 
 		if (this.sDropsAverage.isSet() && (this.sDropsAverage.getValue() >= this.dropsThreshold)) {
 			if (this.sNrofMsgCopiesAverage.isSet()) { 
@@ -144,10 +145,13 @@ public class EWMAEngine extends DirectiveEngine {
 
 		if (newNrofCopies != this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE)) {
 			((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopies);
-			generatedDirective = true;
+			this.directiveDetails.init(message);
+			currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
 		}
 
-		return generatedDirective;
+		this.directiveDetails.reset();
+		
+		return currentDirectiveDetails;
 	}
 
 }

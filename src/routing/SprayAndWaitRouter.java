@@ -10,8 +10,10 @@ import java.util.List;
 import core.Connection;
 import core.DTNHost;
 import core.Message;
+import core.MessageListener;
 import core.Settings;
 import core.control.DirectiveCode;
+import core.control.listener.DirectiveListener;
 import routing.control.SprayAndWaitControlPropertyMap;
 
 /**
@@ -176,7 +178,8 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	@Override
 	protected void applyDirective(Message message) {
 		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-			this.initialNrofCopies = ((Double) message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())).intValue();
+			super.applyDirective(message);
+			this.initialNrofCopies = ((Double) message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())).intValue();						
 		}
 	}
 	
