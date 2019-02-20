@@ -17,7 +17,7 @@ public class SprayAndWaitControlPropertyMap extends ControlPropertyMap {
 	 * Initializes the properties field with the SprayAndWait router properties.
 	 */
 	public SprayAndWaitControlPropertyMap(SprayAndWaitRouter router) {
-		this.putProperty(DirectiveCode.NROF_COPIES_CODE, Double.valueOf(router.getInitialNrofCopies()));
+		this.put(DirectiveCode.NROF_COPIES_CODE, Double.valueOf(router.getInitialNrofCopies()));
 	}
 
 }
