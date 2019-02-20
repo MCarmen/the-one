@@ -54,4 +54,16 @@ public class EWMAProperty{
 		this.sProperty = (this.sProperty == EWMAProperty.NOT_SET_VALUE) ? newValue
 				: (1 - this.alpha) * this.sProperty + this.alpha * newValue;
 	}
+	
+	/**
+	 * Method that aggregates the secondaryValue to the mainValue using an EWMA.
+	 * @param mainValue The value with most weight.
+	 * @param secondaryValue the value to be aggregated to the mainValue
+	 * @param alpha the alpha to use for the EWMA aggregation.
+	 * @return The result of applying the formula:
+	 * (1-alpha) * mainValue + alpha * secondaryValue.
+	 */
+	public static double aggregateValue(double mainValue, double secondaryValue, double alpha) {
+		return ((1-alpha) * mainValue + alpha * secondaryValue);
+	}
 }
