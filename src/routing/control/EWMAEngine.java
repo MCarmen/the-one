@@ -52,7 +52,7 @@ public class EWMAEngine extends DirectiveEngine {
 	/** Accumulated soften drops average  */
 	private EWMAProperty sDropsAverage;
 	
-	/** Accumulated soften nrofMsgCopies average */
+	/** Accumulated soften nrofMsgCopies average from the received directives. */
 	private EWMAProperty sNrofMsgCopiesAverage;
 	
 	/** 
@@ -62,18 +62,18 @@ public class EWMAEngine extends DirectiveEngine {
 	private double dropsAlpha;
 	
 	/** 
-	 * Alpha to be used to calculate sNrofCopiesAverage with the EWMA:
-	 * sNrofCopiesAverage = (1-sNrofMsgCopiesAverage) * sNrofCopiesAverage + 
-	 * 	sNrofMsgCopiesAverage * nrofCopies_messured.
+	 * Alpha to be used to calculate sNrofCopiesAverage, from the received 
+	 * directives, with the EWMA:
+	 * sNrofCopiesAverage = (1-directivesAlpha) * sNrofCopiesAverage + directivesAlpha * nrofCopies_messured.
 	 */	
-	private double nrofCopiesAlpha;
+	private double directivesAlpha;
 
 	/** 
-	 * Alpha to be used to weight the number of copies of a message got after 
-	 * evaluating the drops regarding to the number of copies of a message got 
-	 * after evaluating the directives.
+	 * Alpha to be used to combine with an EWMA the newNrofCopies calculated 
+	 * in the process of generate a directive, with the sNrofCopiesAverage 
+	 * aggregated from the received directives.
 	 */	
-	private double directivesAlpha;	
+	private double nrofCopiesAlpha;	
 	
 	/**
 	 * Drops threshold from which a directive is generated to decrease the 
@@ -101,7 +101,7 @@ public class EWMAEngine extends DirectiveEngine {
 		this.dropsThreshold = (settings.contains(DROPS_THRESHOLD_S)) ? settings.getInt(DROPS_THRESHOLD_S)
 				: EWMAEngine.DEF_DROPS_THRESHOLD;
 		this.sDropsAverage = new EWMAProperty(this.dropsAlpha);
-		this.sNrofMsgCopiesAverage = new EWMAProperty(this.nrofCopiesAlpha);
+		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);
 	}
 
 	@Override
@@ -127,23 +127,20 @@ public class EWMAEngine extends DirectiveEngine {
 
 	@Override
 	public DirectiveDetails generateDirective(ControlMessage message) {
-		double newNrofCopies = this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE).doubleValue();
+		double newNrofCopies = this.getCurrentControlPropertyValue(DirectiveCode.NROF_COPIES_CODE).doubleValue();
 		DirectiveDetails currentDirectiveDetails = null;
 
-		if (this.sDropsAverage.isSet() && (this.sDropsAverage.getValue() >= this.dropsThreshold)) {
-			if (this.sNrofMsgCopiesAverage.isSet()) { 
-				//sDropsAverage is set and sNrofCopies is set
-				newNrofCopies =  (newNrofCopies / 2) * this.directivesAlpha + (1 - this.directivesAlpha) * this.sNrofMsgCopiesAverage.getValue();
-			}else { 
-				//sDropsAverage is set and sNrofCopies is not set
-				newNrofCopies = (newNrofCopies / 2);
-			}
-		}else if(this.sNrofMsgCopiesAverage.isSet()){ 
-			//sDropsAverage is not set and sNrofCopies is set
-			newNrofCopies = this.sNrofMsgCopiesAverage.getValue();
-		}// else: sDropsAverage is not set and sNrofCopies is not set 
-
-		if (newNrofCopies != this.controlProperties.getProperty(DirectiveCode.NROF_COPIES_CODE)) {
+		if (this.sDropsAverage.getValue() <= this.dropsThreshold) {
+			newNrofCopies = newNrofCopies + (newNrofCopies/4);
+		}else {
+			newNrofCopies = (newNrofCopies / 2);
+		}
+		if (this.sNrofMsgCopiesAverage.isSet()) {
+			newNrofCopies = EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha);
+		}
+				 
+		if (newNrofCopies != this.currentValueForControlProperties.get(DirectiveCode.NROF_COPIES_CODE)) {
+			this.currentValueForControlProperties.put(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
 			((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopies);
 			this.directiveDetails.init(message);
 			currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
