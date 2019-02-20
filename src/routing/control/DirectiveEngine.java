@@ -16,6 +16,11 @@ public abstract class DirectiveEngine {
 	 * algorithm. The directive could be nrof_copies/2. */
 	protected ControlPropertyMap controlProperties;
 	
+	/**
+	 * Current values for the control properties the directives are modifying.
+	 */
+	protected ControlPropertyMap currentValueForControlProperties;
+	
 	/** 
 	 * Settings of the namespace: control.engine or null if the engine to 
 	 * be used is the default one.  
@@ -32,6 +37,7 @@ public abstract class DirectiveEngine {
 	public DirectiveEngine(Settings settings) {
 		this.settings = settings;
 		this.controlProperties = new ControlPropertyMap();
+		this.currentValueForControlProperties = new ControlPropertyMap();
 		this.directiveDetails = new DirectiveDetails();
 	}
 	
@@ -72,7 +78,7 @@ public abstract class DirectiveEngine {
 	 * @param value The value of this property
 	 */
     public void putControlProperty(DirectiveCode code, Double value) {
-    	this.controlProperties.putProperty(code, value);
+    	this.controlProperties.put(code, value);
     }
 	/**
 	 * Method that adds all the entries in the ControlProperties passed as a 
@@ -84,6 +90,23 @@ public abstract class DirectiveEngine {
 	 * @param value The value of this property
 	 */
 	public void putControlProperties(ControlPropertyMap properties) {
-		this.controlProperties.putProperties(properties);		
+		this.controlProperties.putAll(properties);		
 	}
+	
+	/**
+	 * Returns the value of the controlProperty passed as a parameter from 
+	 * the currentValueForControlProperties map. If there is no entry for this
+	 * property, an entry is set in the currentValueForControlProperty map with 
+	 * the initial value of the property got from the controlPropertyMap. 
+	 * @param code the property which current value we want to get.
+	 * @return the current value for the property or its original value.
+	 */
+    protected Double getCurrentControlPropertyValue(DirectiveCode code) {
+    	if(!this.currentValueForControlProperties.containsKey(code)) {
+    		this.currentValueForControlProperties.put(code, 
+    				this.controlProperties.get(code));
+    	}
+    	return this.currentValueForControlProperties.get(code); 	
+    }
+
 }
