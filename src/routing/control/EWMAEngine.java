@@ -133,7 +133,7 @@ public class EWMAEngine extends DirectiveEngine {
 		if (this.sDropsAverage.getValue() <= this.dropsThreshold) {
 			newNrofCopies = newNrofCopies + (newNrofCopies/4);
 		}else {
-			newNrofCopies = (newNrofCopies / 2);
+			newNrofCopies = (newNrofCopies)*(3/4);
 		}
 		if (this.sNrofMsgCopiesAverage.isSet()) {
 			newNrofCopies = EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha);
