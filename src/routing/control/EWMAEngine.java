@@ -138,7 +138,8 @@ public class EWMAEngine extends DirectiveEngine {
 		if (this.sNrofMsgCopiesAverage.isSet()) {
 			newNrofCopies = EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha);
 		}
-				 
+		
+		newNrofCopies = (int)Math.ceil(newNrofCopies);
 		if (newNrofCopies != this.currentValueForControlProperties.get(DirectiveCode.NROF_COPIES_CODE)) {
 			this.currentValueForControlProperties.put(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
 			((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopies);
