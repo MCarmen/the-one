@@ -14,7 +14,7 @@ import core.MessageListener;
 import core.Settings;
 import core.control.DirectiveCode;
 import core.control.listener.DirectiveListener;
-import routing.control.SprayAndWaitControlPropertyMap;
+import routing.control.SprayAndWaitRoutingPropertyMap;
 
 /**
  * Implementation of Spray and wait router as depicted in
@@ -42,7 +42,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 		initialNrofCopies = snwSettings.getInt(NROF_COPIES);
 		isBinary = snwSettings.getBoolean( BINARY_MODE);
-		this.initControlPropertyMap(new SprayAndWaitControlPropertyMap(this));
+		this.initRoutingPropertyMap(new SprayAndWaitRoutingPropertyMap(this));
 	}
 
 	/**
@@ -53,7 +53,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		super(r);
 		this.initialNrofCopies = r.initialNrofCopies;
 		this.isBinary = r.isBinary;
-		this.initControlPropertyMap(new SprayAndWaitControlPropertyMap(this));
+		this.initRoutingPropertyMap(new SprayAndWaitRoutingPropertyMap(this));
 	}
 
 	@Override
