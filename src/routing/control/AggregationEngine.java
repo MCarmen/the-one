@@ -76,7 +76,7 @@ public class AggregationEngine extends DirectiveEngine {
 	@Override
 	public DirectiveDetails generateDirective(ControlMessage message) {
 		DirectiveDetails currentDirectiveDetails = null;
-		double newNrofCopies = this.getCurrentControlPropertyValue(DirectiveCode.NROF_COPIES_CODE).doubleValue();
+		double newNrofCopies = this.getCurrentRouterPropertyValue(DirectiveCode.NROF_COPIES_CODE).doubleValue();
 		int nrofConsideredMetrics = 0;
 		int totalDrops = 0;
 		double dropsAverage;
@@ -119,8 +119,8 @@ public class AggregationEngine extends DirectiveEngine {
 			this.workingOnDirectives.clear();
 		} //end working with the workingOnDirectives list
 		
-		if (newNrofCopies != this.currentValueForControlProperties.get(DirectiveCode.NROF_COPIES_CODE)) {
-			this.currentValueForControlProperties.put(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
+		if (newNrofCopies != this.currentValueForRoutingProperties.get(DirectiveCode.NROF_COPIES_CODE)) {
+			this.currentValueForRoutingProperties.put(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
 			((DirectiveMessage)message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopies);
 			this.directiveDetails.init(message);
 			currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
