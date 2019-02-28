@@ -26,7 +26,7 @@ import core.control.DirectiveMessage;
 import core.control.MetricMessage;
 import core.control.listener.DirectiveListener;
 import report.control.directive.DirectiveDetails;
-import routing.control.ControlPropertyMap;
+import routing.control.RoutingPropertyMap;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
 import routing.util.RoutingInfo;
@@ -861,9 +861,9 @@ public abstract class MessageRouter {
 	 * a controller. 
 	 * @param properties the router properties to be set up.
 	 */
-    protected void initControlPropertyMap(ControlPropertyMap properties) {
+    protected void initRoutingPropertyMap(RoutingPropertyMap properties) {
     	if(this.controller != null) { //if I am a controller
-    		this.controller.putControlProperties(properties);
+    		this.controller.putRoutingProperties(properties);
     	}
     }
 
