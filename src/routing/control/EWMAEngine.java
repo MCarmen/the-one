@@ -127,7 +127,7 @@ public class EWMAEngine extends DirectiveEngine {
 
 	@Override
 	public DirectiveDetails generateDirective(ControlMessage message) {
-		double newNrofCopies = this.getCurrentControlPropertyValue(DirectiveCode.NROF_COPIES_CODE).doubleValue();
+		double newNrofCopies = this.getCurrentRouterPropertyValue(DirectiveCode.NROF_COPIES_CODE).doubleValue();
 		DirectiveDetails currentDirectiveDetails = null;
 
 		if (this.sDropsAverage.getValue() <= this.dropsThreshold) {
@@ -140,8 +140,8 @@ public class EWMAEngine extends DirectiveEngine {
 		}
 		
 		newNrofCopies = (int)Math.ceil(newNrofCopies);
-		if (newNrofCopies != this.currentValueForControlProperties.get(DirectiveCode.NROF_COPIES_CODE)) {
-			this.currentValueForControlProperties.put(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
+		if (newNrofCopies != this.currentValueForRoutingProperties.get(DirectiveCode.NROF_COPIES_CODE)) {
+			this.currentValueForRoutingProperties.put(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
 			((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopies);
 			this.directiveDetails.init(message);
 			currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
