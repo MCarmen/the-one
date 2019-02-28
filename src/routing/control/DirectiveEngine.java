@@ -14,12 +14,12 @@ public abstract class DirectiveEngine {
 	/** Control configuration the directive will be based on. For instance, 
 	 * the control configuration could contain the nrof_copies of the routing 
 	 * algorithm. The directive could be nrof_copies/2. */
-	protected ControlPropertyMap controlProperties;
+	protected RoutingPropertyMap routingProperties;
 	
 	/**
 	 * Current values for the control properties the directives are modifying.
 	 */
-	protected ControlPropertyMap currentValueForControlProperties;
+	protected RoutingPropertyMap currentValueForRoutingProperties;
 	
 	/** 
 	 * Settings of the namespace: control.engine or null if the engine to 
@@ -36,8 +36,8 @@ public abstract class DirectiveEngine {
 	 */
 	public DirectiveEngine(Settings settings) {
 		this.settings = settings;
-		this.controlProperties = new ControlPropertyMap();
-		this.currentValueForControlProperties = new ControlPropertyMap();
+		this.routingProperties = new RoutingPropertyMap();
+		this.currentValueForRoutingProperties = new RoutingPropertyMap();
 		this.directiveDetails = new DirectiveDetails();
 	}
 	
@@ -70,43 +70,43 @@ public abstract class DirectiveEngine {
 	public abstract DirectiveDetails generateDirective(ControlMessage message);
 		
 	/**
-	 * Method that adds an entry to the engine controlProperties map. 
+	 * Method that adds an entry to the engine routerProperties map. 
 	 * This entry corresponds to a router property to be used by the engine to 
 	 * generate a directive. For instance, 
 	 * an SprayAndWaitRouter contains the nrof_copies of the message. 
 	 * @param code the code of the router property.
 	 * @param value The value of this property
 	 */
-    public void putControlProperty(DirectiveCode code, Double value) {
-    	this.controlProperties.put(code, value);
+    public void putRoutingProperty(DirectiveCode code, Double value) {
+    	this.routingProperties.put(code, value);
     }
 	/**
-	 * Method that adds all the entries in the ControlProperties passed as a 
-	 * parameter to the engine controlProperties map. 
+	 * Method that adds all the entries in the routerProperties passed as a 
+	 * parameter to the engine routerProperties map. 
 	 * These entries correspond to router properties, to be used by the engine to 
 	 * generate a directive. For instance, 
 	 * an SprayAndWaitRouter contains the nrof_copies of the message. 
 	 * @param code the code of the router property.
 	 * @param value The value of this property
 	 */
-	public void putControlProperties(ControlPropertyMap properties) {
-		this.controlProperties.putAll(properties);		
+	public void putRoutingProperties(RoutingPropertyMap properties) {
+		this.routingProperties.putAll(properties);		
 	}
 	
 	/**
-	 * Returns the value of the controlProperty passed as a parameter from 
-	 * the currentValueForControlProperties map. If there is no entry for this
-	 * property, an entry is set in the currentValueForControlProperty map with 
-	 * the initial value of the property got from the controlPropertyMap. 
+	 * Returns the value of the routerProperty passed as a parameter from 
+	 * the currentValueForRouterProperties map. If there is no entry for this
+	 * property, an entry is set in the currentValueForRouterProperty map with 
+	 * the initial value of the property got from the routerPropertyMap. 
 	 * @param code the property which current value we want to get.
 	 * @return the current value for the property or its original value.
 	 */
-    protected Double getCurrentControlPropertyValue(DirectiveCode code) {
-    	if(!this.currentValueForControlProperties.containsKey(code)) {
-    		this.currentValueForControlProperties.put(code, 
-    				this.controlProperties.get(code));
+    protected Double getCurrentRouterPropertyValue(DirectiveCode code) {
+    	if(!this.currentValueForRoutingProperties.containsKey(code)) {
+    		this.currentValueForRoutingProperties.put(code, 
+    				this.routingProperties.get(code));
     	}
-    	return this.currentValueForControlProperties.get(code); 	
+    	return this.currentValueForRoutingProperties.get(code); 	
     }
 
 }
