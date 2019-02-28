@@ -36,7 +36,7 @@ public class Controller {
 	 * based on the settings configuration and on the router configuration. 
 	 * It sets if the controller is a centralized one (case where there is
 	 * just one controller).
-	 * It initializes the controlProperties with an empty map mean to be 
+	 * It initializes the routingProperties with an empty map mean to be 
 	 * fed by the routers themselves.  
 	 * @param settings Settings of the name space: GROUP_NS and GROUP_NS+i
 	 */
@@ -62,8 +62,8 @@ public class Controller {
 	 * @param code the code of the router property.
 	 * @param initialValue The value of this property
 	 */
-    public void putControlProperty(DirectiveCode code, Double initialValue) {
-    	this.directiveEngine.putControlProperty(code, initialValue);
+    public void putRoutingProperty(DirectiveCode code, Double initialValue) {
+    	this.directiveEngine.putRoutingProperty(code, initialValue);
     }
 
 	/**
@@ -72,8 +72,8 @@ public class Controller {
 	 * @param properties the properties of the router to be added to the 
 	 * properties engine map.
 	 */
-    public void putControlProperties(ControlPropertyMap properties) {
-    	this.directiveEngine.putControlProperties(properties);
+    public void putRoutingProperties(RoutingPropertyMap properties) {
+    	this.directiveEngine.putRoutingProperties(properties);
     }
 	
 	/**
