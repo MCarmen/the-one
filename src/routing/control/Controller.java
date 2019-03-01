@@ -40,7 +40,7 @@ public class Controller {
 	 * fed by the routers themselves.  
 	 * @param settings Settings of the name space: GROUP_NS and GROUP_NS+i
 	 */
-	public Controller(MessageRouter router) {
+	public Controller() {
 		// TODO Auto-generated constructor stub
 		Settings s = new Settings(CONTROL_NS);
 		int nrofControllers;
@@ -62,7 +62,7 @@ public class Controller {
 	 * @param code the code of the router property.
 	 * @param initialValue The value of this property
 	 */
-    public void putRoutingProperty(DirectiveCode code, Double initialValue) {
+    public void putRoutingProperty(String code, Integer initialValue) {
     	this.directiveEngine.putRoutingProperty(code, initialValue);
     }
 
