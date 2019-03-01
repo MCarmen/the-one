@@ -27,6 +27,7 @@ import core.control.MetricMessage;
 import core.control.listener.DirectiveListener;
 import report.control.directive.DirectiveDetails;
 import routing.control.RoutingPropertyMap;
+import routing.control.SprayAndWaitRoutingPropertyMap;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
 import routing.util.RoutingInfo;
@@ -126,6 +127,9 @@ public abstract class MessageRouter {
 	protected Controller controller;
 	/** Metrics  handler. */
 	protected MetricsSensed metricsSensed;
+	/** Map to be filled by the specific routers with specific routing information*/
+	protected RoutingPropertyMap routingProperties;
+
 	
 
 	/**
@@ -167,7 +171,7 @@ public abstract class MessageRouter {
 			sendQueueMode = Q_MODE_RANDOM;
 		}
 		
-		this.controller = this.amIAController(s) ? new Controller(this) : null;
+		this.controller = this.amIAController(s) ? new Controller() : null;
 		this.metricsSensed = this.isControlModeOn() ? new MetricsSensed() : null; 		
 	}
 
