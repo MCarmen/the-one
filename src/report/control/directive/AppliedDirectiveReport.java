@@ -63,7 +63,7 @@ public class AppliedDirectiveReport extends Report implements DirectiveListener 
 	public void directiveApplied(Message m, DTNHost to) {
 		// TODO Auto-generated method stub
 		if(m.getType() == MessageType.DIRECTIVE) {
-			double nrofCopies = (double)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
+			int nrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 			AppliedDirective appliedDirective = 
 					new AppliedDirective(m.getId(), to.toString(), nrofCopies); 
 			this.appliedDirectives.add(appliedDirective);
