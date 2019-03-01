@@ -76,6 +76,7 @@ public class AggregationEngine extends DirectiveEngine {
 	@Override
 	public DirectiveDetails generateDirective(ControlMessage message) {
 		DirectiveDetails currentDirectiveDetails = null;
+		/*
 		double newNrofCopies = this.getCurrentRouterPropertyValue(DirectiveCode.NROF_COPIES_CODE).doubleValue();
 		int nrofConsideredMetrics = 0;
 		int totalDrops = 0;
@@ -127,6 +128,7 @@ public class AggregationEngine extends DirectiveEngine {
 		}
 				
 		this.directiveDetails.reset();
+		*/
 
 		return currentDirectiveDetails;
 	}
