@@ -10,10 +10,8 @@ import java.util.List;
 import core.Connection;
 import core.DTNHost;
 import core.Message;
-import core.MessageListener;
 import core.Settings;
 import core.control.DirectiveCode;
-import core.control.listener.DirectiveListener;
 import routing.control.SprayAndWaitRoutingPropertyMap;
 
 /**
@@ -32,7 +30,10 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	/** Message property key */
 	public static final String MSG_COUNT_PROPERTY = SPRAYANDWAIT_NS + "." +
 		"copies";
+	public static final String CTRL_MSG_COUNT_PROPERTY_THRESHOLD = 
+			"controlCopiesThreshold";
 
+	protected int ctrlMsgCountPropertyThreshold;	
 	protected int initialNrofCopies;
 	protected boolean isBinary;
 
@@ -40,9 +41,12 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		super(s);
 		Settings snwSettings = new Settings(SPRAYANDWAIT_NS);
 
-		initialNrofCopies = snwSettings.getInt(NROF_COPIES);
+		initialNrofCopies = snwSettings.getInt(NROF_COPIES);		
 		isBinary = snwSettings.getBoolean( BINARY_MODE);
-		this.initRoutingPropertyMap(new SprayAndWaitRoutingPropertyMap(this));
+		this.ctrlMsgCountPropertyThreshold = 
+				snwSettings.getInt(SprayAndWaitRouter.CTRL_MSG_COUNT_PROPERTY_THRESHOLD);
+		routingProperties = new SprayAndWaitRoutingPropertyMap(this);
+		this.initRoutingPropertyMap(routingProperties);
 	}
 
 	/**
@@ -53,6 +57,8 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		super(r);
 		this.initialNrofCopies = r.initialNrofCopies;
 		this.isBinary = r.isBinary;
+		this.ctrlMsgCountPropertyThreshold = r.ctrlMsgCountPropertyThreshold;
+		this.routingProperties = r.routingProperties;		
 		this.initRoutingPropertyMap(new SprayAndWaitRoutingPropertyMap(this));
 	}
 
@@ -89,7 +95,15 @@ public class SprayAndWaitRouter extends ActiveRouter {
 			this.initialNrofCopies = ((Double)msg.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())).intValue();
 		}
 		*/
-		msg.addProperty(MSG_COUNT_PROPERTY, Integer.valueOf(initialNrofCopies));
+		int msgCountPropertyValue = 
+				this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
+		
+		 if((msg.getType() == Message.MessageType.DIRECTIVE) && 
+				 (msgCountPropertyValue > this.ctrlMsgCountPropertyThreshold)) {
+			 msgCountPropertyValue = this.ctrlMsgCountPropertyThreshold;
+		 }
+				
+		msg.addProperty(MSG_COUNT_PROPERTY, msgCountPropertyValue);
 		boolean messageCreated = super.createNewMessage(msg);
 		return messageCreated;
 	}
@@ -179,7 +193,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	protected void applyDirective(Message message) {
 		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 			super.applyDirective(message);
-			this.initialNrofCopies = ((Double) message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())).intValue();						
+			this.routingProperties.put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, (Integer)(message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())));
 		}
 	}
 	
