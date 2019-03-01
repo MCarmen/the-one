@@ -15,7 +15,7 @@ public class DirectiveDetails {
 	private String generatedByNode;
 		
 	/** Value of the field containing the number of copies.  */
-	private double newNrofCopies;
+	private int newNrofCopies;
 	
 	/** List of the identifiers of the aggregated directives used to 
 	 * generate  this one.*/
@@ -51,7 +51,7 @@ public class DirectiveDetails {
 		return generatedByNode;
 	}
 
-	public double getNewNrofCopies() {
+	public int getNewNrofCopies() {
 		return newNrofCopies;
 	}
 
@@ -69,7 +69,7 @@ public class DirectiveDetails {
 		this.directiveID = m.getId();
 		this.generatedByNode = m.getFrom().toString();
 		if (m.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-			this.newNrofCopies = (double)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
+			this.newNrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 		}		
 	}
 			
@@ -86,7 +86,7 @@ public class DirectiveDetails {
 	}
 	
 	public String toString() {
-		return String.format("%s %s %f %s", this.directiveID, 
+		return String.format("%s %s %d %s", this.directiveID, 
 				this.generatedByNode, this.newNrofCopies, this.directivesUsed);
 	}
 }
