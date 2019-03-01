@@ -15,12 +15,7 @@ public abstract class DirectiveEngine {
 	 * the control configuration could contain the nrof_copies of the routing 
 	 * algorithm. The directive could be nrof_copies/2. */
 	protected RoutingPropertyMap routingProperties;
-	
-	/**
-	 * Current values for the control properties the directives are modifying.
-	 */
-	protected RoutingPropertyMap currentValueForRoutingProperties;
-	
+		
 	/** 
 	 * Settings of the namespace: control.engine or null if the engine to 
 	 * be used is the default one.  
@@ -37,7 +32,6 @@ public abstract class DirectiveEngine {
 	public DirectiveEngine(Settings settings) {
 		this.settings = settings;
 		this.routingProperties = new RoutingPropertyMap();
-		this.currentValueForRoutingProperties = new RoutingPropertyMap();
 		this.directiveDetails = new DirectiveDetails();
 	}
 	
@@ -77,7 +71,7 @@ public abstract class DirectiveEngine {
 	 * @param code the code of the router property.
 	 * @param value The value of this property
 	 */
-    public void putRoutingProperty(DirectiveCode code, Double value) {
+    public void putRoutingProperty(String code, Integer value) {
     	this.routingProperties.put(code, value);
     }
 	/**
@@ -93,20 +87,4 @@ public abstract class DirectiveEngine {
 		this.routingProperties.putAll(properties);		
 	}
 	
-	/**
-	 * Returns the value of the routerProperty passed as a parameter from 
-	 * the currentValueForRouterProperties map. If there is no entry for this
-	 * property, an entry is set in the currentValueForRouterProperty map with 
-	 * the initial value of the property got from the routerPropertyMap. 
-	 * @param code the property which current value we want to get.
-	 * @return the current value for the property or its original value.
-	 */
-    protected Double getCurrentRouterPropertyValue(DirectiveCode code) {
-    	if(!this.currentValueForRoutingProperties.containsKey(code)) {
-    		this.currentValueForRoutingProperties.put(code, 
-    				this.routingProperties.get(code));
-    	}
-    	return this.currentValueForRoutingProperties.get(code); 	
-    }
-
 }
