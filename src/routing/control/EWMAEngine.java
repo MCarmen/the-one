@@ -6,6 +6,7 @@ import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
 import core.control.MetricCode;
 import report.control.directive.DirectiveDetails;
+import routing.SprayAndWaitRouter;
 
 
 
@@ -115,6 +116,10 @@ public class EWMAEngine extends DirectiveEngine {
 	}
 
 	@Override
+	/**
+	 * When a directive from another controller is received it is aggregated using
+	 * an EWMA. it is never reset.
+	 */
 	public void addDirective(ControlMessage directive) {
 		double nextNrofCopiesReading;
 		
@@ -126,8 +131,16 @@ public class EWMAEngine extends DirectiveEngine {
 	}
 
 	@Override
-	public DirectiveDetails generateDirective(ControlMessage message) {
-		double newNrofCopies = this.getCurrentRouterPropertyValue(DirectiveCode.NROF_COPIES_CODE).doubleValue();
+	/**
+	 * Method that generates a directive message with an 'L' field if possible.
+	 * @param message the message directive to be generated.
+	 * @return DirectiveDetails details of the directive: ID, Host ID, Aggregated
+	 * directives used to infer the directive, or null if no directive has been 
+	 * generated.
+	 * 
+	 */
+	public DirectiveDetails generateDirective(ControlMessage message) { 
+		double newNrofCopies = this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		DirectiveDetails currentDirectiveDetails = null;
 
 		if (this.sDropsAverage.getValue() <= this.dropsThreshold) {
@@ -139,10 +152,11 @@ public class EWMAEngine extends DirectiveEngine {
 			newNrofCopies = EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha);
 		}
 		
-		newNrofCopies = (int)Math.ceil(newNrofCopies);
-		if (newNrofCopies != this.currentValueForRoutingProperties.get(DirectiveCode.NROF_COPIES_CODE)) {
-			this.currentValueForRoutingProperties.put(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
-			((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopies);
+		int newNrofCopiesIntValue = (int)Math.round(newNrofCopies);
+		
+		if (newNrofCopiesIntValue != this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY)) {
+			this.routingProperties.put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, newNrofCopiesIntValue);
+			((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
 			this.directiveDetails.init(message);
 			currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
 		}
