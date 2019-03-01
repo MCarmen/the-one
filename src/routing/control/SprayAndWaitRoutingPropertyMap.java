@@ -3,7 +3,6 @@
  */
 package routing.control;
 
-import core.control.DirectiveCode;
 import routing.SprayAndWaitRouter;
 
 /**
@@ -12,12 +11,12 @@ import routing.SprayAndWaitRouter;
  *
  */
 public class SprayAndWaitRoutingPropertyMap extends RoutingPropertyMap {
-
+	public final static String MSG_COUNT_PROPERTY = SprayAndWaitRouter.MSG_COUNT_PROPERTY;
 	/**
 	 * Puts the properties to be used by the controller in a Map.
 	 */
 	public SprayAndWaitRoutingPropertyMap(SprayAndWaitRouter router) {
-		this.put(DirectiveCode.NROF_COPIES_CODE, Double.valueOf(router.getInitialNrofCopies()));
+		this.put(MSG_COUNT_PROPERTY, Integer.valueOf(router.getInitialNrofCopies()));
 	}
 
 }
