@@ -371,7 +371,7 @@ public abstract class ActiveRouter extends MessageRouter {
 				isADirectDelivery = true;
 			}			
 		}
-		return false;
+		return isADirectDelivery;
 	}
 
 	/**
