@@ -171,7 +171,7 @@ public abstract class MessageRouter {
 			sendQueueMode = Q_MODE_RANDOM;
 		}
 		
-		this.controller = this.amIAController(s) ? new Controller() : null;
+		this.controller = this.amIAController(s) ? new Controller(this) : null;
 		this.metricsSensed = this.isControlModeOn() ? new MetricsSensed() : null; 		
 	}
 
@@ -859,17 +859,10 @@ public abstract class MessageRouter {
 						
 		return receivedMessageCode;
 	}
-	
-	/**
-	 * Method that sets in the controller the router properties to be set up by 
-	 * a controller. 
-	 * @param properties the router properties to be set up.
-	 */
-    protected void initRoutingPropertyMap(RoutingPropertyMap properties) {
-    	if(this.controller != null) { //if I am a controller
-    		this.controller.putRoutingProperties(properties);
-    	}
-    }
+	    
+    public RoutingPropertyMap getRoutingProperties() {
+		return this.routingProperties;
+	}
 
     /**
      * Method that reports to all the DirectiveListeners about the creation
