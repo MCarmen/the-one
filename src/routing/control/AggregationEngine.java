@@ -5,11 +5,10 @@ import java.util.List;
 
 import core.Settings;
 import core.control.ControlMessage;
-import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
-import core.control.MetricCode;
 import core.control.MetricMessage;
 import report.control.directive.DirectiveDetails;
+import routing.MessageRouter;
 
 /**
  * Implementation of a Directive Engine {@link  routing.control.DirectiveEngine}.
@@ -29,9 +28,12 @@ public class AggregationEngine extends DirectiveEngine {
 	/**
 	 * Constructor that creates the lists of workingOnMetrics and 
 	 * workingOnDirectives.
+	 * @param settings the settings object set to the value of the setting
+	 *                 control.engine.
+	 * @param router, the router who has initialized this directiveEngine.  
 	 */
-	public AggregationEngine(Settings settings) {
-		super(settings);
+	public AggregationEngine(Settings settings, MessageRouter router) {
+		super(settings, router);
 		this.workingOnMetrics = new ArrayList<MetricMessage>();
 		this.workingOnDirectives = new ArrayList<DirectiveMessage>();
 	}
