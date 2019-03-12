@@ -138,11 +138,9 @@ public class EWMAEngine extends DirectiveEngine {
 
 	@Override
 	/**
-	 * Method that generates a directive message with an 'L' field. It  
-	 * generates a directive, just in case the calculated number of copies is 
-	 * different from the initial configuration or if the number of copies is the 
-	 * same as the initial configuration, but we have received directives from 
-	 * other controllers.
+	 * Method that generates a directive message with an 'L' field. It always 
+	 * generates a directive, even if the number of copies is the same as the 
+	 * initial configuration.
 	 * @param message the message directive to be generated.
 	 * @return DirectiveDetails details of the directive: ID, Host ID, Aggregated
 	 * directives used to infer the directive, or null if no directive has been 
@@ -163,15 +161,8 @@ public class EWMAEngine extends DirectiveEngine {
 			newNrofCopies = EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha);
 		}
 		
-		int newNrofCopiesIntValue = Math.min((int)Math.ceil(newNrofCopies), SimScenario.getNumberOfHostsConfiguredInTheSettings());
-		generateDirective = (
-			(newNrofCopiesIntValue != this.router.getRoutingProperties().get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY)) ||
-			(
-			  (newNrofCopiesIntValue == this.router.getRoutingProperties().get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY)) &&
-			  (this.directiveDetails.getDirectivesUsed().size()>0))
-		);			
-			
-		if (generateDirective){		
+		int newNrofCopiesIntValue = Math.min((int)Math.ceil(newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
+							
 		//Adding the 'L' property in the Directive message.
 		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
 		//modifying the copies left of the message in the routingConfiguration map.
@@ -180,7 +171,7 @@ public class EWMAEngine extends DirectiveEngine {
 			
 		this.directiveDetails.init(message);
 		currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
-		}
+
 		
 		this.directiveDetails.reset();		
 		return currentDirectiveDetails;
