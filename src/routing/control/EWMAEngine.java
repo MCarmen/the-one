@@ -157,6 +157,7 @@ public class EWMAEngine extends DirectiveEngine {
 		}else {
 			newNrofCopies = (newNrofCopies)*(3/4);
 		}
+		//number of copies aggregated from received directives.
 		if (this.sNrofMsgCopiesAverage.isSet()) {
 			newNrofCopies = EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha);
 		}
