@@ -16,15 +16,21 @@ import routing.MessageRouter;
 public class Controller {
 	/** namespace of the controller settings ({@value}) */
 	public static final String CONTROL_NS = "control";
+	/** package where to look for the routing classes*/
+	private static final String ROUTING_PACKAGE = "routing";
+	private static final String MESSAGE_ROUTER_CLASS = "MessageRouter";
+	
 	/** package where to look for controller engines */
-	private static final String CONTROL_PACKAGE = "routing.control";
+	private static final String CONTROL_PACKAGE = ROUTING_PACKAGE + "."+ CONTROL_NS;
 
 	/** engine -setting id ({@value}) in the controller name space */
 	public static final String ENGINE_S = "engine";
 	/** engine -setting id ({@value}) in the controller name space */ 
 	public static final String NROF_CONTROLLERS_S = "nrofControllers";	
 	/** Default setting value for the engine of a controller */
-	public static final String AGGREGATION_ENGINE = "AggregationEngine";
+	public static final String AGGREGATION_ENGINE = "AggregationEngine";	
+	/** The settings package full name. */
+	private static final String SETTINGS_PACKAGE = "core.Settings";
 	/** Engine to be used to generate directives. */
     protected DirectiveEngine directiveEngine;
     /** If there is just one controller in the simulation it is set to true. 
@@ -38,13 +44,13 @@ public class Controller {
 	 * just one controller).
 	 * It initializes the routingProperties with an empty map mean to be 
 	 * fed by the routers themselves.  
-	 * @param settings Settings of the name space: GROUP_NS and GROUP_NS+i
+	 * @param router the router that has created this controller.
 	 */
-	public Controller() {
+	public Controller(MessageRouter router) {
 		// TODO Auto-generated constructor stub
 		Settings s = new Settings(CONTROL_NS);
 		int nrofControllers;
-		this.setDirectiveEngine(s);
+		this.setDirectiveEngine(s, router);
 		
 		if(s.contains(NROF_CONTROLLERS_S)){
 			nrofControllers = s.getInt(NROF_CONTROLLERS_S);
@@ -54,40 +60,25 @@ public class Controller {
 		
 	}
 		
-	/**
-	 * Method that adds an entry to the engine controlProperties map. 
-	 * This entry corresponds to a router property to be used by the engine to 
-	 * generate a directive. For instance, 
-	 * an SprayAndWaitRouter contains the nrof_copies of the message. 
-	 * @param code the code of the router property.
-	 * @param initialValue The value of this property
-	 */
-    public void putRoutingProperty(String code, Integer initialValue) {
-    	this.directiveEngine.putRoutingProperty(code, initialValue);
-    }
 
-	/**
-	 * Method that adds all the entries in the map parameter, to the engine 
-	 * controlProperties map.  
-	 * @param properties the properties of the router to be added to the 
-	 * properties engine map.
-	 */
-    public void putRoutingProperties(RoutingPropertyMap properties) {
-    	this.directiveEngine.putRoutingProperties(properties);
-    }
 	
 	/**
 	 * Method that builds the engine used to generate directives, 
 	 * based on the settings configuration of the specified engine. 
 	 * @param settings Settings of the name space: controller
+	 * @param router the router that has created this controller.
+
 	 */
-    protected void setDirectiveEngine(Settings s) {
+    protected void setDirectiveEngine(Settings s, MessageRouter router) {
 		String engineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : AGGREGATION_ENGINE;
 		Settings engineSettings = new Settings(engineNameSpace);
 		String directiveEngine_str = CONTROL_PACKAGE + "." + engineNameSpace;
+		String[] directiveEngineConstructorArgumentTypes = {SETTINGS_PACKAGE, 
+				ROUTING_PACKAGE +"."+MESSAGE_ROUTER_CLASS} ;
 		
-		this.directiveEngine= (DirectiveEngine)engineSettings.createIntializedObject(
-				directiveEngine_str);
+		this.directiveEngine= (DirectiveEngine)engineSettings.createInitializedObject(
+				directiveEngine_str, directiveEngineConstructorArgumentTypes, 
+				new Object[]{s, router});
     }   
     
     
