@@ -45,8 +45,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		isBinary = snwSettings.getBoolean( BINARY_MODE);
 		this.ctrlMsgCountPropertyThreshold = 
 				snwSettings.getInt(SprayAndWaitRouter.CTRL_MSG_COUNT_PROPERTY_THRESHOLD);
-		routingProperties = new SprayAndWaitRoutingPropertyMap(this);
-		this.initRoutingPropertyMap(routingProperties);
+		this.routingProperties = new SprayAndWaitRoutingPropertyMap(this);
 	}
 
 	/**
@@ -59,7 +58,6 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		this.isBinary = r.isBinary;
 		this.ctrlMsgCountPropertyThreshold = r.ctrlMsgCountPropertyThreshold;
 		this.routingProperties = r.routingProperties;		
-		this.initRoutingPropertyMap(new SprayAndWaitRoutingPropertyMap(this));
 	}
 
 	@Override
@@ -97,12 +95,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		*/
 		int msgCountPropertyValue = 
 				this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
-		
-		 if((msg.getType() == Message.MessageType.DIRECTIVE) && 
-				 (msgCountPropertyValue > this.ctrlMsgCountPropertyThreshold)) {
-			 msgCountPropertyValue = this.ctrlMsgCountPropertyThreshold;
-		 }
-				
+						
 		msg.addProperty(MSG_COUNT_PROPERTY, msgCountPropertyValue);
 		boolean messageCreated = super.createNewMessage(msg);
 		return messageCreated;
@@ -187,6 +180,10 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 	public int getInitialNrofCopies() {
 		return initialNrofCopies;
+	}
+	
+	public int getCtrlMsgCountPropertyThreshold() {
+		return ctrlMsgCountPropertyThreshold;
 	}
 	
 	@Override
