@@ -2,8 +2,8 @@ package routing.control;
 
 import core.Settings;
 import core.control.ControlMessage;
-import core.control.DirectiveCode;
 import report.control.directive.DirectiveDetails;
+import routing.MessageRouter;
 
 /**
  * Abstract class for the Engines that generate directives
@@ -11,10 +11,8 @@ import report.control.directive.DirectiveDetails;
  */
 public abstract class DirectiveEngine {
 	
-	/** Control configuration the directive will be based on. For instance, 
-	 * the control configuration could contain the nrof_copies of the routing 
-	 * algorithm. The directive could be nrof_copies/2. */
-	protected RoutingPropertyMap routingProperties;
+
+	protected MessageRouter router;
 		
 	/** 
 	 * Settings of the namespace: control.engine or null if the engine to 
@@ -28,10 +26,11 @@ public abstract class DirectiveEngine {
 	/**
 	 * Initializes the property settings.
 	 * @param settings settings corresponding to the namespace core.engine.
+	 * @param router, the router who has initialized this directiveEngine.
 	 */
-	public DirectiveEngine(Settings settings) {
+	public DirectiveEngine(Settings settings, MessageRouter router) {
 		this.settings = settings;
-		this.routingProperties = new RoutingPropertyMap();
+		this.router = router;
 		this.directiveDetails = new DirectiveDetails();
 	}
 	
@@ -62,29 +61,5 @@ public abstract class DirectiveEngine {
 	 * fields and the method returns true.
 	 */
 	public abstract DirectiveDetails generateDirective(ControlMessage message);
-		
-	/**
-	 * Method that adds an entry to the engine routerProperties map. 
-	 * This entry corresponds to a router property to be used by the engine to 
-	 * generate a directive. For instance, 
-	 * an SprayAndWaitRouter contains the nrof_copies of the message. 
-	 * @param code the code of the router property.
-	 * @param value The value of this property
-	 */
-    public void putRoutingProperty(String code, Integer value) {
-    	this.routingProperties.put(code, value);
-    }
-	/**
-	 * Method that adds all the entries in the routerProperties passed as a 
-	 * parameter to the engine routerProperties map. 
-	 * These entries correspond to router properties, to be used by the engine to 
-	 * generate a directive. For instance, 
-	 * an SprayAndWaitRouter contains the nrof_copies of the message. 
-	 * @param code the code of the router property.
-	 * @param value The value of this property
-	 */
-	public void putRoutingProperties(RoutingPropertyMap properties) {
-		this.routingProperties.putAll(properties);		
-	}
-	
+			
 }
