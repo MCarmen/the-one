@@ -418,5 +418,24 @@ public class SimScenario implements Serializable {
 	public World getWorld() {
 		return this.world;
 	}
+	
+	/**
+	 * Static method that reads from the settings file the total number of hosts
+	 * in the scenario.
+	 * @return the total number of hosts of the scenario.
+	 */
+	public static int getNumberOfHostsConfiguredInTheSettings() {
+		Settings s_Scenario = new Settings(SCENARIO_NS);
+		int nrofGroups = s_Scenario.getInt(NROF_GROUPS_S);
+		int totalNrofHosts = 0;
+		
+		for (int i=1; i<=nrofGroups; i++) {
+			Settings s_GroupX = new Settings(GROUP_NS+i);
+			s_GroupX.setSecondaryNamespace(GROUP_NS);
+			totalNrofHosts += s_GroupX.getInt(NROF_HOSTS_S);
+		}
+		
+		return totalNrofHosts;
+	}
 
 }
