@@ -87,14 +87,11 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 	@Override
 	public boolean createNewMessage(Message msg) {
-		/*
-		if((messageCreated) && (msg.getType() == Message.MessageType.DIRECTIVE)) {
-			//we apply to ourselves the directive we have just generated.
-			this.initialNrofCopies = ((Double)msg.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())).intValue();
-		}
-		*/
 		int msgCountPropertyValue = 
 				this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
+		if(msg.getType() == Message.MessageType.DIRECTIVE) {
+			msgCountPropertyValue = Math.min(msgCountPropertyValue, this.ctrlMsgCountPropertyThreshold);
+		}
 						
 		msg.addProperty(MSG_COUNT_PROPERTY, msgCountPropertyValue);
 		boolean messageCreated = super.createNewMessage(msg);
@@ -181,10 +178,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	public int getInitialNrofCopies() {
 		return initialNrofCopies;
 	}
-	
-	public int getCtrlMsgCountPropertyThreshold() {
-		return ctrlMsgCountPropertyThreshold;
-	}
+
 	
 	@Override
 	protected void applyDirective(Message message) {
