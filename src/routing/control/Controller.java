@@ -78,7 +78,7 @@ public class Controller {
 		
 		this.directiveEngine= (DirectiveEngine)engineSettings.createInitializedObject(
 				directiveEngine_str, directiveEngineConstructorArgumentTypes, 
-				new Object[]{s, router});
+				new Object[]{engineSettings, router});
     }   
     
     
