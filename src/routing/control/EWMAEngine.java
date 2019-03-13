@@ -155,7 +155,7 @@ public class EWMAEngine extends DirectiveEngine {
 		if (!this.sDropsAverage.isSet() || (this.sDropsAverage.getValue() <= this.dropsThreshold)) {
 			newNrofCopies = newNrofCopies + (newNrofCopies/4);
 		}else {
-			newNrofCopies = (newNrofCopies)*(3/4);
+			newNrofCopies = (newNrofCopies)*(3.0/4);
 		}
 		//number of copies aggregated from received directives.
 		if (this.sNrofMsgCopiesAverage.isSet()) {
@@ -168,7 +168,7 @@ public class EWMAEngine extends DirectiveEngine {
 		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
 		//modifying the copies left of the message in the routingConfiguration map.
 		this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
-			Math.min(newNrofCopiesIntValue, ((SprayAndWaitRouter)this.router).getCtrlMsgCountPropertyThreshold()));
+			newNrofCopiesIntValue);
 			
 		this.directiveDetails.init(message);
 		currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
