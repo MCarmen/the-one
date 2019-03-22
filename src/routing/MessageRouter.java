@@ -21,15 +21,15 @@ import core.Settings;
 import core.SettingsError;
 import core.SimClock;
 import core.SimError;
+import core.SimScenario;
 import core.control.ControlMessage;
 import core.control.DirectiveMessage;
 import core.control.MetricMessage;
 import core.control.listener.DirectiveListener;
 import report.control.directive.DirectiveDetails;
-import routing.control.RoutingPropertyMap;
-import routing.control.SprayAndWaitRoutingPropertyMap;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
+import routing.control.RoutingPropertyMap;
 import routing.util.RoutingInfo;
 import util.Tuple;
 
@@ -66,6 +66,9 @@ public abstract class MessageRouter {
 	public static final String STR_Q_MODE_RANDOM = "RANDOM";
 	/** Setting string for FIFO queue mode */
 	public static final String STR_Q_MODE_FIFO = "FIFO";
+	/** Setting string to stop generating  messages after a percentage of 
+	 * already  simulated time.*/
+	public static final String SIM_TIME_STOP_RATE = "simTimeStopRate";
 
 	/* Return values when asking to start a transmission:
 	 * RCV_OK (0) means that the host accepts the message and transfer started,
@@ -129,6 +132,9 @@ public abstract class MessageRouter {
 	protected MetricsSensed metricsSensed;
 	/** Map to be filled by the specific routers with specific routing information*/
 	protected RoutingPropertyMap routingProperties;
+	/** Percentage of already simulated time from which we are not creating 
+	 * new messages. */
+	protected double simTimeStopRate = -1;
 
 	
 
@@ -170,6 +176,9 @@ public abstract class MessageRouter {
 		else {
 			sendQueueMode = Q_MODE_RANDOM;
 		}
+		if (s.contains(MessageRouter.SIM_TIME_STOP_RATE)) {
+			this.simTimeStopRate = s.getDouble(MessageRouter.SIM_TIME_STOP_RATE);
+		}
 		
 		this.controller = this.amIAController(s) ? new Controller(this) : null;
 		this.metricsSensed = this.isControlModeOn() ? new MetricsSensed() : null; 		
@@ -199,6 +208,7 @@ public abstract class MessageRouter {
 		this.bufferSize = r.bufferSize;
 		this.msgTtl = r.msgTtl;
 		this.sendQueueMode = r.sendQueueMode;
+		this.simTimeStopRate = r.simTimeStopRate;
 
 		this.applications = new HashMap<String, Collection<Application>>();
 		for (Collection<Application> apps : r.applications.values()) {
@@ -557,34 +567,41 @@ public abstract class MessageRouter {
 	 * If the message to be created is a new directive, the router delegates the
 	 * the fulfillment of the message with the directive to 
 	 * {@link Controller#fillMessageWithDirective(ControlMessage)}.
-	 * If there is no directive to be generated this method returns false.
+	 * If there is no directive/metric to be generated this method returns false.
 	 * If an standard message, or metric or directive is finally created, it is 
 	 * added to the list of messages of the router.
+	 * No message is created in case the simulation time exceeds a percentage 
+	 * defined in the settings.
 	 * @param m The message to create.
 	 * @return True if the creation succeeded, false if not (e.g.
 	 * the message was too big for the buffer)
 	 */
 	public boolean createNewMessage(Message m) {
-		boolean msgHasBeenCreated = true;
-		if (m instanceof DirectiveMessage) {
-			DirectiveDetails directiveDetails;
-			directiveDetails = this.controller.fillMessageWithDirective(m);
-			// We add the directive to the deliveredMessages list so it will 
-			// not be considered by the controller that generated it in case 
-			// it receives it.
-			msgHasBeenCreated = (directiveDetails != null) ? true : false;
-			if (msgHasBeenCreated) {
-				this.deliveredMessages.put(m.getId(), m);
+		boolean msgHasBeenCreated = false;
+
+		if (this.msgHasToBeCreated()) {			
+			if (m instanceof DirectiveMessage) {
+				DirectiveDetails directiveDetails;
+				directiveDetails = this.controller.fillMessageWithDirective(m);
+				// We add the directive to the deliveredMessages list so it will
+				// not be considered by the controller that generated it in case
+				// it receives it.
+				msgHasBeenCreated = (directiveDetails != null) ? true : false;
+				if (msgHasBeenCreated) {
+					this.deliveredMessages.put(m.getId(), m);
+				}
+				this.reportDirectiveCreated(directiveDetails);
+			} else if (m instanceof MetricMessage) {
+				msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m);
+			}else {
+				msgHasBeenCreated = true;
 			}
-			this.reportDirectiveCreated(directiveDetails);
-		}else if (m instanceof MetricMessage) {
-			msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m);
+			if (msgHasBeenCreated) {
+				m.setTtl(this.msgTtl);
+				addToMessages(m, true);
+			}
 		}
-		if (msgHasBeenCreated) {
-			m.setTtl(this.msgTtl);
-			addToMessages(m, true);	
-		}
-		
+
 		return msgHasBeenCreated;
 	}
 
@@ -891,6 +908,21 @@ public abstract class MessageRouter {
 				((DirectiveListener)ml).directiveApplied(message, this.host);
 			}
 		}
+    }
+    
+    protected boolean msgHasToBeCreated() {
+    	boolean hasToBeCreated = true;
+    	if (this.simTimeStopRate > 0) {
+           SimScenario scen = SimScenario.getInstance();
+           double simTime = SimClock.getTime();
+           double endTime = scen.getEndTime();           
+           double prop = simTime / endTime;
+           if(prop > this.simTimeStopRate) {
+        	   hasToBeCreated = false;
+           }
+    	}
+    	
+    	return hasToBeCreated;
     }
     
 	private static enum TransferredCode {
