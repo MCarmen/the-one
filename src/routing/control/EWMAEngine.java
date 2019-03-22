@@ -162,7 +162,8 @@ public class EWMAEngine extends DirectiveEngine {
 			newNrofCopies = EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha);
 		}
 		
-		int newNrofCopiesIntValue = Math.min((int)Math.ceil(newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
+		//int newNrofCopiesIntValue = Math.min((int)Math.ceil(newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
+		int newNrofCopiesIntValue = (int)newNrofCopies;
 							
 		//Adding the 'L' property in the Directive message.
 		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
