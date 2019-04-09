@@ -155,7 +155,8 @@ public class EWMAEngine extends DirectiveEngine {
 		if (!this.sDropsAverage.isSet() || (this.sDropsAverage.getValue() <= this.dropsThreshold)) {
 			newNrofCopies = newNrofCopies + (newNrofCopies/4);
 		}else {
-			newNrofCopies = (newNrofCopies)*(3.0/4);
+			newNrofCopies = (newNrofCopies)*(0.25);
+			if (newNrofCopies <= 0) newNrofCopies = 1;
 		}
 		//number of copies aggregated from received directives.
 		if (this.sNrofMsgCopiesAverage.isSet()) {
