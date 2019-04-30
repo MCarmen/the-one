@@ -910,6 +910,13 @@ public abstract class MessageRouter {
 		}
     }
     
+    /**
+     * Method that checks if the setting simTimeStopRate is set. 
+     * If so, calculates the current percentage of the simulation run up to date.
+     * If the percentage is >= than the setting simTimeStopRate, the method 
+     * returns false. Otherwise, the method returns true. 
+     * @return
+     */
     protected boolean msgHasToBeCreated() {
     	boolean hasToBeCreated = true;
     	if (this.simTimeStopRate > 0) {
