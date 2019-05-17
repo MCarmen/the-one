@@ -15,7 +15,7 @@ import routing.control.MetricsSensed;
 public class CreatedMetricMessagesReport extends CreatedMessagesReport  {
 	@Override
 	public void init() {
-		CreatedMessagesReport.HEADER = "# time  ID  size  fromHost  toHost " + 
+		CreatedMessagesReport.HEADER = "# time  ID  fromHost  toHost " + 
 				"drops windowTime";
 		super.init();
 	}
