@@ -624,7 +624,7 @@ public abstract class MessageRouter {
 		
 		//in case the simulation is running in control mode we report the 
 		//drop.
-		if(this.metricsSensed != null) {
+		if((this.metricsSensed != null) && drop) {
 			this.metricsSensed.addDrop();
 		}
 	}
@@ -832,6 +832,9 @@ public abstract class MessageRouter {
 		return isControlModeOn;
     }
     
+    public MetricsSensed getMetricsSensed() {
+		return this.metricsSensed;
+	}
  
     
     /**
