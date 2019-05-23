@@ -69,6 +69,14 @@ public class MetricsSensed {
 		return messageFilled;
 	}
 	
+	/**
+	 * Returns an string representation
+	 */
+	public String toString() {
+		return String.format("%d %.1f", this.dropsPerWT,  
+					(SimClock.getTime() - this.sensingWindowTime));
+	}
+	
 	
 	/**
 	 * Inner class that encapsulates the number of drops sensed during
@@ -97,6 +105,10 @@ public class MetricsSensed {
 
 		public double getTime() {
 			return time;
+		}
+		
+		public String toString() {
+			return String.format("%d %.1f", this.nrofDrops,  this.time);
 		}
 				
 	}
