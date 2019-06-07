@@ -6,7 +6,7 @@ public class EWMAProperty{
 	
 	private static final double NOT_SET_VALUE = System.currentTimeMillis();
     
-	/** Average of the propety value smoothed by the application of the EWMA 
+	/** Average of the property value smoothed by the application of the EWMA 
 	 * function after a call to the method aggregateValue(newValue) */
 	private double sProperty; 
 
