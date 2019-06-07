@@ -28,7 +28,7 @@ public class Controller {
 	/** engine -setting id ({@value}) in the controller name space */ 
 	public static final String NROF_CONTROLLERS_S = "nrofControllers";	
 	/** Default setting value for the engine of a controller */
-	public static final String AGGREGATION_ENGINE = "AggregationEngine";	
+	public static final String EWMA_ENGINE = "EWMAEngine";	
 	/** The settings package full name. */
 	private static final String SETTINGS_PACKAGE = "core.Settings";
 	/** Engine to be used to generate directives. */
@@ -70,7 +70,7 @@ public class Controller {
 
 	 */
     protected void setDirectiveEngine(Settings s, MessageRouter router) {
-		String engineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : AGGREGATION_ENGINE;
+		String engineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : EWMA_ENGINE;
 		Settings engineSettings = new Settings(engineNameSpace);
 		String directiveEngine_str = CONTROL_PACKAGE + "." + engineNameSpace;
 		String[] directiveEngineConstructorArgumentTypes = {SETTINGS_PACKAGE, 
