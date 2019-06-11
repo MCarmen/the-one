@@ -16,7 +16,7 @@ public class CreatedMetricMessagesReport extends CreatedMessagesReport  {
 	@Override
 	public void init() {
 		CreatedMessagesReport.HEADER = "# time  ID  fromHost  toHost " + 
-				"drops windowTime";
+				"drops windowTime copiesLeft";
 		super.init();
 	}
 
