@@ -1,10 +1,15 @@
 package report.control.directive;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import core.Message;
+import core.control.ControlMessage;
 import core.control.DirectiveCode;
+import core.control.MetricCode;
+import routing.control.MetricsSensed;
 
 public class DirectiveDetails {
 	
@@ -20,6 +25,9 @@ public class DirectiveDetails {
 	/** List of the identifiers of the aggregated directives used to 
 	 * generate  this one.*/
 	private List<String> directivesUsed;
+	
+	/** A list with the metrics used  */
+	private List<Properties> metricsUsed;
 
 
 	/**
@@ -28,6 +36,7 @@ public class DirectiveDetails {
 	 */
 	public DirectiveDetails() {
 		this.directivesUsed = new ArrayList<String>();
+		this.metricsUsed = new ArrayList<>();
 	}
 	
 	/**
@@ -39,9 +48,8 @@ public class DirectiveDetails {
 		this.generatedByNode = directiveDetails.getGeneratedByNode();	
 		this.newNrofCopies = directiveDetails.getNewNrofCopies();
 		this.directivesUsed = new ArrayList<String>(directiveDetails.getDirectivesUsed());
+		this.metricsUsed = new ArrayList<>(directiveDetails.metricsUsed);
 	}
-	
-	
 	
 	public String getDirectiveID() {
 		return directiveID;
@@ -78,15 +86,42 @@ public class DirectiveDetails {
 	}
 	
 	/**
+	 * Method that registers the metric that has been aggregated in the controller
+	 * affecting the current directive to be generated.
+	 * @param metric The received metric about to be aggregated
+	 * @param currentDropsAverage The drops measurement aggregated until now to 
+	 * be used for the next directive to be generated
+	 * @param newDropsAverage The drops measurement after the metric passed as 
+	 * a parameter is aggregated. 
+	 */
+	public void addMetricUsed(ControlMessage metric,
+			double currentDropsAverage, double newDropsAverage) {
+		Properties metricProperties = new Properties();
+		int dropsSensed = 
+				((MetricsSensed.DropsPerTime)metric.getProperty(MetricCode.DROPS_CODE.toString())).getNrofDrops();
+		
+		metricProperties.put("id", metric.getId());
+		metricProperties.put("from", metric.getFrom());
+		metricProperties.put("DrpS", dropsSensed);
+		metricProperties.put("DrpAvg" , new DecimalFormat("#0.00").format(currentDropsAverage));
+		metricProperties.put("NDrpAvg", new DecimalFormat("#0.00").format(newDropsAverage));
+		
+		this.metricsUsed.add(metricProperties);
+	}
+	
+	
+	/**
 	 * Method that associates an empty list of directivesUsed to the 
 	 * directiveDetails.
 	 */
 	public void reset() {
 		this.directivesUsed.clear();
+		this.metricsUsed.clear();
 	}
 	
 	public String toString() {
-		return String.format("%s %s %d %s", this.directiveID, 
-				this.generatedByNode, this.newNrofCopies, this.directivesUsed);
+		return String.format("%s %s %d %s %s", this.directiveID, 
+				this.generatedByNode, this.newNrofCopies, this.directivesUsed,
+				this.metricsUsed);
 	}
 }
