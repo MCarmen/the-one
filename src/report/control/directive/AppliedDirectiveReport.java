@@ -5,6 +5,7 @@ import java.util.List;
 
 import core.DTNHost;
 import core.Message;
+import core.SimClock;
 import core.Message.MessageType;
 import core.control.DirectiveCode;
 import core.control.listener.DirectiveListener;
@@ -75,7 +76,7 @@ public class AppliedDirectiveReport extends Report implements DirectiveListener 
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append(("Applied directives for scenario " + getScenarioName() +
 				"\nsim_time: " + format(getSimTime())));
-		strBuilder.append("\nApplied to | Directive ID | nrofCopies\n");
+		strBuilder.append("\nSimTime | Applied to | Directive ID | nrofCopies \n");
 		for(AppliedDirective appliedDirective : this.appliedDirectives) {
 			strBuilder.append(appliedDirective + "\n");
 		}
@@ -93,6 +94,11 @@ public class AppliedDirectiveReport extends Report implements DirectiveListener 
 		/** nrofCopies field in the directive, regarding to the max number of  
 		 * message's copies that can be in the network.*/
 		private double nrofCopies;
+		
+		/**
+		 * Simulation time when the directive was applied.
+		 */
+		private double simTime;
 
 		/**
 		 * Creates an AppliedDirective object specifying the directive ID, the  
@@ -106,10 +112,12 @@ public class AppliedDirectiveReport extends Report implements DirectiveListener 
 			this.directiveID = directiveID;
 			this.appliedToNodeID = appliedToNodeID;
 			this.nrofCopies = nrofCopies;
+			this.simTime = SimClock.getTime();			
 		}
 		
 		public String toString() {
-			return String.format("%s %s %f", this.appliedToNodeID, this.directiveID, this.nrofCopies);
+			return String.format("%.2f %s %s %.2f", this.simTime, this.appliedToNodeID, 
+					this.directiveID, this.nrofCopies);
 		}
 	}
 
