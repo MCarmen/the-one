@@ -40,6 +40,9 @@ public class EWMAEngine extends DirectiveEngine {
 	/** dropsThreshold -setting id ({@value}) in the EWMAEngine name space for the drops */
 	private static final String DROPS_THRESHOLD_S = "dropsThreshold";
 	
+	private static final String METRICS_GENERATION_INTERVAL_S = "metricGenerationInterval"; 
+	private static final String DIRECTIVE_GENERATION_INTERVAL_S = "directiveGenerationInterval";
+	
 	/** alpha-setting's default value if it is not specified in the settings 
 	 ({@value}) */
 	private static final double DEF_ALPHA = 0.2; 
@@ -84,8 +87,25 @@ public class EWMAEngine extends DirectiveEngine {
 	 */
 	private int dropsThreshold;
 	
+	/**
+	 * Interval for the metrics generation. If it is not set, it is assumed 
+	 * the interval for the directives generation and this value is set to -1.
+	 */
+	private int metricGenerationInterval;
+
+	/**
+	 * Interval for the directives generation. If it is not set 
+	 * this value is set to -1.
+	 */
+	private int directiveGenerationInterval;
+	
+	
 	/** Total number of hosts in the scenario */
 	private int totalNrofHostsInTheScenario = SimScenario.getNumberOfHostsConfiguredInTheSettings();
+	
+	/** The aggregated drops after the last metric was generated */
+	private double lastSDropsAverage = -1;
+	
 
 	/**
 	 * Controller that reads from the settings, which is set to the value of the
@@ -104,20 +124,53 @@ public class EWMAEngine extends DirectiveEngine {
 		this.nrofCopiesAlpha = (settings.contains(NROFCOPIES_ALPHA_S)) ? settings.getDouble(NROFCOPIES_ALPHA_S)
 				: EWMAEngine.DEF_ALPHA;
 		this.directivesAlpha = (settings.contains(DIRECTIVES_ALPHA_S)) ? settings.getDouble(DIRECTIVES_ALPHA_S)
-				: EWMAEngine.DEF_DIRECTIVES_ALPHA;		
+				: EWMAEngine.DEF_DIRECTIVES_ALPHA;
 		this.dropsThreshold = (settings.contains(DROPS_THRESHOLD_S)) ? settings.getInt(DROPS_THRESHOLD_S)
 				: EWMAEngine.DEF_DROPS_THRESHOLD;
+		this.directiveGenerationInterval = (settings.contains(DIRECTIVE_GENERATION_INTERVAL_S)) ? 
+				settings.getInt(DIRECTIVE_GENERATION_INTERVAL_S) : 1; 
+		this.metricGenerationInterval =  
+				(settings.contains(METRICS_GENERATION_INTERVAL_S))
+				? settings.getInt(METRICS_GENERATION_INTERVAL_S)
+				: this.directiveGenerationInterval;
 		this.sDropsAverage = new EWMAProperty(this.dropsAlpha);
-		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);
+		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);						
+	}
+	
+	/**
+	 * Method that checks if the property lastDropsAverage has the same value as the
+	 * current value of the property sDropsAverage. In that case, it means that the
+	 * controller has not received any metric in this cycle. This fact aggregates 
+	 * to the property sDropsAverage as many 0(drops) as metric's cycles has a 
+	 * directive cycle in the property sDropsAverage.
+	 * 
+	 * @return true if the sDropsAverage has been updated or not.
+	 */
+	private boolean adjustSDropsAverage() {
+		boolean adjusted = false;
+		int metricsCycles;
+
+		if (this.sDropsAverage.isSet() && (this.lastSDropsAverage == this.sDropsAverage.getValue())) {
+			metricsCycles = (int) Math.ceil(this.directiveGenerationInterval / this.metricGenerationInterval);
+			adjusted = true;
+			for (int i = 0; i < metricsCycles; i++) {
+				this.sDropsAverage.aggregateValue(0);
+			}
+		}
+
+		return adjusted;
 	}
 
 	@Override
 	public void addMetric(ControlMessage metric) {
 		MetricsSensed.DropsPerTime nextDropsReading;
+		double dropsAvg;
 		
 		if (metric.containsProperty​(MetricCode.DROPS_CODE.toString())){
 			nextDropsReading = (MetricsSensed.DropsPerTime)metric.getProperty(MetricCode.DROPS_CODE.toString());
+			dropsAvg = this.sDropsAverage.getValue();
 			this.sDropsAverage.aggregateValue(nextDropsReading.getNrofDrops());
+			this.directiveDetails.addMetricUsed(metric, dropsAvg, this.sDropsAverage.getValue());
 		}
 	}
 
@@ -135,6 +188,7 @@ public class EWMAEngine extends DirectiveEngine {
 		}
 		this.directiveDetails.addDirectiveUsed(directive.getId());
 	}
+	
 
 	@Override
 	/**
@@ -149,11 +203,16 @@ public class EWMAEngine extends DirectiveEngine {
 	 */
 	public DirectiveDetails generateDirective(ControlMessage message) { 
 		double newNrofCopies = this.router.getRoutingProperties().get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
+		int initialNrofCopies = ((SprayAndWaitRouter)this.router).getInitialNrofCopies();
 		DirectiveDetails currentDirectiveDetails = null;
 		boolean generateDirective = false;
  		
+		this.adjustSDropsAverage();
+		
 		if (!this.sDropsAverage.isSet() || (this.sDropsAverage.getValue() <= this.dropsThreshold)) {
-			newNrofCopies = newNrofCopies + (newNrofCopies/4);
+			newNrofCopies = (newNrofCopies < initialNrofCopies) ? 
+					initialNrofCopies : newNrofCopies + (newNrofCopies/4);
+			
 		}else {
 			newNrofCopies = (newNrofCopies)*(0.25);
 			if ((int)newNrofCopies <= 0) newNrofCopies = 1;
@@ -168,7 +227,7 @@ public class EWMAEngine extends DirectiveEngine {
 							
 		//Adding the 'L' property in the Directive message.
 		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
-		//modifying the copies left of the message in the routingConfiguration map.
+		//modifying, in the routingConfiguration map, the initial number of copies for new messages.
 		this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
 			newNrofCopiesIntValue);
 			
@@ -176,7 +235,8 @@ public class EWMAEngine extends DirectiveEngine {
 		currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
 
 		
-		this.directiveDetails.reset();		
+		this.directiveDetails.reset();
+		this.lastSDropsAverage = this.sDropsAverage.getValue();
 		return currentDirectiveDetails;
 	}
 
