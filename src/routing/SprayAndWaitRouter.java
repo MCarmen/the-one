@@ -10,6 +10,7 @@ import java.util.List;
 import core.Connection;
 import core.DTNHost;
 import core.Message;
+import core.MessageListener;
 import core.Settings;
 import core.control.DirectiveCode;
 import routing.control.SprayAndWaitRoutingPropertyMap;
@@ -39,8 +40,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		Settings snwSettings = new Settings(SPRAYANDWAIT_NS);
 
 		initialNrofCopies = snwSettings.getInt(NROF_COPIES);		
-		isBinary = snwSettings.getBoolean( BINARY_MODE);
-		this.routingProperties = new SprayAndWaitRoutingPropertyMap(this);
+		isBinary = snwSettings.getBoolean( BINARY_MODE);		
 	}
 
 	/**
@@ -52,6 +52,12 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		this.initialNrofCopies = r.initialNrofCopies;
 		this.isBinary = r.isBinary;
 		this.routingProperties = r.routingProperties;		
+	}
+	
+	@Override
+	public void init(DTNHost host, List<MessageListener> mListeners) {
+		super.init(host, mListeners);
+		this.routingProperties = new SprayAndWaitRoutingPropertyMap(this);
 	}
 
 	@Override
