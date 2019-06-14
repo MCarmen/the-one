@@ -207,7 +207,6 @@ public abstract class MessageRouter {
 		}
 		if(this.controlModeOn) {
 			this.metricsSensed = new MetricsSensed();
-			System.out.println(String.format("Creating a MetricsSensed with windowTime initialized at: %.1f for router %s", this.metricsSensed.getSensingWindowTime(), this.toString())); //DEBUG
 		}
 	}
 
@@ -603,8 +602,7 @@ public abstract class MessageRouter {
 				}
 				this.reportDirectiveCreated(directiveDetails);
 			} else if (m instanceof MetricMessage) {
-				System.out.println(String.format("SimTime: %.1f host: %s metrics: %s", SimClock.getTime(), this.host, this.metricsSensed)); //DEBUG
-				msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m, this);				
+				msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m);				
 			}else {
 				msgHasBeenCreated = true;
 			}
