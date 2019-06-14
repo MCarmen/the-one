@@ -210,8 +210,7 @@ public class EWMAEngine extends DirectiveEngine {
 		this.adjustSDropsAverage();
 		
 		if (!this.sDropsAverage.isSet() || (this.sDropsAverage.getValue() <= this.dropsThreshold)) {
-			newNrofCopies = (newNrofCopies < initialNrofCopies) ? 
-					initialNrofCopies : newNrofCopies + (newNrofCopies/4);
+			newNrofCopies = newNrofCopies + (newNrofCopies/4);
 			
 		}else {
 			newNrofCopies = (newNrofCopies)*(0.25);
@@ -223,7 +222,7 @@ public class EWMAEngine extends DirectiveEngine {
 		}
 		
 		//int newNrofCopiesIntValue = Math.min((int)Math.ceil(newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
-		int newNrofCopiesIntValue = (int)newNrofCopies;
+		int newNrofCopiesIntValue = (int)Math.ceil(newNrofCopies);
 							
 		//Adding the 'L' property in the Directive message.
 		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
