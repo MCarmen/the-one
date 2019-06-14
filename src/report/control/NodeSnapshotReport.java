@@ -12,11 +12,11 @@ public class NodeSnapshotReport extends SnapshotReport{
 	@Override
 	protected void writeSnapshot(DTNHost host) {
 		if (isFirstWrite) {
-			write("Node_ID | metricsSensed: dropsSensed WindowTime");
+			write("Node_ID | metricsSensedHistory");
 			this.isFirstWrite = false;
 		}
 		// TODO Auto-generated method stub
-		write(String.format("%s %s", host, host.getRouter().getMetricsSensed()));
+		write(String.format("%s %s\n\n", host, host.getRouter().getMetricsSensed().getHistoryAsString()));
 
 	}
 	
