@@ -51,13 +51,7 @@ public class MetricsSensed {
 		
 		return historyStr;
 	}
-	
-	//DEBUG
-	public double getSensingWindowTime() {
-		return sensingWindowTime;
-	}
-	//DEBUG
-	
+		
 	/**
 	 * Method that resets the drops and the sensing time. The drops are set to 0
 	 * and the sensing time to the current simulation time.
@@ -82,18 +76,16 @@ public class MetricsSensed {
 	 * @return true if the message has been modified with the drops sensed. If
 	 * there have been no drops it returns false.
 	 */
-	public boolean fillMessageWithMetric(Message message, MessageRouter router) {
+	public boolean fillMessageWithMetric(Message message) {
 		boolean messageFilled = (this.dropsPerWT > 0);
 		DropsPerTime dropsPerTime;
 		if (this.dropsPerWT > 0) {
 			dropsPerTime = new DropsPerTime(this.dropsPerWT, SimClock.getTime()-this.sensingWindowTime);
-			System.out.println(String.format("%s", dropsPerTime)); //DEBUG
 			message.addProperty(MetricCode.DROPS_CODE.toString(), 
 					dropsPerTime);
 			this.history.add(dropsPerTime);
 		}
 		this.reset();
-		System.out.println(String.format("Reset for: %s  new startSensing WT: %.1f", router.toString(), this.sensingWindowTime));//DEBUG
 		
 		return messageFilled;
 	}
@@ -102,11 +94,8 @@ public class MetricsSensed {
 	 * Returns an string representation
 	 */
 	public String toString() {
-//		return String.format("%d %.1f", this.dropsPerWT,  
-//					(SimClock.getTime() - this.sensingWindowTime));
-		return String.format("drops: %d simTime: %.1f startSensingTime: %.1f", this.dropsPerWT,  
-				SimClock.getTime(), this.sensingWindowTime);		
-		
+		return String.format("%d %.1f", this.dropsPerWT,  
+					(SimClock.getTime() - this.sensingWindowTime));		
 	}
 	
 	/**
