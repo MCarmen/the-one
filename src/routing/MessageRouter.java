@@ -135,7 +135,10 @@ public abstract class MessageRouter {
 	/** Percentage of already simulated time from which we are not creating 
 	 * new messages. */
 	protected double simTimeStopRate = -1;
-
+	/**Flag indicating whether the router is a controller*/
+	private boolean amIController = false;
+	/**Flag indicating whether the system is a controlled one.*/
+	private boolean controlModeOn = false;	
 	
 
 	/**
@@ -180,8 +183,9 @@ public abstract class MessageRouter {
 			this.simTimeStopRate = s.getDouble(MessageRouter.SIM_TIME_STOP_RATE);
 		}
 		
-		this.controller = this.amIAController(s) ? new Controller(this) : null;
-		this.metricsSensed = this.isControlModeOn() ? new MetricsSensed() : null; 		
+		this.amIController = ((s.contains(TYPE_S)) && 
+				(s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
+		this.controlModeOn = this.isControlModeOn();
 	}
 
 	/**
@@ -198,6 +202,13 @@ public abstract class MessageRouter {
 		this.blacklistedMessages = new HashMap<String, Object>();
 		this.mListeners = mListeners;
 		this.host = host;
+		if(this.amIController) {
+			this.controller = new Controller(this);
+		}
+		if(this.controlModeOn) {
+			this.metricsSensed = new MetricsSensed();
+			System.out.println(String.format("Creating a MetricsSensed with windowTime initialized at: %.1f for router %s", this.metricsSensed.getSensingWindowTime(), this.toString())); //DEBUG
+		}
 	}
 
 	/**
@@ -216,8 +227,8 @@ public abstract class MessageRouter {
 				addApplication(app.replicate());
 			}
 		}
-		this.controller = r.controller;
-		this.metricsSensed = r.metricsSensed;
+		this.amIController = r.amIController;
+		this.controlModeOn = r.controlModeOn;
 	}
 
 	/**
@@ -592,7 +603,8 @@ public abstract class MessageRouter {
 				}
 				this.reportDirectiveCreated(directiveDetails);
 			} else if (m instanceof MetricMessage) {
-				msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m);
+				System.out.println(String.format("SimTime: %.1f host: %s metrics: %s", SimClock.getTime(), this.host, this.metricsSensed)); //DEBUG
+				msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m, this);				
 			}else {
 				msgHasBeenCreated = true;
 			}
@@ -818,7 +830,7 @@ public abstract class MessageRouter {
 	 * @return True if there is at least one controller in the scenario. 
 	 * False otherwise.
 	 */	
-    protected boolean isControlModeOn() {
+    private boolean isControlModeOn() {
     	Settings s = new Settings(CONTROL_NS);
 		int nrofControllers;
 		boolean isControlModeOn = false;
@@ -915,7 +927,7 @@ public abstract class MessageRouter {
     
     /**
      * Method that checks if the setting simTimeStopRate is set. 
-     * If so, calculates the current percentage of the simulation run up to date.
+     * If so, calculates the current percentage of the simulation ran up to date.
      * If the percentage is >= than the setting simTimeStopRate, the method 
      * returns false. Otherwise, the method returns true. 
      * @return
