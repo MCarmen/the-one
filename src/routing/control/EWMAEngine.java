@@ -43,6 +43,14 @@ public class EWMAEngine extends DirectiveEngine {
 	private static final String METRICS_GENERATION_INTERVAL_S = "metricGenerationInterval"; 
 	private static final String DIRECTIVE_GENERATION_INTERVAL_S = "directiveGenerationInterval";
 	
+	/** incrementCopiesRatio -setting id ({@value}) in the EWMAEngine name space. 
+	 * It is used to increment by a ratio the number of copies of the msg(L). */
+	private static final String INCREMENT_COPIES_RATIO_S =  "incrementCopiesRatio";
+	
+	/** decrementCopiesRatio -setting id ({@value}) in the EWMAEngine name space. 
+	 * It is used to decrement by a ratio the number of copies of the msg(L). */	
+	private static final String DECREMENT_COPIES_RATIO_S =  "decrementCopiesRatio";
+	
 	/** alpha-setting's default value if it is not specified in the settings 
 	 ({@value}) */
 	private static final double DEF_ALPHA = 0.2; 
@@ -54,6 +62,14 @@ public class EWMAEngine extends DirectiveEngine {
 	/** dropsThreshold-setting's default value if it is not specified in the settings 
 	 ({@value}) */
 	private static final int DEF_DROPS_THRESHOLD = 0;
+	
+	/** incrementCopiesRatio's default value if it is not specified in the settings 
+	 ({@value}) */
+	private static final double DEF_INCREMENT_COPIES_RATIO = 0.25;
+	
+	/** decrementCopiesRatio's default value if it is not specified in the settings 
+	 ({@value}) */
+	private static final double DEF_DECREMENT_COPIES_RATIO = 0.25;
 		
 	/** Accumulated soften drops average  */
 	private EWMAProperty sDropsAverage;
@@ -99,6 +115,15 @@ public class EWMAEngine extends DirectiveEngine {
 	 */
 	private int directiveGenerationInterval;
 	
+	/**
+	 * Ratio to increment the number of  copies of a message by.
+	 */
+	private double incrementCopiesRatio;
+	
+	/**
+	 * Ratio to decrement the number of  copies of a message by. 
+	 */
+	private double decrementCopiesRatio;
 	
 	/** Total number of hosts in the scenario */
 	private int totalNrofHostsInTheScenario = SimScenario.getNumberOfHostsConfiguredInTheSettings();
@@ -133,6 +158,11 @@ public class EWMAEngine extends DirectiveEngine {
 				(settings.contains(METRICS_GENERATION_INTERVAL_S))
 				? settings.getInt(METRICS_GENERATION_INTERVAL_S)
 				: this.directiveGenerationInterval;
+		this.incrementCopiesRatio = (settings.contains(INCREMENT_COPIES_RATIO_S)) ? 
+				settings.getDouble(INCREMENT_COPIES_RATIO_S) : DEF_INCREMENT_COPIES_RATIO;
+		this.decrementCopiesRatio = (settings.contains(DECREMENT_COPIES_RATIO_S)) ? 
+				settings.getDouble(DECREMENT_COPIES_RATIO_S) : DEF_DECREMENT_COPIES_RATIO;		
+				
 		this.sDropsAverage = new EWMAProperty(this.dropsAlpha);
 		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);						
 	}
@@ -210,19 +240,19 @@ public class EWMAEngine extends DirectiveEngine {
 		this.adjustSDropsAverage();
 		
 		if (!this.sDropsAverage.isSet() || (this.sDropsAverage.getValue() <= this.dropsThreshold)) {
-			newNrofCopies = newNrofCopies + (newNrofCopies/4);
+			newNrofCopies = Math.ceil(newNrofCopies + (newNrofCopies* this.incrementCopiesRatio));
 			
 		}else {
-			newNrofCopies = (newNrofCopies)*(0.25);
-			if ((int)newNrofCopies <= 0) newNrofCopies = 1;
+			newNrofCopies = Math.floor((newNrofCopies)*(this.decrementCopiesRatio));
+			if (newNrofCopies <= 0) newNrofCopies = 1;
 		}
 		//number of copies aggregated from received directives.
 		if (this.sNrofMsgCopiesAverage.isSet()) {
-			newNrofCopies = EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha);
+			newNrofCopies = Math.floor(EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha));
 		}
 		
-		//int newNrofCopiesIntValue = Math.min((int)Math.ceil(newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
-		int newNrofCopiesIntValue = (int)Math.ceil(newNrofCopies);
+		int newNrofCopiesIntValue = Math.min((int)Math.ceil(newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
+		//int newNrofCopiesIntValue = (int)newNrofCopies;
 							
 		//Adding the 'L' property in the Directive message.
 		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
