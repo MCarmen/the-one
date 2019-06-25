@@ -67,7 +67,7 @@ public class MessageStatsReport extends Report implements MessageListener {
 
 
 	public void messageDeleted(Message m, DTNHost where, boolean dropped) {
-		if (isWarmupID(m.getId())) {
+		if (isWarmupID(m.getId()) || isWarmDownID(m.getId())) {
 			return;
 		}
 
@@ -83,7 +83,7 @@ public class MessageStatsReport extends Report implements MessageListener {
 
 
 	public void messageTransferAborted(Message m, DTNHost from, DTNHost to) {
-		if (isWarmupID(m.getId())) {
+		if (isWarmupID(m.getId()) || isWarmDownID(m.getId())) {
 			return;
 		}
 
@@ -93,7 +93,7 @@ public class MessageStatsReport extends Report implements MessageListener {
 
 	public void messageTransferred(Message m, DTNHost from, DTNHost to,
 			boolean finalTarget) {
-		if (isWarmupID(m.getId())) {
+		if (isWarmupID(m.getId()) || isWarmDownID(m.getId())) {
 			return;
 		}
 
@@ -117,6 +117,10 @@ public class MessageStatsReport extends Report implements MessageListener {
 			addWarmupID(m.getId());
 			return;
 		}
+		if(this.isWarmDown()) {
+			this.addWarmDownID(m.getId());
+			return;
+		}
 
 		this.creationTimes.put(m.getId(), getSimTime());
 		this.nrofCreated++;
@@ -127,7 +131,7 @@ public class MessageStatsReport extends Report implements MessageListener {
 
 
 	public void messageTransferStarted(Message m, DTNHost from, DTNHost to) {
-		if (isWarmupID(m.getId())) {
+		if (isWarmupID(m.getId()) || isWarmDownID(m.getId())) {
 			return;
 		}
 
