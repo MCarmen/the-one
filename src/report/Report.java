@@ -49,6 +49,16 @@ public abstract class Report {
 	 *  respective report classes for details. Default is 0. Must be a positive
 	 *  integer or 0. */
 	public static final String WARMUP_S = "warmup";
+	/** 
+	 * Warm down period -setting id ({@value}). Defines for how many seconds 
+	 * before finishing the simulation, the simulation should not be included 
+	 * in the reports.
+	 * Implementation of the feature is report specific, so check out the
+	 * respective report classes for details. Must be a positive
+	 * integer. Default is the simulation endTime so warmDown is not considered.
+	 * Must be a positive integer. 
+	 * */
+	public static final String WARMDOWN_S = "warmDown";	
 	/** Suffix of report files without explicit output */
 	public static final String OUT_SUFFIX = ".txt";
 	/** Suffix for reports that are created on n second intervals */
@@ -61,10 +71,13 @@ public abstract class Report {
 	private int precision;
 	protected int warmupTime;
 	protected Set<String> warmupIDs;
+	protected int warmDownTime;
+	protected Set<String> warmDownIDs = new HashSet<String>();;	
 
 	private int lastOutputSuffix;
 	private double outputInterval;
 	private double lastReportTime;
+	private double simEndTime;
 	private String outFileName;
 	private String scenarioName;
 
@@ -78,6 +91,8 @@ public abstract class Report {
 		this.lastOutputSuffix = 0;
 		this.outputInterval = -1;
 		this.warmupIDs = null;
+		final SimScenario simScenario = SimScenario.getInstance(); 
+		this.simEndTime = simScenario.getEndTime();
 
 		Settings settings = new Settings();
 		scenarioName = settings.valueFillString(settings.getSetting(
@@ -95,6 +110,9 @@ public abstract class Report {
 		else {
 			this.warmupTime = 0;
 		}
+		this.warmDownTime = (settings.contains(WARMDOWN_S)) ?
+				settings.getInt(WARMDOWN_S) :
+				0;
 
 
 		if (settings.contains(PRECISION_SETTING)) {
@@ -291,7 +309,7 @@ public abstract class Report {
 
 		this.warmupIDs.add(id);
 	}
-
+	
 	/**
 	 * Removes a warm up ID from the warm up ID set
 	 * @param id The ID to remove
@@ -299,6 +317,7 @@ public abstract class Report {
 	protected void removeWarmupID(String id) {
 		this.warmupIDs.remove(id);
 	}
+		
 
 	/**
 	 * Returns true if the given ID is in the warm up ID set
@@ -313,6 +332,41 @@ public abstract class Report {
 		return this.warmupIDs.contains(id);
 	}
 
+	/**
+	 * Returns true if the warm down period is still ongoing 
+	 * (total_simTime - simTime < warmdown)
+	 * @return true if the warm down period is still ongoing, false if not
+	 */
+	protected boolean isWarmDown() {
+		//return this.warmupTime > SimClock.getTime();kjkjkjk
+		return (this.simEndTime - SimClock.getIntTime() < this.warmDownTime);
+	}
+	
+	/**
+	 * Adds a new ID to the warm down ID set
+	 * @param id The ID
+	 */
+	protected void addWarmDownID(String id) {
+		this.warmDownIDs.add(id);
+	}
+	
+	/**
+	 * Removes a warm up ID from the warm up ID set
+	 * @param id The ID to remove
+	 */
+	protected void removeWarmDownID(String id) {
+		this.warmDownIDs.remove(id);
+	}
+
+	/**
+	 * Returns true if the given ID is in the warm down ID set
+	 * @param id The ID
+	 * @return true if the given ID is in the warm down ID set
+	 */
+	protected boolean isWarmDownID(String id) {
+		return this.warmDownIDs.contains(id);
+	}
+	
 	/**
 	 * Returns a Settings object initialized for the report class' name space
 	 * that uses {@value REPORT_NS} as the secondary name space.
