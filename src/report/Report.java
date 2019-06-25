@@ -58,7 +58,7 @@ public abstract class Report {
 	 * integer. Default is the simulation endTime so warmDown is not considered.
 	 * Must be a positive integer. 
 	 * */
-	public static final String WARMDOWN_S = "warmDown";	
+	public static final String WARMDOWN_S = "warmdown";	
 	/** Suffix of report files without explicit output */
 	public static final String OUT_SUFFIX = ".txt";
 	/** Suffix for reports that are created on n second intervals */
