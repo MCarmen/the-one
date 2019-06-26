@@ -338,8 +338,7 @@ public abstract class Report {
 	 * @return true if the warm down period is still ongoing, false if not
 	 */
 	protected boolean isWarmDown() {
-		//return this.warmupTime > SimClock.getTime();kjkjkjk
-		return (this.simEndTime - SimClock.getIntTime() < this.warmDownTime);
+		return ((this.simEndTime - SimClock.getIntTime()) < this.warmDownTime); 
 	}
 	
 	/**
