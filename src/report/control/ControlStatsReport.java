@@ -1,52 +1,11 @@
 package report.control;
 
-import core.DTNHost;
-import core.Message;
-import core.MessageListener;
 import core.control.ControlMessage;
-import report.MessageStatsReport;
+import report.TMessageStatsReport;
 
-public class ControlStatsReport extends MessageStatsReport implements MessageListener {
+public class ControlStatsReport extends TMessageStatsReport{
 
-//	public ControlStatsReport() {
-//		// TODO Auto-generated constructor stub
-//	}
-
-	@Override
-	public void newMessage(Message m) {
-		if(m instanceof ControlMessage) {
-			super.newMessage(m);
-		}
-
+	public ControlStatsReport(){
+		this.init(ControlMessage.class);
 	}
-
-	@Override
-	public void messageTransferStarted(Message m, DTNHost from, DTNHost to) {
-		if(m instanceof ControlMessage) {
-			super.messageTransferStarted(m, from, to);
-		}
-	}
-
-	@Override
-	public void messageDeleted(Message m, DTNHost where, boolean dropped) {
-		if(m instanceof ControlMessage) {
-			super.messageDeleted(m, where, dropped);
-		}
-	}
-
-	@Override
-	public void messageTransferAborted(Message m, DTNHost from, DTNHost to) {
-		if(m instanceof ControlMessage) {
-			super.messageTransferAborted(m, from, to);
-		}
-	}
-
-	@Override
-	public void messageTransferred(Message m, DTNHost from, DTNHost to, boolean firstDelivery) {
-		if(m instanceof ControlMessage) {
-			super.messageTransferred(m, from, to, firstDelivery);
-		}
-
-	}
-
 }
