@@ -388,7 +388,7 @@ public class Message implements Comparable<Message> {
 	 *
 	 */
 	 public static enum MessageType{
-		MESSAGE, DIRECTIVE, METRIC;
+		MESSAGE, MESSAGE_BROADCAST, DIRECTIVE, METRIC;
 	}
 
 }
