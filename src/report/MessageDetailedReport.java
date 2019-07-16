@@ -3,6 +3,7 @@ package report;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import core.DTNHost;
@@ -42,6 +43,7 @@ public class MessageDetailedReport extends Report implements MessageListener{
 		MessageStatistics msgStats = new MessageStatistics(m.getFrom().getAddress(), 
 				m.getTo().getAddress(), this.getSimTime());
 		this.messageStats.put(m.getId(), msgStats);
+
 						
 	}
 
@@ -57,15 +59,15 @@ public class MessageDetailedReport extends Report implements MessageListener{
 		}
 		
 		MessageStatistics msgStats = this.messageStats.get(m.getId());
-		if (dropped) {			
-			msgStats.hasBeenDropped = true;
+		if (dropped) {	
+			msgStats.droppedAt.add(where.getAddress());
 		}
 		else {
-			msgStats.hasBeenRemoved = true;
+			msgStats.removedAt.add(where.getAddress());
 		}
 
 		double bufferTime = Double.parseDouble(String.format(".2f", getSimTime() - m.getReceiveTime()));
-		msgStats.msgBufferTime.add(bufferTime);
+		msgStats.msgBufferTime.add(Map.entry(where.getAddress(), bufferTime)); 
 		
 	}
 
@@ -77,11 +79,21 @@ public class MessageDetailedReport extends Report implements MessageListener{
 			return;
 		}
 
-		this.messageStats.get(m.getId()).hasBeenAborted = true;		
+		this.messageStats.get(m.getId()).abortedAt.add(to.getAddress());
+		
 	}
 
 	@Override
-	public void messageTransferred(Message m, DTNHost from, DTNHost to, boolean finalTarget) {
+	/**
+	 * This method is called (on the receiving host) after a message
+	 * was successfully transferred. 
+	 * @param id Id of the transferred message
+	 * @param from Host the message was from (previous hop)
+	 * @param to the thost this message has been transferred to
+	 * @param isFirstDelivery if the 'to' host is the final destination of the 
+	 * message and it is the first time the 'to' host has received the message.
+	 */
+	public void messageTransferred(Message m, DTNHost from, DTNHost to, boolean isFirstDelivery) {
 		if (isWarmupID(m.getId()) || isWarmDownID(m.getId())) {
 			return;
 		}
@@ -89,22 +101,24 @@ public class MessageDetailedReport extends Report implements MessageListener{
 		List<Integer> originDestTuple = new ArrayList<>(2);
 		originDestTuple.add(0, from.getAddress());
 		originDestTuple.add(1, to.getAddress());
-		msgStats.hops.add(originDestTuple);
+		msgStats.replicas.put(m.getUniqueId(), m);
+		
 
-		if (finalTarget) {
-			msgStats.latency = this.getSimTime() - msgStats.creationTime;
-			msgStats.hasBeenDelivered = true;
+		if (isFirstDelivery) {
+			MessageStatistics.DeliveredDetails deliveredDetails = 
+					msgStats.new DeliveredDetails(to.getAddress(), this.getSimTime() - msgStats.creationTime);
 			if (m.isResponse()) {
-				msgStats.isAResponse = true;
-				msgStats.rtt = getSimTime() -	m.getRequest().getCreationTime();
+				deliveredDetails.isAResponse = true;
+				deliveredDetails.rtt = getSimTime() -	m.getRequest().getCreationTime(); 		
 			}
+			msgStats.deliveredTo.add(deliveredDetails);
 		}
 	}
 	
 	@Override
 	public void done() {
 		this.write(String.format("Message stats for scenario  %s: id | creationTime | origin | destination | "+
-		" latency | delivered | dropped | removed | aborted | isResponse | rtt | hops | bufferTime", 
+		" deliveredTo | latency | isResponse | rtt | droppedAt | removedAt | abortedAt | hops | bufferTimeAt", 
 				this.getScenarioName()));
 		
 		for(Entry<String, MessageStatistics>msgStatsEntry : this.messageStats.entrySet()) {
@@ -121,20 +135,15 @@ public class MessageDetailedReport extends Report implements MessageListener{
 		private int origin;
 		private int destination;		
 		private double creationTime;		
-		private double latency;
-		private List<List<Integer>> hops = new ArrayList<>();
-		private List<Double> msgBufferTime = new ArrayList<>();
-		private double rtt; // round trip time
-		private boolean hasBeenDropped;
-		private boolean hasBeenRemoved;
-		private boolean hasBeenAborted;
-		private boolean hasBeenDelivered;
-		private boolean isAResponse;
+		private List<Map.Entry<Integer, Double>> msgBufferTime = new ArrayList<>();
+		private List<Integer>droppedAt = new ArrayList<>();
+		private List<Integer>removedAt = new ArrayList<>();
+		private List<Integer>abortedAt = new ArrayList<>();
+		private List<DeliveredDetails> deliveredTo = new ArrayList<>();
+		private HashMap<Integer, Message> replicas = new HashMap<>();
 
-		public MessageStatistics() {
-		}
-		
-		
+		public MessageStatistics() {}
+				
 
 		public MessageStatistics(int origin, int destination, double creationTime) {
 			this.origin = origin;
@@ -143,14 +152,44 @@ public class MessageDetailedReport extends Report implements MessageListener{
 		}
 
 
+		public String hopsToString() {
+			String hopsPaths = "";
+			for(Message replica : this.replicas.values()) {
+				hopsPaths += String.format("%s ", replica.getHops());
+			}
+			return String.format("[%s]", hopsPaths);
+		}
 
 		public String toString() {
 
-			return String.format("%.1f %d %d %.1f %b %b %b %b %b %.1f %s %s", this.creationTime, this.origin, this.destination, this.latency,
-					this.hasBeenDelivered, this.hasBeenDropped, this.hasBeenRemoved, this.hasBeenAborted,
-					this.isAResponse, this.rtt, this.hops, this.msgBufferTime);
+			return String.format("%.1f | %d | %d | %s | %s | %s | %s | %s | %s", 
+					this.creationTime, this.origin, this.destination, 
+					this.deliveredTo, this.droppedAt, this.removedAt, 
+					this.abortedAt, this.hopsToString(), 
+					this.msgBufferTime);
 
 		}
-	}
+		
+		public class DeliveredDetails{
+			private int deliveredTo;
+			private double latency;
+			private boolean isAResponse;
+			private double rtt; // round trip time
+
+			public DeliveredDetails(int deliveredTo, double latency) {
+				this.deliveredTo = deliveredTo;
+				this.latency = latency;
+				this.isAResponse = false;
+				this.rtt = 0.0;
+			}
+			
+			public String toString() {
+				return String.format("[%d %.2f %b %.1f]", this.deliveredTo, 
+						this.latency, this.isAResponse, this.rtt);
+			}
+						
+						
+		}
+	} // end MessageStatistics class
 
 }
