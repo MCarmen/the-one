@@ -435,6 +435,13 @@ public abstract class MessageRouter {
 		TransferredCode receivedStateCode = this.getTransferredCode(aMessage);
 		
 		switch(receivedStateCode) {
+			case MESSAGE_BROADCAST_DESTINATION_REACHED_CODE:
+				this.addToMessages(aMessage, false);
+				if(!isDeliveredMessage(aMessage)) {
+					this.deliveredMessages.put(id, aMessage);
+					isFirstDelivery = true;
+				}				
+				break;
 			case MESSAGE_DESTINATION_REACHED_CODE:
 				if(isFirstDelivery) {
 					this.deliveredMessages.put(id, aMessage);
@@ -452,6 +459,7 @@ public abstract class MessageRouter {
 				if(!isDeliveredMessage(aMessage)) {
 					this.deliveredMessages.put(id, aMessage);
 					this.controller.addMetric((ControlMessage)aMessage);
+					isFirstDelivery = true;
 				}
 				break;
 			case DIRECTIVE_CONTROLLER_REACHED_CODE:
@@ -461,6 +469,7 @@ public abstract class MessageRouter {
 				if(!isDeliveredMessage(aMessage)) {
 					this.deliveredMessages.put(id, aMessage);
 					this.controller.addDirective((ControlMessage)aMessage);
+					isFirstDelivery = true;
 				}
 				break;
 			case DIRECTIVE_DESTINATION_REACHED_CODE:
@@ -469,6 +478,7 @@ public abstract class MessageRouter {
 				}
 				if(!isDeliveredMessage(aMessage)) {
 					this.deliveredMessages.put(id, aMessage);
+					isFirstDelivery = true;
 				}
 				this.applyDirective(aMessage);
 				this.reportAppliedDirective(aMessage);
@@ -857,7 +867,7 @@ public abstract class MessageRouter {
 	
 	/**
 	 * Method that analyzes the received message passed as a parameter and
-	 * determines the following variables: the type of the message(normal,
+	 * determines the following variables: the type of the message(normal, broadcast,
 	 * directive, or metric) and if we are the final destination of the message, and
 	 * if we are a controller.
 	 * 
@@ -874,6 +884,9 @@ public abstract class MessageRouter {
 				receivedMessageCode = (isFinalRecipient) ? 
 						TransferredCode.MESSAGE_DESTINATION_REACHED_CODE : 
 						TransferredCode.MESSAGE_DESTINATION_UNREACHED_CODE;
+				break;
+			case MESSAGE_BROADCAST:
+				receivedMessageCode = TransferredCode.MESSAGE_BROADCAST_DESTINATION_REACHED_CODE;
 				break;
 			case METRIC:
 				receivedMessageCode = this.isAController() ?
@@ -947,7 +960,8 @@ public abstract class MessageRouter {
     
 	private static enum TransferredCode {
 		MESSAGE_DESTINATION_REACHED_CODE, 
-		MESSAGE_DESTINATION_UNREACHED_CODE, 
+		MESSAGE_DESTINATION_UNREACHED_CODE,
+		MESSAGE_BROADCAST_DESTINATION_REACHED_CODE,
 		METRIC_DESTINATION_REACHED_CODE,
 		METRIC_DESTINATION_UNREACHED_CODE, 
 		DIRECTIVE_CONTROLLER_REACHED_CODE, 
