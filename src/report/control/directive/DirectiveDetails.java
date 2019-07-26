@@ -89,13 +89,17 @@ public class DirectiveDetails {
 	 * Method that registers the metric that has been aggregated in the controller
 	 * affecting the current directive to be generated.
 	 * @param metric The received metric about to be aggregated
-	 * @param currentDropsAverage The drops measurement aggregated until now to 
-	 * be used for the next directive to be generated
+	 * @param currentDropsAverage The drops measurement aggregated until now.
 	 * @param newDropsAverage The drops measurement after the metric passed as 
-	 * a parameter is aggregated. 
+	 * a parameter is aggregated.
+	 * @param currentMeanDeviationAverage the current meanDeviation of the measure.
+	 * @param newMeanDeviationAverage the new meanDeviation after aggregating the new 
+	 * deviation of the metric measure's to the mean. 
+	 *  
 	 */
 	public void addMetricUsed(ControlMessage metric,
-			double currentDropsAverage, double newDropsAverage) {
+			double currentDropsAverage, double newDropsAverage, 
+			double currentMeanDeviationAverage, double newMeanDeviationAverage) {
 		Properties metricProperties = new Properties();
 		int dropsSensed = 
 				((MetricsSensed.DropsPerTime)metric.getProperty(MetricCode.DROPS_CODE.toString())).getNrofDrops();
@@ -105,6 +109,8 @@ public class DirectiveDetails {
 		metricProperties.put("DrpS", dropsSensed);
 		metricProperties.put("DrpAvg" , new DecimalFormat("#0.00").format(currentDropsAverage));
 		metricProperties.put("NDrpAvg", new DecimalFormat("#0.00").format(newDropsAverage));
+		metricProperties.put("DrpMeanDeviationAvg", new DecimalFormat("#0.00").format(currentMeanDeviationAverage));
+		metricProperties.put("NDrpMeanDeviationAvg", new DecimalFormat("#0.00").format(newMeanDeviationAverage));
 		
 		this.metricsUsed.add(metricProperties);
 	}
