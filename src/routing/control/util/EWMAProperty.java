@@ -46,7 +46,7 @@ public class EWMAProperty{
 	 * (sProperty).
 	 * The EWUMA function for smoothing the property is:
 	 * sPoperty = (1-alpha) * sPoperty + alpha * property_messured.
-	 * @param newValue new reading of the drops.
+	 * @param newValue new measure to be smoothed.
 	 */
 	public void aggregateValue(double newValue) {
 		this.sProperty = (this.sProperty == EWMAProperty.NOT_SET_VALUE) ? newValue
