@@ -212,7 +212,7 @@ public class EWMAEngine extends DirectiveEngine {
 			adjusted = true;
 			for (int i = 0; i < metricsCycles; i++) {
 				this.sDropsAverage.aggregateValue(0);
-				this.sDropsMeanDeviation.aggregateValue(0, this.sDropsAverage.getValue());
+				this.sDropsMeanDeviation.aggregateValue(0, this.sDropsAverage);
 			}
 		}
 
@@ -228,7 +228,7 @@ public class EWMAEngine extends DirectiveEngine {
 		if (metric.containsProperty​(MetricCode.DROPS_CODE.toString())) {
 			nextDropsReading = (MetricsSensed.DropsPerTime) metric.getProperty(MetricCode.DROPS_CODE.toString());
 			dropsMeanDeviationAvg = this.sDropsMeanDeviation.getValue();
-			this.sDropsMeanDeviation.aggregateValue(nextDropsReading.getNrofDrops(), this.sDropsAverage.getValue());
+			this.sDropsMeanDeviation.aggregateValue(nextDropsReading.getNrofDrops(), this.sDropsAverage);
 			dropsAvg = this.sDropsAverage.getValue();
 			this.sDropsAverage.aggregateValue(nextDropsReading.getNrofDrops());
 			this.directiveDetails.addMetricUsed(metric, dropsAvg, this.sDropsAverage.getValue(), 
@@ -246,7 +246,7 @@ public class EWMAEngine extends DirectiveEngine {
 		
 		if(directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 			nextNrofCopiesReading = (double)directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
-			this.sDirectivesMeanDeviation.aggregateValue(nextNrofCopiesReading, this.sNrofMsgCopiesAverage.getValue());			
+			this.sDirectivesMeanDeviation.aggregateValue(nextNrofCopiesReading, this.sNrofMsgCopiesAverage);			
 			this.sNrofMsgCopiesAverage.aggregateValue(nextNrofCopiesReading);
 		}
 		this.directiveDetails.addDirectiveUsed(directive.getId());
