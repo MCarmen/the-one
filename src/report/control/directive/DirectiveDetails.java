@@ -109,8 +109,8 @@ public class DirectiveDetails {
 		metricProperties.put("DrpS", dropsSensed);
 		metricProperties.put("DrpAvg" , new DecimalFormat("#0.00").format(currentDropsAverage));
 		metricProperties.put("NDrpAvg", new DecimalFormat("#0.00").format(newDropsAverage));
-		metricProperties.put("DrpMeanDeviationAvg", new DecimalFormat("#0.00").format(currentMeanDeviationAverage));
-		metricProperties.put("NDrpMeanDeviationAvg", new DecimalFormat("#0.00").format(newMeanDeviationAverage));
+		//metricProperties.put("DrpMeanDeviationAvg", new DecimalFormat("#0.00").format(currentMeanDeviationAverage));
+		//metricProperties.put("NDrpMeanDeviationAvg", new DecimalFormat("#0.00").format(newMeanDeviationAverage));
 		
 		this.metricsUsed.add(metricProperties);
 	}
