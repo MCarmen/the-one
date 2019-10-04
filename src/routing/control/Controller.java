@@ -65,7 +65,7 @@ public class Controller {
 	/**
 	 * Method that builds the engine used to generate directives, 
 	 * based on the settings configuration of the specified engine. 
-	 * @param settings Settings of the name space: controller
+	 * @param settings Settings of the name space: control
 	 * @param router the router that has created this controller.
 
 	 */
