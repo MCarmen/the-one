@@ -3,7 +3,6 @@ package routing.control;
 import core.Message;
 import core.Settings;
 import core.control.ControlMessage;
-import core.control.DirectiveCode;
 import report.control.directive.DirectiveDetails;
 import routing.MessageRouter;
 
@@ -64,7 +63,8 @@ public class Controller {
 	
 	/**
 	 * Method that builds the engine used to generate directives, 
-	 * based on the settings configuration of the specified engine. 
+	 * based on the settings configuration of the specified engine. The control
+	 * settings nameSpace is set as secondary nameSpace.
 	 * @param settings Settings of the name space: control
 	 * @param router the router that has created this controller.
 
@@ -72,6 +72,7 @@ public class Controller {
     protected void setDirectiveEngine(Settings s, MessageRouter router) {
 		String engineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : EWMA_ENGINE;
 		Settings engineSettings = new Settings(engineNameSpace);
+		engineSettings.setSecondaryNamespace(CONTROL_NS);
 		String directiveEngine_str = CONTROL_PACKAGE + "." + engineNameSpace;
 		String[] directiveEngineConstructorArgumentTypes = {SETTINGS_PACKAGE, 
 				ROUTING_PACKAGE +"."+MESSAGE_ROUTER_CLASS} ;
