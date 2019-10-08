@@ -1,14 +1,13 @@
 package routing.control;
 
 import core.Settings;
-import core.SimScenario;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
 import core.control.MetricCode;
+import core.control.MetricMessage;
 import report.control.directive.DirectiveDetails;
 import routing.MessageRouter;
-import routing.SprayAndWaitRouter;
 import routing.control.util.EWMAProperty;
 import routing.control.util.MeanDeviationEWMAProperty;;
 
@@ -41,24 +40,7 @@ public class EWMAEngine extends DirectiveEngine {
 	
 	/** dropsThreshold -setting id ({@value}) in the EWMAEngine name space for the drops */
 	private static final String DROPS_THRESHOLD_S = "dropsThreshold";
-	
-	/** metricGenerationInterval -setting id ({@value}) in the control name space. */
-	private static final String METRICS_GENERATION_INTERVAL_S = "metricGenerationInterval";
-	
-	/** directiveGenerationInterval -setting id ({@value}) in the control name space. */
-	private static final String DIRECTIVE_GENERATION_INTERVAL_S = "directiveGenerationInterval";
-	
-	/** incrementCopiesRatio -setting id ({@value}) in the EWMAEngine name space. 
-	 * It is used to increment by a ratio the number of copies of the msg(L). */
-	private static final String INCREMENT_COPIES_RATIO_S =  "incrementCopiesRatio";
-	
-	/** decrementCopiesRatio -setting id ({@value}) in the EWMAEngine name space. 
-	 * It is used to decrement by a ratio the number of copies of the msg(L). */	
-	private static final String DECREMENT_COPIES_RATIO_S =  "decrementCopiesRatio";
-	
-	/** meanDeviationFactor -setting id ({@value}) in the control name space. */
-	private static final String MEAN_DEVIATION_FACTOR_S = "meanDeviationFactor";
-	
+			
 	/** alpha-setting's default value if it is not specified in the settings 
 	 ({@value}) */
 	private static final double DEF_ALPHA = 0.2; 
@@ -70,18 +52,7 @@ public class EWMAEngine extends DirectiveEngine {
 	/** dropsThreshold-setting's default value if it is not specified in the settings 
 	 ({@value}) */
 	private static final int DEF_DROPS_THRESHOLD = 0;
-	
-	/** incrementCopiesRatio's default value if it is not specified in the settings 
-	 ({@value}) */
-	private static final double DEF_INCREMENT_COPIES_RATIO = 0.25;
-	
-	/** decrementCopiesRatio's default value if it is not specified in the settings 
-	 ({@value}) */
-	private static final double DEF_DECREMENT_COPIES_RATIO = 0.25;
-	
-	/** meanDeviation's default value if it is not specified in the settings ({@value}) */
-	private static final int DEF_MEAN_DEVIATION_FACTOR = 2;
-		
+			
 	/** Accumulated soften drops average  */
 	private EWMAProperty sDropsAverage;
 	
@@ -114,27 +85,6 @@ public class EWMAEngine extends DirectiveEngine {
 	 */
 	private int dropsThreshold;
 	
-	/**
-	 * Interval for the metrics generation. If it is not set, it is assumed 
-	 * the interval for the directives generation and this value is set to -1.
-	 */
-	private int metricGenerationInterval;
-
-	/**
-	 * Interval for the directives generation. If it is not set 
-	 * this value is set to -1.
-	 */
-	private int directiveGenerationInterval;
-	
-	/**
-	 * Ratio to increment the number of  copies of a message by.
-	 */
-	private double incrementCopiesRatio;
-	
-	/**
-	 * Ratio to decrement the number of  copies of a message by. 
-	 */
-	private double decrementCopiesRatio;
 		
 	/** The aggregated drops after the last metric was generated */
 	private double lastSDropsAverage = -1;
@@ -144,8 +94,6 @@ public class EWMAEngine extends DirectiveEngine {
 	 * all the simulation.
 	 */
 	private MeanDeviationEWMAProperty sDropsMeanDeviation; 
-	/** Property where to load the meanDeviationFactor from the settings */
-	private double meanDeviationFactor;
 	
 	/**
 	 * Support class to calculate the mean deviation of the received directives during 
@@ -161,32 +109,20 @@ public class EWMAEngine extends DirectiveEngine {
 	 * message got from directives. It also gets from the settings the drops 
 	 * threshold to be considered to generate a directive or not.
 	 * 
-	 * @param settings the settings object set to the value of the setting
+	 * @param engineSettings the settings object set to the value of the setting
 	 *                 control.engine.
 	 * @param router, the router who has initialized this directiveEngine.                 
 	 */
-	public EWMAEngine(Settings settings, MessageRouter router) {
-		super(settings, router);
-		this.dropsAlpha = (settings.contains(DROPS_ALPHA_S)) ? settings.getDouble(DROPS_ALPHA_S) : EWMAEngine.DEF_ALPHA;
-		this.nrofCopiesAlpha = (settings.contains(NROFCOPIES_ALPHA_S)) ? settings.getDouble(NROFCOPIES_ALPHA_S)
+	public EWMAEngine(Settings engineSettings, MessageRouter router) {
+		super(engineSettings, router);
+		this.dropsAlpha = (engineSettings.contains(DROPS_ALPHA_S)) ? engineSettings.getDouble(DROPS_ALPHA_S) : EWMAEngine.DEF_ALPHA;
+		this.nrofCopiesAlpha = (engineSettings.contains(NROFCOPIES_ALPHA_S)) ? engineSettings.getDouble(NROFCOPIES_ALPHA_S)
 				: EWMAEngine.DEF_ALPHA;
-		this.directivesAlpha = (settings.contains(DIRECTIVES_ALPHA_S)) ? settings.getDouble(DIRECTIVES_ALPHA_S)
+		this.directivesAlpha = (engineSettings.contains(DIRECTIVES_ALPHA_S)) ? engineSettings.getDouble(DIRECTIVES_ALPHA_S)
 				: EWMAEngine.DEF_DIRECTIVES_ALPHA;
-		this.dropsThreshold = (settings.contains(DROPS_THRESHOLD_S)) ? settings.getInt(DROPS_THRESHOLD_S)
+		this.dropsThreshold = (engineSettings.contains(DROPS_THRESHOLD_S)) ? engineSettings.getInt(DROPS_THRESHOLD_S)
 				: EWMAEngine.DEF_DROPS_THRESHOLD;
-		this.directiveGenerationInterval = (settings.contains(DIRECTIVE_GENERATION_INTERVAL_S)) ? 
-				settings.getInt(DIRECTIVE_GENERATION_INTERVAL_S) : 1; 
-		this.metricGenerationInterval =  
-				(settings.contains(METRICS_GENERATION_INTERVAL_S))
-				? settings.getInt(METRICS_GENERATION_INTERVAL_S)
-				: this.directiveGenerationInterval;
-		this.incrementCopiesRatio = (settings.contains(INCREMENT_COPIES_RATIO_S)) ? 
-				settings.getDouble(INCREMENT_COPIES_RATIO_S) : DEF_INCREMENT_COPIES_RATIO;
-		this.decrementCopiesRatio = (settings.contains(DECREMENT_COPIES_RATIO_S)) ? 
-				settings.getDouble(DECREMENT_COPIES_RATIO_S) : DEF_DECREMENT_COPIES_RATIO;
-		this.meanDeviationFactor = (settings.contains(MEAN_DEVIATION_FACTOR_S)) ?
-				settings.getDouble(MEAN_DEVIATION_FACTOR_S) : DEF_MEAN_DEVIATION_FACTOR;
-				
+	
 		this.sDropsAverage = new EWMAProperty(this.dropsAlpha);
 		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);	
 		this.sDropsMeanDeviation = new MeanDeviationEWMAProperty(this.meanDeviationFactor);
@@ -225,7 +161,8 @@ public class EWMAEngine extends DirectiveEngine {
 		double dropsAvg;
 		double dropsMeanDeviationAvg;
 
-		if (metric.containsProperty​(MetricCode.DROPS_CODE.toString())) {
+		if ((!this.hasMetricExpired((MetricMessage)metric)) && 
+		(metric.containsProperty​(MetricCode.DROPS_CODE.toString())) ){
 			nextDropsReading = (MetricsSensed.DropsPerTime) metric.getProperty(MetricCode.DROPS_CODE.toString());
 			dropsMeanDeviationAvg = this.sDropsMeanDeviation.getValue();
 			this.sDropsMeanDeviation.aggregateValue(nextDropsReading.getNrofDrops(), this.sDropsAverage);
