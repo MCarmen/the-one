@@ -28,7 +28,9 @@ public class DirectiveDetails {
 	
 	/** A list with the metrics used  */
 	private List<Properties> metricsUsed;
-
+	
+	/** When the directive was created */
+	private int creationTime;
 
 	/**
 	 * Constructor that initializes the list of the ids of the directives used
@@ -49,6 +51,7 @@ public class DirectiveDetails {
 		this.newNrofCopies = directiveDetails.getNewNrofCopies();
 		this.directivesUsed = new ArrayList<String>(directiveDetails.getDirectivesUsed());
 		this.metricsUsed = new ArrayList<>(directiveDetails.metricsUsed);
+		this.creationTime = directiveDetails.getCreationTime();
 	}
 	
 	public String getDirectiveID() {
@@ -67,6 +70,10 @@ public class DirectiveDetails {
 		return directivesUsed;
 	}
 	
+	public int getCreationTime() {
+		return creationTime;
+	}
+	
 	/** 
 	 * Method to be invoked when the directive has been created and therefore
 	 * the message has been set with the directive fields.
@@ -76,6 +83,7 @@ public class DirectiveDetails {
 	public void init(Message m) {
 		this.directiveID = m.getId();
 		this.generatedByNode = m.getFrom().toString();
+		this.creationTime = (int)m.getCreationTime();
 		if (m.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 			this.newNrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 		}		
@@ -126,8 +134,8 @@ public class DirectiveDetails {
 	}
 	
 	public String toString() {
-		return String.format("%s %s %d %s %s", this.directiveID, 
-				this.generatedByNode, this.newNrofCopies, this.directivesUsed,
-				this.metricsUsed);
+		return String.format("%s %s %d %d %s %s", this.directiveID, 
+				this.generatedByNode, this.newNrofCopies, this.creationTime, 
+				this.directivesUsed, this.metricsUsed);
 	}
 }
