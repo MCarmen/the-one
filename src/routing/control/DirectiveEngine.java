@@ -128,8 +128,11 @@ public abstract class DirectiveEngine {
 	 * @return
 	 */
 	protected boolean hasMetricExpired(MetricMessage metric) {
-		return (SimClock.getTime() - metric.getCreationTime() > 
-			this.metricExpiredWindowFactor * this.directiveGenerationInterval); 
+		boolean hasMetricExpired = ((this.metricExpiredWindowFactor!=0) && 
+				(SimClock.getTime() - metric.getCreationTime() > 
+				this.metricExpiredWindowFactor * this.directiveGenerationInterval) ) ?
+				true : false;		
+		return  hasMetricExpired; 
 	}
 	
 	/**
