@@ -1,6 +1,7 @@
 package routing.control;
 
 import core.Settings;
+import core.SimClock;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
@@ -40,7 +41,13 @@ public class EWMAEngine extends DirectiveEngine {
 	
 	/** dropsThreshold -setting id ({@value}) in the EWMAEngine name space for the drops */
 	private static final String DROPS_THRESHOLD_S = "dropsThreshold";
-			
+				
+	/** congestionWeight -setting id ({@value}) in the control name space */
+	protected static final String CONGESTION_WEIGHT_S = "congestionWeight";		
+	
+	/** Default value for the congestionWeight. */
+	protected static final int DEF_CONGESTION_WEIGHT = 1;	
+	
 	/** alpha-setting's default value if it is not specified in the settings 
 	 ({@value}) */
 	private static final double DEF_ALPHA = 0.2; 
@@ -51,7 +58,7 @@ public class EWMAEngine extends DirectiveEngine {
 	
 	/** dropsThreshold-setting's default value if it is not specified in the settings 
 	 ({@value}) */
-	private static final int DEF_DROPS_THRESHOLD = 0;
+	private static final int DEF_DROPS_THRESHOLD = 0;	
 			
 	/** Accumulated soften drops average  */
 	private EWMAProperty sDropsAverage;
@@ -100,7 +107,11 @@ public class EWMAEngine extends DirectiveEngine {
 	 * all the simulation.
 	 */
 	private MeanDeviationEWMAProperty sDirectivesMeanDeviation;
-	
+
+	/**
+	 *  weight applied to the congestion average. Used in the control function (default = 1)
+	 */
+	private double congestionWeight;
 
 	/**
 	 * Controller that reads from the settings, which is set to the value of the
@@ -121,7 +132,9 @@ public class EWMAEngine extends DirectiveEngine {
 		this.directivesAlpha = (engineSettings.contains(DIRECTIVES_ALPHA_S)) ? engineSettings.getDouble(DIRECTIVES_ALPHA_S)
 				: EWMAEngine.DEF_DIRECTIVES_ALPHA;
 		this.dropsThreshold = (engineSettings.contains(DROPS_THRESHOLD_S)) ? engineSettings.getInt(DROPS_THRESHOLD_S)
-				: EWMAEngine.DEF_DROPS_THRESHOLD;
+				: EWMAEngine.DEF_DROPS_THRESHOLD;			
+		this.congestionWeight = engineSettings.contains(CONGESTION_WEIGHT_S) ?
+				engineSettings.getDouble(CONGESTION_WEIGHT_S) : DEF_CONGESTION_WEIGHT;
 	
 		this.sDropsAverage = new EWMAProperty(this.dropsAlpha);
 		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);	
@@ -202,27 +215,28 @@ public class EWMAEngine extends DirectiveEngine {
 	 * 
 	 */
 	public DirectiveDetails generateDirective(ControlMessage message) { 
+		double currentTime = SimClock.getTime(); //DEBUG
 		double newNrofCopies = this.router.getRoutingProperties().get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		DirectiveDetails currentDirectiveDetails = null;
 		 		
 		this.adjustSDropsAverage();
 		
-		//Programar la fórumula:
-		//Lt+1 = Lt + Kp*(drops+pes * meanDeviation) *(-1)^delta
+		//Lt+1 = Lt + Kp*drops_avg *(-1)^delta
 		if (!this.sDropsAverage.isSet() || (this.sDropsAverage.getValue()  <= this.dropsThreshold)) {
 			newNrofCopies = Math.ceil(newNrofCopies + (newNrofCopies* this.incrementCopiesRatio));
 			
 		}else {
-			newNrofCopies = Math.floor((newNrofCopies)*(this.decrementCopiesRatio));
+			newNrofCopies = Math.floor(newNrofCopies - Math.ceil(this.sDropsAverage.getValue() * this.congestionWeight));
 			if (newNrofCopies <= 0) newNrofCopies = 1;
 		}
+		
 		//number of copies aggregated from received directives.
 		if (this.sNrofMsgCopiesAverage.isSet()) {
 			newNrofCopies = Math.floor(EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha));
 		}
 		
 		//int newNrofCopiesIntValue = Math.min(((int)newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
-		int newNrofCopiesIntValue = (int)newNrofCopies;
+		int newNrofCopiesIntValue = Math.min((int)newNrofCopies, this.maxCopies);
 							
 		//Adding the 'L' property in the Directive message.
 		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
