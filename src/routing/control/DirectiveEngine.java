@@ -32,6 +32,9 @@ public abstract class DirectiveEngine {
 	
 	/** directiveGenerationInterval -setting id ({@value}) in the control name space */
 	protected static final String METRIC_EXPIRED_WINDOW_FACTOR_S = "metricExpiredWindowFactor";
+		
+	/** maxCopies -setting id ({@value}) in the control name space */
+	protected static final String MAXCOPIES_S = "maxCopies";		
 	
 	/** incrementCopiesRatio's default value if it is not specified in the settings 
 	 ({@value}) */
@@ -46,8 +49,11 @@ public abstract class DirectiveEngine {
 	
 	/** metricExpiredWindowFactor's default value if it is not specified in the settings ({@value}) */
 	protected static final int DEF_METRIC_EXPIRED_WINDOW_FACTOR = 0;
+
 	
-	
+	/** maxCopies default value if it is not specified in the settings ({@value})  */
+	/** This default value implies the setting is not considered. */
+	protected static final int DEF_MAXCOPIES = -1;	
 	
 	/**
 	 * Interval for the metrics generation. If it is not set, it is assumed 
@@ -91,6 +97,9 @@ public abstract class DirectiveEngine {
 	
 	/** Container for the details of the directive */ 
 	protected DirectiveDetails directiveDetails;
+
+	/** The allowed maximum number of copies of the message in the network. */
+	protected int maxCopies;	
 	
 	/**
 	 * Initializes the property settings.
@@ -117,6 +126,8 @@ public abstract class DirectiveEngine {
 				engineSettings.getDouble(MEAN_DEVIATION_FACTOR_S) : DEF_MEAN_DEVIATION_FACTOR;
 		this.metricExpiredWindowFactor = engineSettings.contains(METRIC_EXPIRED_WINDOW_FACTOR_S) ?
 				engineSettings.getInt(METRIC_EXPIRED_WINDOW_FACTOR_S) : DEF_METRIC_EXPIRED_WINDOW_FACTOR;
+		this.maxCopies = engineSettings.contains(MAXCOPIES_S) ? engineSettings.getInt(MAXCOPIES_S) : 
+					DirectiveEngine.DEF_MAXCOPIES;				
 	}
 	
 	/**
