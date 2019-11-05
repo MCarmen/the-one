@@ -387,11 +387,13 @@ public abstract class MessageRouter {
 
 		this.putToIncomingBuffer(newMessage, from);
 		newMessage.addNodeOnPath(this.host);
+		
+		this.metricsSensed.addReceivedMsg();
 
 		for (MessageListener ml : this.mListeners) {
 			ml.messageTransferStarted(newMessage, from, getHost());
 		}
-
+		
 		return RCV_OK; // superclass always accepts messages
 	}
 
@@ -619,6 +621,7 @@ public abstract class MessageRouter {
 			if (msgHasBeenCreated) {
 				m.setTtl(this.msgTtl);
 				addToMessages(m, true);
+				this.metricsSensed.addCreatedMsg();
 			}
 		}
 
