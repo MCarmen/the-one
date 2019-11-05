@@ -90,7 +90,7 @@ public class EWMAEngine extends DirectiveEngine {
 	 * Drops threshold from which a directive is generated to decrease the 
 	 * number of message copies. 
 	 */
-	private int dropsThreshold;
+	private double dropsThreshold;
 	
 		
 	/** The aggregated drops after the last metric was generated */
@@ -131,7 +131,7 @@ public class EWMAEngine extends DirectiveEngine {
 				: EWMAEngine.DEF_ALPHA;
 		this.directivesAlpha = (engineSettings.contains(DIRECTIVES_ALPHA_S)) ? engineSettings.getDouble(DIRECTIVES_ALPHA_S)
 				: EWMAEngine.DEF_DIRECTIVES_ALPHA;
-		this.dropsThreshold = (engineSettings.contains(DROPS_THRESHOLD_S)) ? engineSettings.getInt(DROPS_THRESHOLD_S)
+		this.dropsThreshold = (engineSettings.contains(DROPS_THRESHOLD_S)) ? engineSettings.getDouble(DROPS_THRESHOLD_S)
 				: EWMAEngine.DEF_DROPS_THRESHOLD;			
 		this.congestionWeight = engineSettings.contains(CONGESTION_WEIGHT_S) ?
 				engineSettings.getDouble(CONGESTION_WEIGHT_S) : DEF_CONGESTION_WEIGHT;
@@ -215,18 +215,17 @@ public class EWMAEngine extends DirectiveEngine {
 	 * 
 	 */
 	public DirectiveDetails generateDirective(ControlMessage message) { 
-		double currentTime = SimClock.getTime(); //DEBUG
+//		double currentTime = SimClock.getTime(); //DEBUG
 		double newNrofCopies = this.router.getRoutingProperties().get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		DirectiveDetails currentDirectiveDetails = null;
 		 		
-		this.adjustSDropsAverage();
-		
-		//Lt+1 = Lt + Kp*drops_avg *(-1)^delta
+		//this.adjustSDropsAverage();
+		//Additive increase
 		if (!this.sDropsAverage.isSet() || (this.sDropsAverage.getValue()  <= this.dropsThreshold)) {
 			newNrofCopies = Math.ceil(newNrofCopies + (newNrofCopies* this.incrementCopiesRatio));
-			
+		//multiplicative decrease	
 		}else {
-			newNrofCopies = Math.floor(newNrofCopies - Math.ceil(this.sDropsAverage.getValue() * this.congestionWeight));
+			newNrofCopies = Math.ceil(newNrofCopies * this.sDropsAverage.getValue() * this.congestionWeight);
 			if (newNrofCopies <= 0) newNrofCopies = 1;
 		}
 		
