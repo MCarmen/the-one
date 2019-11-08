@@ -18,10 +18,11 @@ public abstract class ControlMessageCreateEvent extends MessageCreateEvent {
 	 * @param from The creator of the message
 	 * @param to Where the message is destined to
 	 * @param id ID of the message
+	 * @param size Size of the message 
 	 * @param time Time, when the message is created
 	 */
-	public ControlMessageCreateEvent(int from, int to, String id, double time) {
-		super(from, to, id, 0, 0, time);
+	public ControlMessageCreateEvent(int from, int to, String id, int size, double time) {
+		super(from, to, id, size, 0, time);
 		// TODO Auto-generated constructor stub
 	}
 	
