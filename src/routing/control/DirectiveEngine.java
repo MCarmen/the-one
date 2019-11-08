@@ -101,6 +101,12 @@ public abstract class DirectiveEngine {
 	/** The allowed maximum number of copies of the message in the network. */
 	protected int maxCopies;	
 	
+	/** 
+	 * Flag set to true if the engine has received a control message in  a
+	 * directive cycle. False otherwise. This flag is reset each directive cycle.
+	 */
+	protected boolean receivedCtrlMsgInDirectiveCycle;
+	
 	/**
 	 * Initializes the property settings.
 	 * @param engineSettings settings corresponding to the namespace control.engine.
@@ -128,6 +134,14 @@ public abstract class DirectiveEngine {
 				engineSettings.getInt(METRIC_EXPIRED_WINDOW_FACTOR_S) : DEF_METRIC_EXPIRED_WINDOW_FACTOR;
 		this.maxCopies = engineSettings.contains(MAXCOPIES_S) ? engineSettings.getInt(MAXCOPIES_S) : 
 					DirectiveEngine.DEF_MAXCOPIES;				
+	}
+	
+	/**
+	 * Method that resets all the settings that have information related to a 
+	 * directive cycle. This method might be override by subclasses.
+	 */
+	protected void resetDirectiveCycleSettings() {
+		this.receivedCtrlMsgInDirectiveCycle = false;
 	}
 	
 	/**
