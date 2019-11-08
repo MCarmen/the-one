@@ -112,6 +112,7 @@ public class EWMAEngine extends DirectiveEngine {
 	 *  weight applied to the congestion average. Used in the control function (default = 1)
 	 */
 	private double congestionWeight;
+	
 
 	/**
 	 * Controller that reads from the settings, which is set to the value of the
@@ -140,6 +141,13 @@ public class EWMAEngine extends DirectiveEngine {
 		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);	
 		this.sDropsMeanDeviation = new MeanDeviationEWMAProperty(this.meanDeviationFactor);
 		this.sDirectivesMeanDeviation = new MeanDeviationEWMAProperty(this.meanDeviationFactor);
+	}
+	
+	@Override
+	protected void resetDirectiveCycleSettings() {		
+		super.resetDirectiveCycleSettings();
+		this.directiveDetails.reset();
+		this.lastSDropsAverage = this.sDropsAverage.getValue();
 	}
 	
 	/**
@@ -173,14 +181,15 @@ public class EWMAEngine extends DirectiveEngine {
 		MetricsSensed.DropsPerTime nextDropsReading;
 		double dropsAvg;
 		double dropsMeanDeviationAvg;
-
+		
+		this.receivedCtrlMsgInDirectiveCycle = true;
 		if ((!this.hasMetricExpired((MetricMessage)metric)) && 
 		(metric.containsProperty​(MetricCode.DROPS_CODE.toString())) ){
 			nextDropsReading = (MetricsSensed.DropsPerTime) metric.getProperty(MetricCode.DROPS_CODE.toString());
 			dropsMeanDeviationAvg = this.sDropsMeanDeviation.getValue();
-			this.sDropsMeanDeviation.aggregateValue(nextDropsReading.getNrofDrops(), this.sDropsAverage);
+			this.sDropsMeanDeviation.aggregateValue(nextDropsReading.getPercentageOfStorageDropped(), this.sDropsAverage);
 			dropsAvg = this.sDropsAverage.getValue();
-			this.sDropsAverage.aggregateValue(nextDropsReading.getNrofDrops());
+			this.sDropsAverage.aggregateValue(nextDropsReading.getPercentageOfStorageDropped());
 			this.directiveDetails.addMetricUsed(metric, dropsAvg, this.sDropsAverage.getValue(), 
 					dropsMeanDeviationAvg, this.sDropsMeanDeviation.getValue());
 		}
@@ -194,6 +203,7 @@ public class EWMAEngine extends DirectiveEngine {
 	public void addDirective(ControlMessage directive) {
 		double nextNrofCopiesReading;
 		
+		this.receivedCtrlMsgInDirectiveCycle = true;
 		if(directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 			nextNrofCopiesReading = (double)directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 			this.sDirectivesMeanDeviation.aggregateValue(nextNrofCopiesReading, this.sNrofMsgCopiesAverage);			
@@ -219,14 +229,17 @@ public class EWMAEngine extends DirectiveEngine {
 		double newNrofCopies = this.router.getRoutingProperties().get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		DirectiveDetails currentDirectiveDetails = null;
 		 		
-		//this.adjustSDropsAverage();
-		//Additive increase
-		if (!this.sDropsAverage.isSet() || (this.sDropsAverage.getValue()  <= this.dropsThreshold)) {
-			newNrofCopies = Math.ceil(newNrofCopies + (newNrofCopies* this.incrementCopiesRatio));
-		//multiplicative decrease	
-		}else {
-			newNrofCopies = Math.ceil(newNrofCopies * this.sDropsAverage.getValue() * this.congestionWeight);
-			if (newNrofCopies <= 0) newNrofCopies = 1;
+		// if we have received metrics and no silence
+		if (this.sDropsAverage.isSet() && this.receivedCtrlMsgInDirectiveCycle) {
+			if (this.sDropsAverage.getValue() <= this.dropsThreshold) {
+				// Additive increase
+				newNrofCopies = Math.ceil(newNrofCopies + (newNrofCopies * this.incrementCopiesRatio));
+			} else {
+				// multiplicative decrease
+				newNrofCopies = Math.ceil(newNrofCopies * this.sDropsAverage.getValue() * this.congestionWeight);
+				if (newNrofCopies <= 0)
+					newNrofCopies = 1;
+			}
 		}
 		
 		//number of copies aggregated from received directives.
@@ -246,9 +259,7 @@ public class EWMAEngine extends DirectiveEngine {
 		this.directiveDetails.init(message);
 		currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
 
-		
-		this.directiveDetails.reset();
-		this.lastSDropsAverage = this.sDropsAverage.getValue();
+		this.resetDirectiveCycleSettings();
 		return currentDirectiveDetails;
 	}
 
