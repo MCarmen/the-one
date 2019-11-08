@@ -24,33 +24,34 @@ import core.control.MetricCode;
  */
 public class MetricsSensed {
 	/** Counter of the drops sensed during an amount of time. */
-	private int dropsPerWT;
-		
-	/** Messages created by a router during a window time. */
-	private int createdMsgsPerWT;
+	private double bytesDroppedPerWT;
 	
-	/** Messages received by a  router during a window time. */
-	private int receivedMsgsPerWT;
-	
+	/** Counter of the drops sensed during an amount of time. */
+	private int dropsPerWT;	
+			
 	/** Amount of time while the sensing has been done. */
 	private double sensingWindowTime;
+	
+	/** The size of the buffer */
+	private double bufferSize;
 	
 	/** History of the metrics sensed for a windowTime  */
 	private List<DropsPerTime> history;
 	
 	/**
 	 * The constructor initializes the drops to 0 and the sensing time to the 
-	 * current simulation time. 
+	 * current simulation time. It initializes the size of the buffer.
 	 */	
-	public MetricsSensed() {
+	public MetricsSensed(long bufferSize) {
 		this.history = new ArrayList<>();
+		this.bufferSize = bufferSize;
 		this.reset();
 	}
 	
 	public String getHistoryAsString() {
 		String historyStr = "";
 		for(DropsPerTime dropsPerT : this.history) {
-			historyStr += String.format("%d, ", dropsPerT.getNrofDrops());
+			historyStr += String.format("%d, ", dropsPerT.getPercentageOfStorageDropped());
 		}
 		
 		return historyStr;
@@ -61,64 +62,48 @@ public class MetricsSensed {
 	 * and the sensing time to the current simulation time.
 	 */
 	private void reset() {
-		this.dropsPerWT = 0;
-		this.createdMsgsPerWT = 0;
-		this.receivedMsgsPerWT = 0;
+		this.dropsPerWT = 0;		
+		this.bytesDroppedPerWT = 0;
 		this.sensingWindowTime = SimClock.getTime();
 	}
 	
 	/**
-	 * Method that increments in one unit the drops counter.
+	 * Method that increments in one unit the drops counter and calculates the 
+	 * percentage of bytes of the message respect the buffer size.
+	 * @param the dropped message
 	 */
-	public void addDrop() {
+	public void addDrop(Message message) {
 		this.dropsPerWT++;
+		this.bytesDroppedPerWT += message.getSize();		
 	}
 	
-	/**
-	 * Method that increments in one unit the createdMsgs counter.
-	 */
-	public void addCreatedMsg() {
-		this.createdMsgsPerWT++;
-	}
 
 	/**
-	 * Method that increments in one unit the receivedMsgs counter.
-	 */
-	public void addReceivedMsg() {
-		this.receivedMsgsPerWT++;
-	}
-
-	/**
-	 * Method that fills the message with the percentage of drops sensed at the point of 
-	 * calling this method.  
-	 * The window sensing time is reset to the current 
-	 * simulation time 
-	 * @param message the message to be filled with the drops sensed until now.
-	 * @return true if the message has been modified with the drops sensed.
-	 * false if the message has not been modified because 
-	 * this.createdMsgsPerWT + this.receivedMsgsPerWT = 0. 
+	 * Method that fills the message with the percentage of the bytes that have been
+	 * dropped at the point of calling this method. The window sensing time is reset
+	 * to the current simulation time.
+	 * 
+	 * @param message the message to be filled with the percentage of the bytes
+	 *                dropped until now.
+	 * @return true if the message has been modified with the percentage of the
+	 *         bytes dropped..
 	 */
 	public boolean fillMessageWithMetric(Message message) {
-		boolean messageFilled = 
-				(this.createdMsgsPerWT + this.receivedMsgsPerWT) != 0;
-		if (messageFilled) {
-			double percentageOfDrops = 
-				this.dropsPerWT/(this.createdMsgsPerWT + this.receivedMsgsPerWT);
-			DropsPerTime dropsPerTime;
-			dropsPerTime = new DropsPerTime(percentageOfDrops, SimClock.getTime()-this.sensingWindowTime);
-			message.addProperty(MetricCode.DROPS_CODE.toString(), 
-					dropsPerTime);
-			this.history.add(dropsPerTime);
-		}	
-		this.reset();		
-		return messageFilled;
+		double percentageOfBytesDropped = this.bytesDroppedPerWT / this.bufferSize;
+		DropsPerTime dropsPerTime = new DropsPerTime(this.dropsPerWT, percentageOfBytesDropped,
+				SimClock.getTime() - this.sensingWindowTime);
+		message.addProperty(MetricCode.DROPS_CODE.toString(), dropsPerTime);
+		this.history.add(dropsPerTime);
+
+		this.reset();
+		return true;
 	}
 	
 	/**
 	 * Returns an string representation
 	 */
 	public String toString() {
-		return String.format("%.3f %.1f", this.dropsPerWT,  
+		return String.format("%d %.3f %.1f", this.dropsPerWT, this.bytesDroppedPerWT,  
 					(SimClock.getTime() - this.sensingWindowTime));		
 	}
 	
@@ -126,24 +111,33 @@ public class MetricsSensed {
 	 * Inner class that encapsulates the percentage of drops sensed during certain time.
 	 */
 	public static class DropsPerTime{
+		/** Drops sensed. */
+		private int nrofDrops;		
 		/** Percentage of drops sensed. */
-		private double percentageOfDrops;
+		private double percentageOfStorageDropped;
 		/** Time while we have been sensing. */
 		private double time;
 
 		/**
 		 * Constructor that initializes the object with the drops sensed during 
-		 * time. 
+		 * a window time and the percentage that represents those bytes dropped 
+		 * respect the buffer size. 
 		 * @param drops drops sensed
+		 * @param percentageOfDrops bytes dropped respect the buffer size
 		 * @param time sensing time.
 		 */
-		public DropsPerTime(double percentageOfDrops, double time) {
-			this.percentageOfDrops = percentageOfDrops;
+		public DropsPerTime(int drops, double percentageOfDrops, double time) {
+			this.nrofDrops = drops;
+			this.percentageOfStorageDropped = percentageOfDrops;
 			this.time = time;
 		}
+		
+		public int getNrofDrops() {
+			return nrofDrops;
+		}
 
-		public double getNrofDrops() {
-			return percentageOfDrops;
+		public double getPercentageOfStorageDropped() {
+			return percentageOfStorageDropped;
 		}
 
 		public double getTime() {
@@ -151,7 +145,7 @@ public class MetricsSensed {
 		}
 		
 		public String toString() {
-			return String.format("%.3f %.1f", this.percentageOfDrops,  this.time);
+			return String.format("%d %.3f %.1f", this.nrofDrops, this.percentageOfStorageDropped,  this.time);
 		}
 				
 	}
