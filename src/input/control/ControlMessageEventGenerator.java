@@ -8,7 +8,6 @@ import java.util.List;
 
 import core.Settings;
 import input.ExternalEvent;
-import input.MessageCreateEvent;
 import input.MessageEventGenerator;
 
 /**
@@ -29,11 +28,12 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 	 * @param to Who the message is (originally) to
 	 * @param id Message identifier (must be unique for message but
 	 * 	will be the same for all replicates of the message)
+	 * @param size Size of the message 
 	 * @param time Time, when the message is created
 	 * @return
 	 */
 	protected abstract ExternalEvent getEvent(int from, int to, String id, 
-			double time) ;
+			int size, double time) ;
 	/**
 	 * Returns a collection with the next control message creation events.
 	 * For each one of the hosts in fromHostRange, an event is created.
@@ -47,7 +47,7 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 	 */
 	private List<ExternalEvent> nextEvents(int[] fromHostRange, int[] toHostRange) {
 		int responseSize = 0; /* zero stands for one way messages */
-		int msgSize = 0;
+		int msgSize = drawMessageSize();
 		int interval = drawNextEventTimeDiff();
 
 		int to;
@@ -56,7 +56,7 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 		for(int from = fromHostRange[0]; from < fromHostRange[1]; from++) {
 			/* Get two *different* nodes randomly from the toHostRange range */		
 			to = drawToAddress(toHostRange, from); 
-			nextEvents.add(this.getEvent(from, to, this.getID(), 
+			nextEvents.add(this.getEvent(from, to, this.getID(), msgSize,
 					this.nextEventsTime));
 		}
 		/* Advance to the next event  */
