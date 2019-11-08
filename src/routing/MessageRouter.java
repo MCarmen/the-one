@@ -206,7 +206,7 @@ public abstract class MessageRouter {
 			this.controller = new Controller(this);
 		}
 		if(this.controlModeOn) {
-			this.metricsSensed = new MetricsSensed();
+			this.metricsSensed = new MetricsSensed(this.bufferSize);
 		}
 	}
 
@@ -387,8 +387,6 @@ public abstract class MessageRouter {
 
 		this.putToIncomingBuffer(newMessage, from);
 		newMessage.addNodeOnPath(this.host);
-		
-		this.metricsSensed.addReceivedMsg();
 
 		for (MessageListener ml : this.mListeners) {
 			ml.messageTransferStarted(newMessage, from, getHost());
@@ -621,7 +619,6 @@ public abstract class MessageRouter {
 			if (msgHasBeenCreated) {
 				m.setTtl(this.msgTtl);
 				addToMessages(m, true);
-				this.metricsSensed.addCreatedMsg();
 			}
 		}
 
@@ -646,9 +643,9 @@ public abstract class MessageRouter {
 		}
 		
 		//in case the simulation is running in control mode we report the 
-		//drop.
-		if((this.metricsSensed != null) && drop) {
-			this.metricsSensed.addDrop();
+		//drop just if the message dropped is a data one.
+		if((this.metricsSensed != null) && drop && (removed.getType()) == Message.MessageType.MESSAGE) {
+			this.metricsSensed.addDrop(removed);
 		}
 	}
 
