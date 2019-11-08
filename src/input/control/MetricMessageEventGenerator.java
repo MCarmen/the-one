@@ -1,11 +1,7 @@
 package input.control;
 
-import java.util.List;
-
 import core.Settings;
 import input.ExternalEvent;
-import input.MessageCreateEvent;
-import input.MessageEventGenerator;
 
 /**
  * Metric Message creation -external events generator. Creates uniformly 
@@ -20,9 +16,9 @@ public class MetricMessageEventGenerator extends ControlMessageEventGenerator {
 	}
 
 	@Override
-	protected ExternalEvent getEvent(int from, int to, String id, double time) {
+	protected ExternalEvent getEvent(int from, int to, String id, int size, double time) {
 		// TODO Auto-generated method stub
-		return new MetricMessageCreateEvent(from, to, id, time);
+		return new MetricMessageCreateEvent(from, to, id, size, time);
 	}	
 	
 }
