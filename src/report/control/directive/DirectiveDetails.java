@@ -109,14 +109,16 @@ public class DirectiveDetails {
 			double currentDropsAverage, double newDropsAverage, 
 			double currentMeanDeviationAverage, double newMeanDeviationAverage) {
 		Properties metricProperties = new Properties();
-		double dropsSensed = 
-				((MetricsSensed.DropsPerTime)metric.getProperty(MetricCode.DROPS_CODE.toString())).getNrofDrops();
+		MetricsSensed.DropsPerTime dropsMetric = (MetricsSensed.DropsPerTime)metric.getProperty(MetricCode.DROPS_CODE.toString());
+		double dropsSensed = dropsMetric.getPercentageOfStorageDropped();
+		int nrofDrops = dropsMetric.getNrofDrops();
 		
 		metricProperties.put("id", metric.getId());
 		metricProperties.put("from", metric.getFrom());
 		metricProperties.put("DrpS", new DecimalFormat("#0.00").format(dropsSensed));
 		metricProperties.put("DrpAvg" , new DecimalFormat("#0.00").format(currentDropsAverage));
 		metricProperties.put("NDrpAvg", new DecimalFormat("#0.00").format(newDropsAverage));
+		metricProperties.put("nrofDrops", String.valueOf(nrofDrops));		
 		//metricProperties.put("DrpMeanDeviationAvg", new DecimalFormat("#0.00").format(currentMeanDeviationAverage));
 		//metricProperties.put("NDrpMeanDeviationAvg", new DecimalFormat("#0.00").format(newMeanDeviationAverage));
 		
