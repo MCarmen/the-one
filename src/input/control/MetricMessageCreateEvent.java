@@ -14,10 +14,11 @@ public class MetricMessageCreateEvent extends ControlMessageCreateEvent {
 	 * @param from The creator of the message
 	 * @param to Where the message is destined to
 	 * @param id ID of the message
+	 * @param size Size of the message  
 	 * @param time Time, when the message is created
 	 */
-	public MetricMessageCreateEvent(int from, int to, String id, double time) {
-		super(from, to, id, time);
+	public MetricMessageCreateEvent(int from, int to, String id, int size, double time) {
+		super(from, to, id, size, time);
 		// TODO Auto-generated constructor stub
 	}
 	
