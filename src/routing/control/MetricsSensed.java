@@ -108,6 +108,7 @@ public class MetricsSensed {
 	 *                dropped until now.
 	 * @return true if the message has been modified with the percentage of the
 	 *         bytes dropped..
+	 *         
 	 */
 	public boolean fillMessageWithMetric(Message message, double bufferFreeSpace) {
 		double bufferOccupancy = (bufferFreeSpace < 0) ? 1 : (this.bufferSize - bufferFreeSpace)/this.bufferSize;	
