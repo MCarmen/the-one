@@ -100,6 +100,21 @@ public class MetricsSensed {
 	}
 	
 	/**
+	 * Method that fills the message with the drops sensed and the percentage of the bytes that have been
+	 * dropped at the point of calling this method. The window sensing time is reset
+	 * to the current simulation time.
+	 * 
+	 * @param message the message to be filled with the percentage of the bytes
+	 *                dropped until now.
+	 * @return true if the message has been modified with the percentage of the
+	 *         bytes dropped..
+	 */
+	public boolean fillMessageWithMetric(Message message, double bufferFreeSpace) {
+		double bufferOccupancy = (bufferFreeSpace < 0) ? 1 : (this.bufferSize - bufferFreeSpace)/this.bufferSize;	
+		return true;
+	}
+	
+	/**
 	 * Returns an string representation
 	 */
 	public String toString() {
