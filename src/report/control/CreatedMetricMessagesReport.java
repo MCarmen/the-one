@@ -6,6 +6,7 @@ import core.control.MetricMessage;
 import report.CreatedMessagesReport;
 import routing.SprayAndWaitRouter;
 import routing.control.MetricsSensed;
+import routing.control.metric.CongestionMetricPerWT;
 
 /**
  * Reports information about created metrics. Metrics created during
@@ -35,7 +36,7 @@ public class CreatedMetricMessagesReport extends CreatedMessagesReport  {
 				report += String.format("%s ", m.getId()); 
 				report += String.format("%s ", m.getFrom());
 				report += String.format("%s ", m.getTo());
-				report += String.format("%s ", ((MetricsSensed.DropsPerTime)m.getProperty(MetricCode.DROPS_CODE.toString())) );
+				report += String.format("%s ", ((CongestionMetricPerWT)m.getProperty(MetricCode.DROPS_CODE.toString())) );
 				report += String.format("%d ", (Integer)m.getProperty(SprayAndWaitRouter.MSG_COUNT_PROPERTY));
 				write(report);
 			}
