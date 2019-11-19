@@ -30,7 +30,7 @@ public class MessageStatsReport extends Report implements MessageListener {
 
 	private int nrofDropped;
 	private int nrofRemoved;
-	private int nrofStarted;
+	protected int nrofStarted;
 	private int nrofAborted;
 	private int nrofRelayed;
 	private int nrofCreated;
@@ -137,7 +137,22 @@ public class MessageStatsReport extends Report implements MessageListener {
 
 		this.nrofStarted++;
 	}
-
+	
+	/**
+	 * Calculates the overHead of the total amount of the messages transfered, 
+	 * including those transfered to the final destination, regarding to the 
+	 * actual messages that have been delivered.
+	 * @return The ratio of the total of the messages relayed which includes the
+	 * delivered ones, regarding to the messages delivered.
+	 */
+	protected double getOverHead() {
+		double overHead = Double.NaN;	// overhead ratio
+		if (this.nrofDelivered > 0) {
+			overHead = (1.0 * (this.nrofRelayed - this.nrofDelivered)) /
+				this.nrofDelivered;
+		}
+		return overHead;
+	}
 
 	@Override
 	public void done() {
@@ -145,14 +160,10 @@ public class MessageStatsReport extends Report implements MessageListener {
 				"\nsim_time: " + format(getSimTime()));
 		double deliveryProb = 0; // delivery probability
 		double responseProb = 0; // request-response success probability
-		double overHead = Double.NaN;	// overhead ratio
+		double overHead = this.getOverHead();	// overhead ratio
 
 		if (this.nrofCreated > 0) {
 			deliveryProb = (1.0 * this.nrofDelivered) / this.nrofCreated;
-		}
-		if (this.nrofDelivered > 0) {
-			overHead = (1.0 * (this.nrofRelayed - this.nrofDelivered)) /
-				this.nrofDelivered;
 		}
 		if (this.nrofResponseReqCreated > 0) {
 			responseProb = (1.0* this.nrofResponseDelivered) /
