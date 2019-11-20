@@ -612,7 +612,7 @@ public abstract class MessageRouter {
 				}
 				this.reportDirectiveCreated(directiveDetails);
 			} else if (m instanceof MetricMessage) {
-				msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m);				
+				msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());				
 			}else {
 				msgHasBeenCreated = true;
 			}
