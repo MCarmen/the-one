@@ -9,6 +9,8 @@ import java.util.List;
 import core.Message;
 import core.SimClock;
 import core.control.MetricCode;
+import routing.control.metric.BufferOccupancyPerWT;
+import routing.control.metric.CongestionMetricPerWT;
 
 /*
   class MetricsSensed{
@@ -23,11 +25,14 @@ import core.control.MetricCode;
  * just the drops are sensed.
  */
 public class MetricsSensed {
-	/** Counter of the drops sensed during an amount of time. */
-	private double bytesDroppedPerWT;
-	
-	/** Counter of the drops sensed during an amount of time. */
+		/** Counter of the drops sensed during an amount of time. */
 	private int dropsPerWT;	
+	
+	/** Number of bytes dropped during an amount of time. */
+	private int bytesDroppedPerWT;
+	
+	/** Congestion metric calculated for a windowTime */
+	private CongestionMetricPerWT congestionMetricPerWT;
 			
 	/** Amount of time while the sensing has been done. */
 	private double sensingWindowTime;
@@ -36,7 +41,7 @@ public class MetricsSensed {
 	private double bufferSize;
 	
 	/** History of the metrics sensed for a windowTime  */
-	private List<DropsPerTime> history;
+	private List<CongestionMetricPerWT> history;
 	
 	/**
 	 * The constructor initializes the drops to 0 and the sensing time to the 
@@ -50,8 +55,8 @@ public class MetricsSensed {
 	
 	public String getHistoryAsString() {
 		String historyStr = "";
-		for(DropsPerTime dropsPerT : this.history) {
-			historyStr += String.format("%d, ", dropsPerT.getPercentageOfStorageDropped());
+		for(CongestionMetricPerWT congestionMetricPerWT : this.history) {
+			historyStr += String.format("%d, ", congestionMetricPerWT.getCongestionMetric());
 		}
 		
 		return historyStr;
@@ -62,56 +67,44 @@ public class MetricsSensed {
 	 * and the sensing time to the current simulation time.
 	 */
 	private void reset() {
-		this.dropsPerWT = 0;		
+		this.dropsPerWT = 0;	
 		this.bytesDroppedPerWT = 0;
 		this.sensingWindowTime = SimClock.getTime();
 	}
 	
 	/**
-	 * Method that increments in one unit the drops counter and calculates the 
-	 * percentage of bytes of the message respect the buffer size.
+	 * Method that increments in one unit the drops counter and increments the number 
+	 * of bytes dropped.
 	 * @param the dropped message
 	 */
 	public void addDrop(Message message) {
 		this.dropsPerWT++;
-		this.bytesDroppedPerWT += message.getSize();		
+		this.bytesDroppedPerWT += message.getSize();
 	}
 	
-
-	/**
-	 * Method that fills the message with the percentage of the bytes that have been
-	 * dropped at the point of calling this method. The window sensing time is reset
-	 * to the current simulation time.
-	 * 
-	 * @param message the message to be filled with the percentage of the bytes
-	 *                dropped until now.
-	 * @return true if the message has been modified with the percentage of the
-	 *         bytes dropped..
-	 */
-	public boolean fillMessageWithMetric(Message message) {
-		double percentageOfBytesDropped = this.bytesDroppedPerWT / this.bufferSize;
-		DropsPerTime dropsPerTime = new DropsPerTime(this.dropsPerWT, percentageOfBytesDropped,
-				SimClock.getTime() - this.sensingWindowTime);
-		message.addProperty(MetricCode.DROPS_CODE.toString(), dropsPerTime);
-		this.history.add(dropsPerTime);
-
-		this.reset();
-		return true;
-	}
 	
 	/**
-	 * Method that fills the message with the drops sensed and the percentage of the bytes that have been
-	 * dropped at the point of calling this method. The window sensing time is reset
-	 * to the current simulation time.
+	 * Method that fills the message with the fraction of the (buffer occupancy 
+	 * +  bytes dropped) in bytes at the point of calling this method. 
+	 * The window sensing time is reset to the current simulation time.
 	 * 
-	 * @param message the message to be filled with the percentage of the bytes
-	 *                dropped until now.
-	 * @return true if the message has been modified with the percentage of the
-	 *         bytes dropped..
-	 *         
-	 */
+	 * @param message the message to be filled with the fraction of the occupancy
+	 * of the buffer + drops in bytes 
+	 * @param bufferFreeSpace The free buffer space in bytes. May return a negative
+	 * value if there are more messages in the buffer than should fit there
+	 * (because of creating new messages) @see routing.ActiveRouter#makeRoomForMessage
+	 * 
+	 * @return true if the message has been modified with the fraction of 
+	 * the occupancy of the buffer + drops in bytes 
+	 */		
 	public boolean fillMessageWithMetric(Message message, double bufferFreeSpace) {
-		double bufferOccupancy = (bufferFreeSpace < 0) ? 1 : (this.bufferSize - bufferFreeSpace)/this.bufferSize;	
+		double occupancy = ((this.bufferSize - bufferFreeSpace) + this.bytesDroppedPerWT)/this.bufferSize;
+		this.congestionMetricPerWT = 
+				new BufferOccupancyPerWT(occupancy, SimClock.getTime() - this.sensingWindowTime);
+		message.addProperty(MetricCode.DROPS_CODE.toString(), this.congestionMetricPerWT);
+		this.history.add(this.congestionMetricPerWT);
+		
+		this.reset();
 		return true;
 	}
 	
@@ -119,51 +112,8 @@ public class MetricsSensed {
 	 * Returns an string representation
 	 */
 	public String toString() {
-		return String.format("%d %.3f %.1f", this.dropsPerWT, this.bytesDroppedPerWT,  
+		return String.format("%.3f %.1f", this.congestionMetricPerWT.getCongestionMetric(),  
 					(SimClock.getTime() - this.sensingWindowTime));		
 	}
-	
-	/**
-	 * Inner class that encapsulates the percentage of drops sensed during certain time.
-	 */
-	public static class DropsPerTime{
-		/** Drops sensed. */
-		private int nrofDrops;		
-		/** Percentage of drops sensed. */
-		private double percentageOfStorageDropped;
-		/** Time while we have been sensing. */
-		private double time;
-
-		/**
-		 * Constructor that initializes the object with the drops sensed during 
-		 * a window time and the percentage that represents those bytes dropped 
-		 * respect the buffer size. 
-		 * @param drops drops sensed
-		 * @param percentageOfDrops bytes dropped respect the buffer size
-		 * @param time sensing time.
-		 */
-		public DropsPerTime(int drops, double percentageOfDrops, double time) {
-			this.nrofDrops = drops;
-			this.percentageOfStorageDropped = percentageOfDrops;
-			this.time = time;
-		}
 		
-		public int getNrofDrops() {
-			return nrofDrops;
-		}
-
-		public double getPercentageOfStorageDropped() {
-			return percentageOfStorageDropped;
-		}
-
-		public double getTime() {
-			return time;
-		}
-		
-		public String toString() {
-			return String.format("%d %.3f %.1f", this.nrofDrops, this.percentageOfStorageDropped,  this.time);
-		}
-				
-	}
-	
 }
