@@ -15,11 +15,11 @@ public abstract class DirectiveEngine {
 	
 	/** incrementCopiesRatio -setting id ({@value}) in the EWMAEngine name space. 
 	 * It is used to increment by a ratio the number of copies of the msg(L). */
-	protected static final String INCREMENT_COPIES_RATIO_S =  "incrementCopiesRatio";
+	protected static final String ADDITIVE_INCREASE_S =  "additiveIncrease";
 	
 	/** decrementCopiesRatio -setting id ({@value}) in the EWMAEngine name space. 
 	 * It is used to decrement by a ratio the number of copies of the msg(L). */	
-	protected static final String DECREMENT_COPIES_RATIO_S =  "decrementCopiesRatio";
+	protected static final String MULTIPLICATIVE_DECREASE_S =  "multiplicativeDecrease";
 	
 	/** meanDeviationFactor -setting id ({@value}) in the control name space. */
 	protected static final String MEAN_DEVIATION_FACTOR_S = "meanDeviationFactor";	
@@ -34,15 +34,21 @@ public abstract class DirectiveEngine {
 	protected static final String METRIC_EXPIRED_WINDOW_FACTOR_S = "metricExpiredWindowFactor";
 		
 	/** maxCopies -setting id ({@value}) in the control name space */
-	protected static final String MAXCOPIES_S = "maxCopies";		
+	protected static final String MAXCOPIES_S = "maxCopies";
 	
-	/** incrementCopiesRatio's default value if it is not specified in the settings 
+	/** congestionThrMax -setting id ({@value}) in the control name space*/
+	private static final String CONGESTION_THRMAX_S = "congestionThrMax";
+
+	/** congestionThrMin -setting id ({@value}) in the control name space*/
+	private static final String CONGESTION_THRMIN_S = "congestionThrMin";
+	
+	/** additive increase default value if it is not specified in the settings 
 	 ({@value}) */
-	protected static final double DEF_INCREMENT_COPIES_RATIO = 0.25;
+	protected static final double DEF_ADDITIVE_INCREASE = 5;
 	
 	/** decrementCopiesRatio's default value if it is not specified in the settings 
 	 ({@value}) */
-	protected static final double DEF_DECREMENT_COPIES_RATIO = 0.25;
+	protected static final double DEF_MULTIPLICATIVE_DECREASE = 0.25;
 	
 	/** meanDeviation's default value if it is not specified in the settings ({@value}) */
 	protected static final int DEF_MEAN_DEVIATION_FACTOR = 2;
@@ -53,7 +59,15 @@ public abstract class DirectiveEngine {
 	
 	/** maxCopies default value if it is not specified in the settings ({@value})  */
 	/** This default value implies the setting is not considered. */
-	protected static final int DEF_MAXCOPIES = -1;	
+	protected static final int DEF_MAXCOPIES = -1;
+	
+	/** dropsThrMax-setting's default value if it is not specified in the settings 
+	 ({@value}) */
+	private static final double DEF_CONGESTION_THRMAX = 0.8;
+	
+	/** dropsThrMin-setting's default value if it is not specified in the settings 
+	 ({@value}) */
+	private static final double DEF_CONGESTION_THRMIN = 0.5;	
 	
 	/**
 	 * Interval for the metrics generation. If it is not set, it is assumed 
@@ -76,15 +90,25 @@ public abstract class DirectiveEngine {
 	/**
 	 * Ratio to increment the number of  copies of a message by.
 	 */
-	protected double incrementCopiesRatio;
+	protected double additiveIncrease;
 	
 	/**
 	 * Ratio to decrement the number of  copies of a message by. 
 	 */
-	protected double decrementCopiesRatio;
+	protected double multiplicativeDecrease;
 	
 	/** Property where to load the meanDeviationFactor from the settings */
 	protected double meanDeviationFactor;	
+	
+	/**
+	 * Maximum congestion threshold of the congestion window.
+	 */
+	protected double congestionThrMax;
+	
+	/**
+	 * Minimum congestion threshold of the congestion window.
+	 */
+	protected double congestionThrMin;	
 	
 	
 	protected MessageRouter router;
@@ -110,7 +134,7 @@ public abstract class DirectiveEngine {
 	/**
 	 * Initializes the property settings.
 	 * @param engineSettings settings corresponding to the namespace control.engine.
-	 * which has as a subnamespace the control namespace.
+	 * which has as a subnamespace the 'DirectiveEngine' namespace.
 	 * @param router, the router who has initialized this directiveEngine.
 	 */
 	public DirectiveEngine(Settings engineSettings, MessageRouter router) {
@@ -124,16 +148,20 @@ public abstract class DirectiveEngine {
 				(engineSettings.contains(METRICS_GENERATION_INTERVAL_S))
 				? engineSettings.getInt(METRICS_GENERATION_INTERVAL_S)
 				: this.directiveGenerationInterval;
-		this.incrementCopiesRatio = (engineSettings.contains(INCREMENT_COPIES_RATIO_S)) ? 
-				engineSettings.getDouble(INCREMENT_COPIES_RATIO_S) : DEF_INCREMENT_COPIES_RATIO;
-		this.decrementCopiesRatio = (engineSettings.contains(DECREMENT_COPIES_RATIO_S)) ? 
-				engineSettings.getDouble(DECREMENT_COPIES_RATIO_S) : DEF_DECREMENT_COPIES_RATIO;
+		this.additiveIncrease = (engineSettings.contains(ADDITIVE_INCREASE_S)) ? 
+				engineSettings.getDouble(ADDITIVE_INCREASE_S) : DEF_ADDITIVE_INCREASE;
+		this.multiplicativeDecrease = (engineSettings.contains(MULTIPLICATIVE_DECREASE_S)) ? 
+				engineSettings.getDouble(MULTIPLICATIVE_DECREASE_S) : DEF_MULTIPLICATIVE_DECREASE;
 		this.meanDeviationFactor = (engineSettings.contains(MEAN_DEVIATION_FACTOR_S)) ?
 				engineSettings.getDouble(MEAN_DEVIATION_FACTOR_S) : DEF_MEAN_DEVIATION_FACTOR;
 		this.metricExpiredWindowFactor = engineSettings.contains(METRIC_EXPIRED_WINDOW_FACTOR_S) ?
 				engineSettings.getInt(METRIC_EXPIRED_WINDOW_FACTOR_S) : DEF_METRIC_EXPIRED_WINDOW_FACTOR;
 		this.maxCopies = engineSettings.contains(MAXCOPIES_S) ? engineSettings.getInt(MAXCOPIES_S) : 
-					DirectiveEngine.DEF_MAXCOPIES;				
+					DirectiveEngine.DEF_MAXCOPIES;
+		this.congestionThrMax = engineSettings.contains(CONGESTION_THRMAX_S) ? 
+				engineSettings.getDouble(CONGESTION_THRMAX_S) : DEF_CONGESTION_THRMAX;
+		this.congestionThrMin = engineSettings.contains(CONGESTION_THRMIN_S) ? 
+				engineSettings.getDouble(CONGESTION_THRMIN_S) : DEF_CONGESTION_THRMIN;						
 	}
 	
 	/**
