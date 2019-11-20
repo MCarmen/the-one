@@ -9,7 +9,9 @@ import core.Message;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.MetricCode;
-import routing.control.MetricsSensed;
+import routing.control.EWMAEngine;
+import routing.control.EWMAEngine.CongestionState;
+import routing.control.metric.CongestionMetricPerWT;
 
 public class DirectiveDetails {
 	
@@ -31,6 +33,8 @@ public class DirectiveDetails {
 	
 	/** When the directive was created */
 	private int creationTime;
+	
+	private EWMAEngine.CongestionState congestionState;
 
 	/**
 	 * Constructor that initializes the list of the ids of the directives used
@@ -52,6 +56,7 @@ public class DirectiveDetails {
 		this.directivesUsed = new ArrayList<String>(directiveDetails.getDirectivesUsed());
 		this.metricsUsed = new ArrayList<>(directiveDetails.metricsUsed);
 		this.creationTime = directiveDetails.getCreationTime();
+		this.congestionState = directiveDetails.getCongestionState();
 	}
 	
 	public String getDirectiveID() {
@@ -74,6 +79,11 @@ public class DirectiveDetails {
 		return creationTime;
 	}
 	
+	public EWMAEngine.CongestionState getCongestionState() {
+		return congestionState;
+	}
+	
+	
 	/** 
 	 * Method to be invoked when the directive has been created and therefore
 	 * the message has been set with the directive fields.
@@ -88,6 +98,18 @@ public class DirectiveDetails {
 			this.newNrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 		}		
 	}
+	
+	/** 
+	 * Method to be invoked when the directive has been created and therefore
+	 * the message has been set with the directive fields.
+	 * These fields are used to initialize this object.   
+	 * @param m the message filled with the directive fields.
+	 * @param congestionState the congestionState after generating the directive.
+	 */	
+	public void init(Message m, CongestionState congestionState) {
+		this.init(m);
+		this.congestionState = congestionState;
+	}	
 			
 	public void addDirectiveUsed(String directiveUsed) {
 		this.directivesUsed.add(directiveUsed);
@@ -97,8 +119,8 @@ public class DirectiveDetails {
 	 * Method that registers the metric that has been aggregated in the controller
 	 * affecting the current directive to be generated.
 	 * @param metric The received metric about to be aggregated
-	 * @param currentDropsAverage The drops measurement aggregated until now.
-	 * @param newDropsAverage The drops measurement after the metric passed as 
+	 * @param currentCongestionAverage The drops measurement aggregated until now.
+	 * @param newCongestionAverage The drops measurement after the metric passed as 
 	 * a parameter is aggregated.
 	 * @param currentMeanDeviationAverage the current meanDeviation of the measure.
 	 * @param newMeanDeviationAverage the new meanDeviation after aggregating the new 
@@ -106,25 +128,21 @@ public class DirectiveDetails {
 	 *  
 	 */
 	public void addMetricUsed(ControlMessage metric,
-			double currentDropsAverage, double newDropsAverage, 
+			double currentCongestionAverage, double newCongestionAverage, 
 			double currentMeanDeviationAverage, double newMeanDeviationAverage) {
 		Properties metricProperties = new Properties();
-		MetricsSensed.DropsPerTime dropsMetric = (MetricsSensed.DropsPerTime)metric.getProperty(MetricCode.DROPS_CODE.toString());
-		double dropsSensed = dropsMetric.getPercentageOfStorageDropped();
-		int nrofDrops = dropsMetric.getNrofDrops();
+		CongestionMetricPerWT congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.DROPS_CODE.toString());
+		double congestionSensed = congestionMetric.getCongestionMetric();
 		
 		metricProperties.put("id", metric.getId());
 		metricProperties.put("from", metric.getFrom());
-		metricProperties.put("DrpS", new DecimalFormat("#0.00").format(dropsSensed));
-		metricProperties.put("DrpAvg" , new DecimalFormat("#0.00").format(currentDropsAverage));
-		metricProperties.put("NDrpAvg", new DecimalFormat("#0.00").format(newDropsAverage));
-		metricProperties.put("nrofDrops", String.valueOf(nrofDrops));		
+		metricProperties.put("CongS", new DecimalFormat("#0.00").format(congestionSensed));
+		metricProperties.put("CongAvg" , new DecimalFormat("#0.00").format(currentCongestionAverage));
 		//metricProperties.put("DrpMeanDeviationAvg", new DecimalFormat("#0.00").format(currentMeanDeviationAverage));
 		//metricProperties.put("NDrpMeanDeviationAvg", new DecimalFormat("#0.00").format(newMeanDeviationAverage));
 		
 		this.metricsUsed.add(metricProperties);
 	}
-	
 	
 	/**
 	 * Method that associates an empty list of directivesUsed to the 
@@ -136,8 +154,8 @@ public class DirectiveDetails {
 	}
 	
 	public String toString() {
-		return String.format("%s %s %d %d %s %s", this.directiveID, 
+		return String.format("%s %s %d %d %s %s %s", this.directiveID, 
 				this.generatedByNode, this.newNrofCopies, this.creationTime, 
-				this.directivesUsed, this.metricsUsed);
+				this.directivesUsed, this.metricsUsed, this.congestionState);
 	}
 }
