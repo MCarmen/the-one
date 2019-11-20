@@ -25,20 +25,23 @@ public class Controller {
 	/** package where to look for controller engines */
 	private static final String CONTROL_PACKAGE = ROUTING_PACKAGE + "."+ CONTROL_NS;
 
+	/** Base namespace for the directives engine settings ({@value})*/
+	private static final String BASE_DIRECTIVE_ENGINE_NS = "DirectiveEngine";
+	
 	/** engine -setting id ({@value}) in the controller name space */
-	public static final String ENGINE_S = "engine";
+	private static final String ENGINE_S = "engine";
 	/** engine -setting id ({@value}) in the controller name space */ 
-	public static final String NROF_CONTROLLERS_S = "nrofControllers";	
+	private static final String NROF_CONTROLLERS_S = "nrofControllers";	
 		
 	/** warmup -setting id ({@value}) in the control name space */
-	protected static final String WARMUP_S = "warmup";
+	private static final String WARMUP_S = "warmup";
 		
 	/** warmup's default value if it is not specified in the settings ({@value})  */
-	protected static final int DEF_WARMUP = 0;
+	private static final int DEF_WARMUP = 0;
 		
 	/** Default value for the control engine. */
-	public static final String EWMA_ENGINE = "EWMAEngine";
-	
+	private static final String EWMA_ENGINE = "EWMAEngine";
+		
 	/** The settings package full name. */
 	private static final String SETTINGS_PACKAGE = "core.Settings";
 	
@@ -54,10 +57,7 @@ public class Controller {
 	 * order to have full network activity.
 	 */
 	protected int warmupTime;
-	
-	/** 
-	 * Multiplying factor for the aggregated congestion average. */
-	protected double congestionWeight;
+
 
 	/**
 	 * Constructor that initializes the engine used to generate directives, 
@@ -87,23 +87,23 @@ public class Controller {
 	
 	/**
 	 * Method that builds the engine used to generate directives, 
-	 * based on the settings configuration of the specified engine. The control
-	 * settings nameSpace is set as secondary nameSpace.
+	 * based on the settings configuration of the specified engine. 
+	 * The directiveEngine namaSpace is set as secondary nameSpace. 
 	 * @param settings Settings of the name space: control
 	 * @param router the router that has created this controller.
 
 	 */
     protected void setDirectiveEngine(Settings s, MessageRouter router) {
-		String engineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : EWMA_ENGINE;
-		Settings engineSettings = new Settings(engineNameSpace);
-		engineSettings.setSecondaryNamespace(CONTROL_NS);
-		String directiveEngine_str = CONTROL_PACKAGE + "." + engineNameSpace;
+		String eWMAEngineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : EWMA_ENGINE;
+		Settings eWMAEngineSettings = new Settings(eWMAEngineNameSpace);
+		eWMAEngineSettings.setSecondaryNamespace(BASE_DIRECTIVE_ENGINE_NS);
+		String directiveEngine_str = CONTROL_PACKAGE + "." + eWMAEngineNameSpace;
 		String[] directiveEngineConstructorArgumentTypes = {SETTINGS_PACKAGE, 
 				ROUTING_PACKAGE +"."+MESSAGE_ROUTER_CLASS} ;
 		
-		this.directiveEngine= (DirectiveEngine)engineSettings.createInitializedObject(
+		this.directiveEngine= (DirectiveEngine)eWMAEngineSettings.createInitializedObject(
 				directiveEngine_str, directiveEngineConstructorArgumentTypes, 
-				new Object[]{engineSettings, router});
+				new Object[]{eWMAEngineSettings, router});
     }   
     
     
