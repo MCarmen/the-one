@@ -7,10 +7,10 @@ import core.control.ControlMessage;
 import report.TMessageStatsReport;
 
 public class ControlStatsReport extends TMessageStatsReport{
-	private int nrofBytesOfDataMsgStarted;
-	private int nrofBytesOfDataMsgCreated;
-	private int nrofBytesOfControlMsgStarted;
-	private int nrofBytesOfControlMsgCreated;	
+	private long nrofBytesOfDataMsgStarted;
+	private long nrofBytesOfDataMsgCreated;
+	private long nrofBytesOfControlMsgStarted;
+	private long nrofBytesOfControlMsgCreated;	
 
 	public ControlStatsReport(){
 		this.init(ControlMessage.class);
@@ -51,9 +51,9 @@ public class ControlStatsReport extends TMessageStatsReport{
 	 */
 	protected double getOverHead() {
 		double congestionOverHead = Double.NaN;	// overhead ratio
-		int dataMsgCreatedAndStarted = this.nrofBytesOfDataMsgCreated + this.nrofBytesOfDataMsgStarted;				
-		int controlMsgCreatedAndStarted = this.nrofBytesOfControlMsgCreated + this.nrofBytesOfControlMsgStarted;
-		int totalMsgCreatedAndStarted = dataMsgCreatedAndStarted + controlMsgCreatedAndStarted;
+		long dataMsgCreatedAndStarted = this.nrofBytesOfDataMsgCreated + this.nrofBytesOfDataMsgStarted;				
+		long controlMsgCreatedAndStarted = this.nrofBytesOfControlMsgCreated + this.nrofBytesOfControlMsgStarted;
+		long totalMsgCreatedAndStarted = dataMsgCreatedAndStarted + controlMsgCreatedAndStarted;
 		if (totalMsgCreatedAndStarted > 0) {
 			congestionOverHead = (1.0 * controlMsgCreatedAndStarted) / totalMsgCreatedAndStarted;
 		}
