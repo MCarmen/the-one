@@ -34,13 +34,13 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 	protected int initialNrofCopies;
 	protected boolean isBinary;
+	protected Settings snwSettings;
 
 	public SprayAndWaitRouter(Settings s) {
 		super(s);
-		Settings snwSettings = new Settings(SPRAYANDWAIT_NS);
-
-		initialNrofCopies = snwSettings.getInt(NROF_COPIES);		
-		isBinary = snwSettings.getBoolean( BINARY_MODE);		
+		this.setSettings();
+		initialNrofCopies = this.snwSettings.getInt(NROF_COPIES);		
+		isBinary = this.snwSettings.getBoolean( BINARY_MODE);		
 	}
 
 	/**
@@ -52,6 +52,14 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		this.initialNrofCopies = r.initialNrofCopies;
 		this.isBinary = r.isBinary;
 		this.routingProperties = r.routingProperties;		
+	}
+	
+	/**
+	 * Method that sets the settings depending on the specific Spray and Wait name 
+	 * space. Subclasses of this class might override this method. 
+	 */
+	protected void setSettings() {
+		this.snwSettings = new Settings(SPRAYANDWAIT_NS);
 	}
 	
 	@Override
@@ -119,6 +127,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	/**
 	 * Creates and returns a list of messages this router is currently
 	 * carrying and still has copies left to distribute (nrof copies > 1).
+	 * This method might be overriden by subclasses.
 	 * @return A list of messages that have copies left
 	 */
 	protected List<Message> getMessagesWithCopiesLeft() {
@@ -142,6 +151,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	 * Reduces the number of copies we have left for a message.
 	 * In binary Spray and Wait, sending host is left with floor(n/2) copies,
 	 * but in standard mode, nrof copies left is reduced by one.
+	 * This method might be overriden by subclasses.
 	 */
 	@Override
 	protected void transferDone(Connection con) {
