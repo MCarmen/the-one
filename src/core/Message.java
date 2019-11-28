@@ -382,6 +382,13 @@ public class Message implements Comparable<Message> {
 		this.appID = appID;
 	}
 	
+	/**	  
+	 * @return true if the type of the message is either METRIC or DIRECTIVE
+	 */
+	public boolean isControlMsg() {
+		return ((this.type == MessageType.DIRECTIVE) || (this.type == MessageType.METRIC));
+	}
+	
 	/**
 	 * Class that wraps the different type of messages the simulator works  
 	 * with.
