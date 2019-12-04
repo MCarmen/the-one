@@ -8,6 +8,7 @@ import java.util.Properties;
 import core.Message;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
+import core.control.DirectiveMessage;
 import core.control.MetricCode;
 import routing.control.EWMAEngine;
 import routing.control.EWMAEngine.CongestionState;
@@ -26,7 +27,7 @@ public class DirectiveDetails {
 	
 	/** List of the identifiers of the aggregated directives used to 
 	 * generate  this one.*/
-	private List<String> directivesUsed;
+	private List<Properties> directivesUsed;
 	
 	/** A list with the metrics used  */
 	private List<Properties> metricsUsed;
@@ -41,7 +42,7 @@ public class DirectiveDetails {
 	 * to generate this directive.
 	 */
 	public DirectiveDetails() {
-		this.directivesUsed = new ArrayList<String>();
+		this.directivesUsed = new ArrayList<>();
 		this.metricsUsed = new ArrayList<>();
 	}
 	
@@ -53,7 +54,7 @@ public class DirectiveDetails {
 		this.directiveID = directiveDetails.getDirectiveID();
 		this.generatedByNode = directiveDetails.getGeneratedByNode();	
 		this.newNrofCopies = directiveDetails.getNewNrofCopies();
-		this.directivesUsed = new ArrayList<String>(directiveDetails.getDirectivesUsed());
+		this.directivesUsed = new ArrayList<>(directiveDetails.directivesUsed);
 		this.metricsUsed = new ArrayList<>(directiveDetails.metricsUsed);
 		this.creationTime = directiveDetails.getCreationTime();
 		this.congestionState = directiveDetails.getCongestionState();
@@ -71,10 +72,6 @@ public class DirectiveDetails {
 		return newNrofCopies;
 	}
 
-	public List<String> getDirectivesUsed() {
-		return directivesUsed;
-	}
-	
 	public int getCreationTime() {
 		return creationTime;
 	}
@@ -111,8 +108,16 @@ public class DirectiveDetails {
 		this.congestionState = congestionState;
 	}	
 			
-	public void addDirectiveUsed(String directiveUsed) {
-		this.directivesUsed.add(directiveUsed);
+	public void addDirectiveUsed(ControlMessage directive, double currentAggregatedDirectivesAvg,
+			double directiveSensed) {
+		Properties directiveProperties = new Properties();
+		
+		directiveProperties.put("id", directive.getId());
+		directiveProperties.put("from", directive.getFrom());
+		directiveProperties.put("dirS", directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString()));
+		directiveProperties.put("dirAvg", currentAggregatedDirectivesAvg);
+		
+		this.directivesUsed.add(directiveProperties);
 	}
 	
 	/**
