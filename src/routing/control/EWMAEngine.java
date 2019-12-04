@@ -1,6 +1,7 @@
 package routing.control;
 
 import core.Settings;
+import core.SimClock;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
@@ -38,6 +39,7 @@ public class EWMAEngine extends DirectiveEngine {
 	/** Alpha -setting id ({@value}) in the EWMAEngine name space for the 
 	 * number of copies of the message got from other directives. */	
 	private static final String DIRECTIVES_ALPHA_S = "directivesAlpha";
+
 	
 	/** alpha-setting's default value if it is not specified in the settings 
 	 ({@value}) */
@@ -160,14 +162,14 @@ public class EWMAEngine extends DirectiveEngine {
 	public void addMetric(ControlMessage metric) {
 		CongestionMetricPerWT nextCongestionReading;
 		double congestionMetricAvg;
-		double congestionMetricMeanDeviationAvg;
+		double congestionMetricMeanDeviationAvg = 0;
 		
 		this.receivedCtrlMsgInDirectiveCycle = true;
 		if ((!this.hasMetricExpired((MetricMessage)metric)) && 
-		(metric.containsProperty​(MetricCode.DROPS_CODE.toString())) ){
+				(metric.containsProperty​(MetricCode.DROPS_CODE.toString())) ){
 			nextCongestionReading = (CongestionMetricPerWT)metric.getProperty(MetricCode.DROPS_CODE.toString());
-			congestionMetricMeanDeviationAvg = this.sCongestionMeanDeviation.getValue();
-			this.sCongestionMeanDeviation.aggregateValue(nextCongestionReading.getCongestionMetric(), this.sCongestionAverage);
+			//congestionMetricMeanDeviationAvg = this.sCongestionMeanDeviation.getValue();
+			//this.sCongestionMeanDeviation.aggregateValue(nextCongestionReading.getCongestionMetric(), this.sCongestionAverage);
 			congestionMetricAvg = this.sCongestionAverage.getValue();
 			this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionMetric());
 			this.directiveDetails.addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue(), 
@@ -181,15 +183,17 @@ public class EWMAEngine extends DirectiveEngine {
 	 * an EWMA. it is never reset.
 	 */
 	public void addDirective(ControlMessage directive) {
-		double nextNrofCopiesReading;
+		double nextNrofCopiesReading = 0;
+		double directiveAvg = 0;
 		
-		this.receivedCtrlMsgInDirectiveCycle = true;
+		this.receivedCtrlMsgInDirectiveCycle = true;		
 		if(directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-			nextNrofCopiesReading = (double)directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
-			this.sDirectivesMeanDeviation.aggregateValue(nextNrofCopiesReading, this.sNrofMsgCopiesAverage);			
+			nextNrofCopiesReading = (int)directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
+			directiveAvg = this.sNrofMsgCopiesAverage.getValue();
+			//this.sDirectivesMeanDeviation.aggregateValue(nextNrofCopiesReading, this.sNrofMsgCopiesAverage);			
 			this.sNrofMsgCopiesAverage.aggregateValue(nextNrofCopiesReading);
 		}
-		this.directiveDetails.addDirectiveUsed(directive.getId());
+		this.directiveDetails.addDirectiveUsed(directive, directiveAvg, nextNrofCopiesReading);
 	}
 	
 	/**
@@ -228,7 +232,7 @@ public class EWMAEngine extends DirectiveEngine {
 	 * 
 	 */
 	public DirectiveDetails generateDirective(ControlMessage message) {
-		//double currentTime = SimClock.getTime(); //DEBUG
+		double currentTime = SimClock.getTime(); //DEBUG
 		double newNrofCopies = this.router.getRoutingProperties()
 				.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		DirectiveDetails currentDirectiveDetails = null;
