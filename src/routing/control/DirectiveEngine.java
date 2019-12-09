@@ -3,6 +3,7 @@ package routing.control;
 import core.Settings;
 import core.SimClock;
 import core.control.ControlMessage;
+import core.control.DirectiveMessage;
 import core.control.MetricMessage;
 import report.control.directive.DirectiveDetails;
 import routing.MessageRouter;
@@ -30,8 +31,11 @@ public abstract class DirectiveEngine {
 	/** directiveGenerationInterval -setting id ({@value}) in the control name space. */
 	protected static final String DIRECTIVE_GENERATION_INTERVAL_S = "directiveGenerationInterval";
 	
-	/** directiveGenerationInterval -setting id ({@value}) in the control name space */
-	protected static final String METRIC_EXPIRED_WINDOW_FACTOR_S = "metricExpiredWindowFactor";
+	/** metric time to live -setting id ({@value}) in the control name space */
+	protected static final String METRIC_TTL_S = "metricTtl";
+
+	/** directive time to live -setting id ({@value}) in the control name space */
+	protected static final String DIRECTIVE_TTL_S = "directiveTtl";
 		
 	/** maxCopies -setting id ({@value}) in the control name space */
 	protected static final String MAXCOPIES_S = "maxCopies";
@@ -53,9 +57,11 @@ public abstract class DirectiveEngine {
 	/** meanDeviation's default value if it is not specified in the settings ({@value}) */
 	protected static final int DEF_MEAN_DEVIATION_FACTOR = 2;
 	
-	/** metricExpiredWindowFactor's default value if it is not specified in the settings ({@value}) */
-	protected static final int DEF_METRIC_EXPIRED_WINDOW_FACTOR = 0;
-
+	/** metricTTL's default value if it is not specified in the settings ({@value}) */
+	protected static final int DEF_METRIC_TTL = 0;
+	
+	/** directiveTTL's default value if it is not specified in the settings ({@value}) */
+	protected static final int DEF_DIRECTIVE_TTL = 0;
 	
 	/** maxCopies default value if it is not specified in the settings ({@value})  */
 	/** This default value implies the setting is not considered. */
@@ -82,10 +88,15 @@ public abstract class DirectiveEngine {
 	protected int directiveGenerationInterval;
 	
 	/**
-	 * Factor (n_times) of the directiveGenerationInterval seconds while the 
-	 * received metric is accepted. 
+	 * Metric time to live. After this time the metric is discarded. 
 	 */
-	protected int metricExpiredWindowFactor;
+	protected int metricTTL;
+	
+	/**
+	 * Directive time to live. After this time the directive is discarded. 
+	 */
+	protected int directiveTTL;	
+	
 	
 	/**
 	 * Ratio to increment the number of  copies of a message by.
@@ -154,8 +165,10 @@ public abstract class DirectiveEngine {
 				engineSettings.getDouble(MULTIPLICATIVE_DECREASE_S) : DEF_MULTIPLICATIVE_DECREASE;
 		this.meanDeviationFactor = (engineSettings.contains(MEAN_DEVIATION_FACTOR_S)) ?
 				engineSettings.getDouble(MEAN_DEVIATION_FACTOR_S) : DEF_MEAN_DEVIATION_FACTOR;
-		this.metricExpiredWindowFactor = engineSettings.contains(METRIC_EXPIRED_WINDOW_FACTOR_S) ?
-				engineSettings.getInt(METRIC_EXPIRED_WINDOW_FACTOR_S) : DEF_METRIC_EXPIRED_WINDOW_FACTOR;
+		this.metricTTL = engineSettings.contains(METRIC_TTL_S) ?
+				engineSettings.getInt(METRIC_TTL_S) : DEF_METRIC_TTL;
+		this.directiveTTL = engineSettings.contains(DIRECTIVE_TTL_S) ?
+				engineSettings.getInt(DIRECTIVE_TTL_S) : DEF_DIRECTIVE_TTL;				
 		this.maxCopies = engineSettings.contains(MAXCOPIES_S) ? engineSettings.getInt(MAXCOPIES_S) : 
 					DirectiveEngine.DEF_MAXCOPIES;
 		this.congestionThrMax = engineSettings.contains(CONGESTION_THRMAX_S) ? 
@@ -173,19 +186,31 @@ public abstract class DirectiveEngine {
 	}
 	
 	/**
-	 * Checks wether the metric has expired. A metric has expired when 
-	 * the simulation current time - metric's creation time > n_times the
-	 * directiveGenerationInterval (where n_times = 
-	 * control.metricExpiredWindowFactor)
+	 * Checks whether the metric has expired. A metric has expired when 
+	 * the simulation current time - metric's creation time > metricTTL
+	 * @param msg
+	 * @return
+	 */
+	protected boolean hasExpired(MetricMessage msg) {
+		boolean hasExpired = ((this.metricTTL!=0) && 
+				(SimClock.getTime() - msg.getCreationTime() > 
+				this.metricTTL) ) ?
+				true : false;		
+		return  hasExpired; 
+	}
+	
+	/**
+	 * Checks whether the directive has expired. A directive has expired when 
+	 * the simulation current time - directives's creation time > metricTTL
 	 * @param metric
 	 * @return
 	 */
-	protected boolean hasMetricExpired(MetricMessage metric) {
-		boolean hasMetricExpired = ((this.metricExpiredWindowFactor!=0) && 
-				(SimClock.getTime() - metric.getCreationTime() > 
-				this.metricExpiredWindowFactor * this.directiveGenerationInterval) ) ?
+	protected boolean hasExpired(DirectiveMessage msg) {
+		boolean hasExpired = ((this.directiveTTL!=0) && 
+				(SimClock.getTime() - msg.getCreationTime() > 
+				this.directiveTTL) ) ?
 				true : false;		
-		return  hasMetricExpired; 
+		return  hasExpired; 
 	}
 	
 	/**
