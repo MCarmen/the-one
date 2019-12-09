@@ -121,12 +121,31 @@ public abstract class MessageRouter {
 	/** Default setting value for type specifying the type of a group 
 	 * (controller or host) */
 	public static final String CONTROLLER_TYPE = "controller";	
-	/** namespace of the controller settings ({@value}) */
-	public static final String CONTROL_NS = "control";
-	/** engine -setting id ({@value}) in the controller name space */ 
-	public static final String NROF_CONTROLLERS_S = "nrofControllers";		
-		/** the controller instance in case this router is configured to be a 
-	 * controller */
+	/** namespace of the Scenario settings ({@value}) */
+	public static final String SCENARIO_NS = "Scenario";
+	/** controlMode -setting id ({@value}) in the scenario name space */ 
+	public static final String CONTROL_MODE_S = "controlMode";	
+	/** namespace of the control settings ({@value}) */
+	public static final String CONTROL_NS = "control";	
+	/**
+	 * Metric TTL -setting id ({@value}). Value is in minutes and must be
+	 * an integer.
+	 */
+	public static final String METRIC_TTL_S = "metricTtl";
+	/**
+	 * Directive TTL -setting id ({@value}). Value is in minutes and must be
+	 * an integer.
+	 */
+	public static final String DIRECTIVE_TTL_S = "directiveTtl";
+	
+	/** Default value for the metricTtl setting */
+	public static final int DEF_METRIC_TTL = 0;
+
+	/** Default value for the directiveTtl setting */
+	public static final int DEF_DIRECTIVE_TTL = 0;
+	
+	/** the controller instance in case this router is configured to be a 
+	 * controller */	
 	protected Controller controller;
 	/** Metrics  handler. */
 	protected MetricsSensed metricsSensed;
@@ -138,8 +157,11 @@ public abstract class MessageRouter {
 	/**Flag indicating whether the router is a controller*/
 	private boolean amIController = false;
 	/**Flag indicating whether the system is a controlled one.*/
-	private boolean controlModeOn = false;	
-	
+	private boolean controlModeOn = false;
+	/** The Ttl for the metrics in minutes. */
+	protected int metricTtl;	
+	/** The Ttl for the directives in minutes. */
+	protected int directiveTtl;	
 
 	/**
 	 * Constructor. Creates a new message router based on the settings in
@@ -182,10 +204,7 @@ public abstract class MessageRouter {
 		if (s.contains(MessageRouter.SIM_TIME_STOP_RATE)) {
 			this.simTimeStopRate = s.getDouble(MessageRouter.SIM_TIME_STOP_RATE);
 		}
-		
-		this.amIController = ((s.contains(TYPE_S)) && 
-				(s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
-		this.controlModeOn = this.isControlModeOn();
+		this.setUpControl(s);
 	}
 
 	/**
@@ -617,7 +636,16 @@ public abstract class MessageRouter {
 				msgHasBeenCreated = true;
 			}
 			if (msgHasBeenCreated) {
-				m.setTtl(this.msgTtl);
+				switch(m.getType()) {
+				case DIRECTIVE:
+					m.setTtl(this.directiveTtl);
+					break;
+				case METRIC:
+					m.setTtl(this.metricTtl);
+					break;
+				default:
+					m.setTtl(this.msgTtl);	
+				}				
 				addToMessages(m, true);
 			}
 		}
@@ -816,41 +844,25 @@ public abstract class MessageRouter {
 	}
 	
 	/**
-	 * Method that checks in the settings whether the node is a controller.
-	 * Sets the property {@link #iamAController} with the result of the checking.
-	 * @param s the settings
-	 * @return true if the node is a controller, false otherwise.
+	 * Method that sets up all the control settings.
+	 * 
+	 * @param s The settings object of the router which is the Group.
 	 */
-	protected boolean amIAController(Settings s) {
-		return ((s.contains(TYPE_S)) && 
-				(s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
-	
+	private void setUpControl(Settings s) {
+		Settings scenario_s = new Settings(SCENARIO_NS);
+		this.amIController = ((s.contains(TYPE_S)) && (s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
+		this.controlModeOn = scenario_s.contains(CONTROL_MODE_S) ? scenario_s.getBoolean(CONTROL_MODE_S) : false;
+		if (this.controlModeOn) {
+			Settings control_s = new Settings(CONTROL_NS);
+			this.metricTtl = (control_s.contains(METRIC_TTL_S)) ? control_s.getInt(METRIC_TTL_S) : 0;
+			this.directiveTtl = (control_s.contains(DIRECTIVE_TTL_S)) ? control_s.getInt(DIRECTIVE_TTL_S) : 0;
+		}
 	}
-	
+		
 	public boolean isAController() {
 		return (this.controller != null);
 	}
 		 
-	
-	/**
-	 * Method that checks whether there is at least one controller in the 
-	 * scenario.
-	 * @return True if there is at least one controller in the scenario. 
-	 * False otherwise.
-	 */	
-    private boolean isControlModeOn() {
-    	Settings s = new Settings(CONTROL_NS);
-		int nrofControllers;
-		boolean isControlModeOn = false;
-		
-		if(s.contains(NROF_CONTROLLERS_S)){
-			nrofControllers = s.getInt(NROF_CONTROLLERS_S);
-			s.ensurePositiveValue(nrofControllers, NROF_CONTROLLERS_S);
-			isControlModeOn = (nrofControllers > 0) ? true : false;
-		} 
-		
-		return isControlModeOn;
-    }
     
     public MetricsSensed getMetricsSensed() {
 		return this.metricsSensed;
