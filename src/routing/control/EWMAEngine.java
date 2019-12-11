@@ -165,8 +165,7 @@ public class EWMAEngine extends DirectiveEngine {
 		double congestionMetricMeanDeviationAvg = 0;
 		
 		this.receivedCtrlMsgInDirectiveCycle = true;
-		if ((!this.hasExpired((MetricMessage)metric)) && 
-				(metric.containsProperty​(MetricCode.DROPS_CODE.toString())) ){
+		if ( metric.containsProperty​(MetricCode.DROPS_CODE.toString())) {
 			nextCongestionReading = (CongestionMetricPerWT)metric.getProperty(MetricCode.DROPS_CODE.toString());
 			//congestionMetricMeanDeviationAvg = this.sCongestionMeanDeviation.getValue();
 			//this.sCongestionMeanDeviation.aggregateValue(nextCongestionReading.getCongestionMetric(), this.sCongestionAverage);
@@ -187,8 +186,7 @@ public class EWMAEngine extends DirectiveEngine {
 		double directiveAvg = 0;
 
 		this.receivedCtrlMsgInDirectiveCycle = true;
-		if (!this.hasExpired((DirectiveMessage) directive)
-				&& directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
+		if (directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 			nextNrofCopiesReading = (int) directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 			directiveAvg = this.sNrofMsgCopiesAverage.getValue();
 			// this.sDirectivesMeanDeviation.aggregateValue(nextNrofCopiesReading,
