@@ -236,12 +236,13 @@ public abstract class ActiveRouter extends MessageRouter {
 				super.isBlacklistedMessage(m.getId())) {
 			return DENIED_OLD; // already seen this message -> reject it
 		}
-
-		if (m.getTtl() <= 0 && m.getTo() != getHost()) {
-			/* TTL has expired and this host is not the final recipient */
-			return DENIED_TTL;
+		if (m.getTtl() <= 0) {
+			if (m.isControlMsg() || (m.getTo() != getHost())) {
+			/* TTL has expired and this host is not the final recipient or 
+			 * TTL has expired and the  message is a control one.*/
+				return DENIED_TTL;
+			}			
 		}
-
 		if (energy != null && energy.getEnergy() <= 0) {
 			return MessageRouter.DENIED_LOW_RESOURCES;
 		}
