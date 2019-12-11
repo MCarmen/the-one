@@ -137,13 +137,7 @@ public abstract class MessageRouter {
 	 * an integer.
 	 */
 	public static final String DIRECTIVE_TTL_S = "directiveTtl";
-	
-	/** Default value for the metricTtl setting */
-	public static final int DEF_METRIC_TTL = 0;
-
-	/** Default value for the directiveTtl setting */
-	public static final int DEF_DIRECTIVE_TTL = 0;
-	
+		
 	/** the controller instance in case this router is configured to be a 
 	 * controller */	
 	protected Controller controller;
@@ -247,6 +241,8 @@ public abstract class MessageRouter {
 		}
 		this.amIController = r.amIController;
 		this.controlModeOn = r.controlModeOn;
+		this.metricTtl = r.metricTtl;
+		this.directiveTtl = r.directiveTtl;
 	}
 
 	/**
@@ -854,8 +850,8 @@ public abstract class MessageRouter {
 		this.controlModeOn = scenario_s.contains(CONTROL_MODE_S) ? scenario_s.getBoolean(CONTROL_MODE_S) : false;
 		if (this.controlModeOn) {
 			Settings control_s = new Settings(CONTROL_NS);
-			this.metricTtl = (control_s.contains(METRIC_TTL_S)) ? control_s.getInt(METRIC_TTL_S) : 0;
-			this.directiveTtl = (control_s.contains(DIRECTIVE_TTL_S)) ? control_s.getInt(DIRECTIVE_TTL_S) : 0;
+			this.metricTtl = (control_s.contains(METRIC_TTL_S)) ? control_s.getInt(METRIC_TTL_S) : Message.INFINITE_TTL;
+			this.directiveTtl = (control_s.contains(DIRECTIVE_TTL_S)) ? control_s.getInt(DIRECTIVE_TTL_S) : Message.INFINITE_TTL;
 		}
 	}
 		
