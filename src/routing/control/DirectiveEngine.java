@@ -184,35 +184,7 @@ public abstract class DirectiveEngine {
 	protected void resetDirectiveCycleSettings() {
 		this.receivedCtrlMsgInDirectiveCycle = false;
 	}
-	
-	/**
-	 * Checks whether the metric has expired. A metric has expired when 
-	 * the simulation current time - metric's creation time > metricTTL
-	 * @param msg
-	 * @return
-	 */
-	protected boolean hasExpired(MetricMessage msg) {
-		boolean hasExpired = ((this.metricTTL!=0) && 
-				(SimClock.getTime() - msg.getCreationTime() > 
-				this.metricTTL) ) ?
-				true : false;		
-		return  hasExpired; 
-	}
-	
-	/**
-	 * Checks whether the directive has expired. A directive has expired when 
-	 * the simulation current time - directives's creation time > metricTTL
-	 * @param metric
-	 * @return
-	 */
-	protected boolean hasExpired(DirectiveMessage msg) {
-		boolean hasExpired = ((this.directiveTTL!=0) && 
-				(SimClock.getTime() - msg.getCreationTime() > 
-				this.directiveTTL) ) ?
-				true : false;		
-		return  hasExpired; 
-	}
-	
+		
 	/**
 	 * Method called when a new metric has to be considered for the 
 	 * directive to be generated. The metric is added if it is not expired. 
