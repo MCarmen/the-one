@@ -53,7 +53,8 @@ public class AggregationEngine extends DirectiveEngine {
 	@Override
 	public void addDirective(ControlMessage directive) {
 		this.workingOnDirectives.add((DirectiveMessage)directive);
-		this.directiveDetails.addDirectiveUsed(directive.getId());
+		//this.directiveDetails.addDirectiveUsed(directive.getId());
+		//TODO!!! add the aggregated directive to the directiveDetails.
 	}
 
 	/** 
