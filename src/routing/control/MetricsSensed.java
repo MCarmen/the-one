@@ -97,7 +97,7 @@ public class MetricsSensed {
 	 * @return true if the message has been modified with the fraction of 
 	 * the occupancy of the buffer + drops in bytes 
 	 */		
-	public boolean fillMessageWithMetric(Message message, double bufferFreeSpace) {
+	public void fillMessageWithMetric(Message message, double bufferFreeSpace) {
 		double occupancy = ((this.bufferSize - bufferFreeSpace) + this.bytesDroppedPerWT)/this.bufferSize;
 		this.congestionMetricPerWT = 
 				new BufferOccupancyPerWT(occupancy, SimClock.getTime() - this.sensingWindowTime);
@@ -105,7 +105,6 @@ public class MetricsSensed {
 		this.history.add(this.congestionMetricPerWT);
 		
 		this.reset();
-		return true;
 	}
 	
 	/**
