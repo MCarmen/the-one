@@ -627,7 +627,9 @@ public abstract class MessageRouter {
 				}
 				this.reportDirectiveCreated(directiveDetails);
 			} else if (m instanceof MetricMessage) {
-				msgHasBeenCreated = this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());				
+				this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
+				
+				msgHasBeenCreated = true;
 			}else {
 				msgHasBeenCreated = true;
 			}
@@ -863,8 +865,7 @@ public abstract class MessageRouter {
     public MetricsSensed getMetricsSensed() {
 		return this.metricsSensed;
 	}
- 
-    
+     
     /**
      * Method that applies the directive specified in the directivesMessage
      * passed as a parameter and informs the listeners. This method should be 
