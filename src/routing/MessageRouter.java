@@ -595,16 +595,20 @@ public abstract class MessageRouter {
 
 	/**
 	 * In case the message to be created is a normal one it is created straight 
-	 * away. If the message to be created is a new metric, the router delegates
+	 * away.
+	 * If the message to be created is a new metric, the router delegates
 	 * the fulfillment of the message, with the metric information, to 
 	 * {@link MetricsSensed#fillMessageWithMetric(Message)}. If there is no 
 	 * metric available this method returns false.
+	 * If a metric is created and the node is a controller, the metric msg is 
+	 * aggregated to the node's metrics internally and it is not sent to the 
+	 * network. 	 
 	 * If the message to be created is a new directive, the router delegates the
 	 * the fulfillment of the message with the directive to 
 	 * {@link Controller#fillMessageWithDirective(ControlMessage)}.
-	 * If there is no directive/metric to be generated this method returns false.
 	 * If an standard message, or metric or directive is finally created, it is 
-	 * added to the list of messages of the router.
+	 * added to the list of messages of the router. 
+	 * If there is no directive/metric to be generated this method returns false.  
 	 * No message is created in case the simulation time exceeds a percentage 
 	 * defined in the settings.
 	 * @param m The message to create.
@@ -627,9 +631,13 @@ public abstract class MessageRouter {
 				}
 				this.reportDirectiveCreated(directiveDetails);
 			} else if (m instanceof MetricMessage) {
-				this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
+				if (this.isControlMsgGeneratedByMeAsAController((MetricMessage)m)) {
+					this.controller.addMetric((MetricMessage)m);
+				}else {
+					this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
+					msgHasBeenCreated = true;
+				}								
 				
-				msgHasBeenCreated = true;
 			}else {
 				msgHasBeenCreated = true;
 			}
@@ -865,7 +873,20 @@ public abstract class MessageRouter {
     public MetricsSensed getMetricsSensed() {
 		return this.metricsSensed;
 	}
-     
+ 
+
+    /**
+     * Method that checks if this node is a controller and if it has generated 
+     * the control msg passed as a parameter. 
+     * @param m the control message
+     * @return True if the current host is a controller and has generated the 
+     * message. False otherwise.
+     */
+    protected boolean isControlMsgGeneratedByMeAsAController(ControlMessage m) {
+    	return ((m.getFrom().getAddress() == this.getHost().getAddress()) &&
+    			this.amIController) ? true : false;    	
+    }
+    
     /**
      * Method that applies the directive specified in the directivesMessage
      * passed as a parameter and informs the listeners. This method should be 
