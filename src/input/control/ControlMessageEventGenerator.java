@@ -79,4 +79,27 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 	public List<ExternalEvent> nextEvents(){
 		return this.nextEvents(this.hostRange, this.toHostRange);
 	}
+	
+	@Override
+	/**
+	 * This method needs to be overridden in order to consider when all nodes,
+	 * including the controllers, can generate a metric. If the toHosts rang is 
+	 * just one node i.e.: [0,1), when the generator generates a ctrl msg 
+	 * the configuration could be: from: 0 to 0 as both nodes are in the hosts, 
+	 * and toHosts settings. This configuration means the controller generates a 
+	 * ctrl msg and himself is the destination. In this situation we need to 
+	 * allow the 'from' and 'to' variables have the same value.   
+	 */
+	protected int drawToAddress(int hostRange[], int from) {
+		int to;
+		if ((hostRange[1]-hostRange[0]) == 1) {
+			to = hostRange[0];
+		}else {
+			do {
+				to = this.toHostRange != null ? drawHostAddress(this.toHostRange):
+					drawHostAddress(this.hostRange);
+			} while (from==to);			
+		}
+		return to;
+	}
 }
