@@ -55,7 +55,8 @@ public class EWMAProperty{
 	
 	/**
 	 * Method that aggregates the secondaryValue to the mainValue using an EWMA.
-	 * @param mainValue The value with most weight.
+	 * @param mainValue The value with most weight. It is applied the 
+	 * multiplying factor of (1-alpha).
 	 * @param secondaryValue the value to be aggregated to the mainValue
 	 * @param alpha the alpha to use for the EWMA aggregation.
 	 * @return The result of applying the formula:
