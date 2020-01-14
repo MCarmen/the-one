@@ -363,6 +363,17 @@ public abstract class MessageRouter {
 	protected DTNHost getHost() {
 		return this.host;
 	}
+	
+	/**
+	 * Method that checks whether this router is associated with the host passed 
+	 * as a parameter.
+	 * @param withHost the host to be compared with.
+	 * @return An int different from 0 if the router is not associated with the 
+	 * host passed as a parameter.
+	 */
+	public int relatedWithThisHost(DTNHost withHost) {
+		return this.host.compareTo(withHost);
+	}
 
 	/**
 	 * Start sending a message to another host.
