@@ -157,14 +157,16 @@ public class EWMAEngine extends DirectiveEngine {
 //
 //		return adjusted;
 //	}
-
+	
 	@Override
 	public void addMetric(ControlMessage metric) {
 		CongestionMetricPerWT nextCongestionReading;
 		double congestionMetricAvg;
 		double congestionMetricMeanDeviationAvg = 0;
 		
-		this.receivedCtrlMsgInDirectiveCycle = true;
+		if(!this.isASelfGeneratedCtrlMsg(metric)) {
+			this.receivedCtrlMsgInDirectiveCycle = true;
+		}
 		if ( metric.containsProperty​(MetricCode.DROPS_CODE.toString())) {
 			nextCongestionReading = (CongestionMetricPerWT)metric.getProperty(MetricCode.DROPS_CODE.toString());
 			//congestionMetricMeanDeviationAvg = this.sCongestionMeanDeviation.getValue();
@@ -179,13 +181,16 @@ public class EWMAEngine extends DirectiveEngine {
 	@Override
 	/**
 	 * When a directive from another controller is received it is aggregated using
-	 * an EWMA. it is never reset.
+	 * an EWMA. The EWMA moving average is never reset.
+	 * @param directive the directive to be aggregated.
 	 */
 	public void addDirective(ControlMessage directive) {
 		double nextNrofCopiesReading = 0;
 		double directiveAvg = 0;
 
-		this.receivedCtrlMsgInDirectiveCycle = true;
+		if(!this.isASelfGeneratedCtrlMsg(directive)) {
+			this.receivedCtrlMsgInDirectiveCycle = true;
+		}
 		if (directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 			nextNrofCopiesReading = (int) directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 			directiveAvg = this.sNrofMsgCopiesAverage.getValue();
@@ -237,7 +242,7 @@ public class EWMAEngine extends DirectiveEngine {
 				.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		DirectiveDetails currentDirectiveDetails = null;
 		
-		// if we have received metrics and no silence
+		// if we have received metrics and no silence from other nodes != from ourselves.
 		if (this.sCongestionAverage.isSet() && this.receivedCtrlMsgInDirectiveCycle) {
 			this.updateCongestionSate();
 			if (this.congestionState == CongestionState.NO_CONGESTION) {
