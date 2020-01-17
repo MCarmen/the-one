@@ -5,7 +5,7 @@ package core.control;
  *
  */
 public enum MetricCode{
-	DROPS_CODE("drops");
+	CONGESTION_CODE("congestion");
 	
 	/** Identifier of the metric */
 	private final String code;
