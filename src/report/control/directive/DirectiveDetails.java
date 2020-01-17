@@ -136,7 +136,7 @@ public class DirectiveDetails {
 			double currentCongestionAverage, double newCongestionAverage, 
 			double currentMeanDeviationAverage, double newMeanDeviationAverage) {
 		Properties metricProperties = new Properties();
-		CongestionMetricPerWT congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.DROPS_CODE.toString());
+		CongestionMetricPerWT congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE.toString());
 		double congestionSensed = congestionMetric.getCongestionMetric();
 		
 		metricProperties.put("id", metric.getId());
