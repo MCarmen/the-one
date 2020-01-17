@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -372,8 +373,11 @@ public abstract class MessageRouter {
 	 * host passed as a parameter.
 	 */
 	public int relatedWithThisHost(DTNHost withHost) {
+		int localAddr = this.host.getAddress(); //DEBUG !!!!!
+		int fromAddr = withHost.getAddress(); //DEBUG !!!!!
 		return this.host.compareTo(withHost);
 	}
+
 
 	/**
 	 * Start sending a message to another host.
@@ -565,14 +569,52 @@ public abstract class MessageRouter {
 	 * message, if false, nothing is informed.
 	 */
 	protected void addToMessages(Message m, boolean newMessage) {
-		this.messages.put(m.getId(), m);
-
-		if (newMessage) {
-			for (MessageListener ml : this.mListeners) {
-				ml.newMessage(m);
-			}
+		boolean addMsg = true;
+		if(m.isControlMsg()) {
+			addMsg = this.purgeOldQueuedMessage((ControlMessage)m);
+		}
+		
+		if(addMsg) {
+			this.messages.put(m.getId(), m);
+			if (newMessage) {
+				for (MessageListener ml : this.mListeners) {
+					ml.newMessage(m);
+				}
+			}	
 		}
 	}
+	
+	
+	/**
+	 * Method that purges from the buffer control messages older from the one 
+	 * passed as a parameter if they are of the same type 
+	 * (metric/directive) and they are from the same origin.
+	 * @param newMsg The control message to to be compared with
+	 * @return false either if there is no ctrl message of the same type from 
+	 * the same origin or if there is, but the one buffered is newer that the 
+	 * one passed as a parameter.  
+	 */
+	protected boolean purgeOldQueuedMessage(ControlMessage newMsg) {
+		Collection<Message> allMessages = this.messages.values();
+		boolean purged = false;
+		boolean msgFound = false;
+		boolean addMsg;
+		Iterator<Message> iterator = allMessages.iterator();
+		while((iterator.hasNext()) && !msgFound) {
+			Message m = iterator.next();
+			if (m.isControlMsg() && (m.getType() == newMsg.getType()) && 
+					m.getFrom().equals(newMsg.getFrom())) {
+				msgFound = true;
+				if (m.getCreationTime() <= newMsg.getCreationTime()) {
+					this.deleteMessage(m.getId(), false);
+					purged = true;
+				}
+			}			
+		}
+		
+		addMsg = (!msgFound) ? true : (!purged) ? false : true;
+		return addMsg;
+	}	
 
 	/**
 	 * Removes and returns a message from the message buffer.
@@ -629,40 +671,34 @@ public abstract class MessageRouter {
 	public boolean createNewMessage(Message m) {
 		boolean msgHasBeenCreated = false;
 
-		if (this.msgHasToBeCreated()) {			
-			if (m instanceof DirectiveMessage) {
-				DirectiveDetails directiveDetails;
-				directiveDetails = this.controller.fillMessageWithDirective(m);
-				// We add the directive to the deliveredMessages list so it will
-				// not be considered by the controller that generated it in case
-				// it receives it.
-				msgHasBeenCreated = (directiveDetails != null) ? true : false;
-				if (msgHasBeenCreated) {
-					this.deliveredMessages.put(m.getId(), m);
-				}
-				this.reportDirectiveCreated(directiveDetails);
-			} else if (m instanceof MetricMessage) {
-				if (this.isControlMsgGeneratedByMeAsAController((MetricMessage)m)) {
-					this.controller.addMetric((MetricMessage)m);
-				}else {
-					this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
-					msgHasBeenCreated = true;
-				}								
-				
-			}else {
-				msgHasBeenCreated = true;
-			}
-			if (msgHasBeenCreated) {
-				switch(m.getType()) {
-				case DIRECTIVE:
-					m.setTtl(this.directiveTtl);
+		if (this.msgHasToBeCreated()) {
+			switch(m.getType()) {
+				case DIRECTIVE: 
+					DirectiveDetails directiveDetails;
+					directiveDetails = this.controller.fillMessageWithDirective(m);
+					// We add the directive to the deliveredMessages list so it will
+					// not be considered by the controller that generated it in case
+					// it receives it.
+					msgHasBeenCreated = (directiveDetails != null) ? true : false;
+					if (msgHasBeenCreated) {
+						this.deliveredMessages.put(m.getId(), m);
+						this.reportDirectiveCreated(directiveDetails);
+					}
 					break;
 				case METRIC:
-					m.setTtl(this.metricTtl);
+					this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
+					if (this.isControlMsgGeneratedByMeAsAController((MetricMessage)m)) {
+						this.setMsgTTL(m);
+						this.controller.addMetric((MetricMessage)m);
+					}else {
+						msgHasBeenCreated = true;
+					}		
 					break;
-				default:
-					m.setTtl(this.msgTtl);	
-				}				
+				default: //Data Message
+					msgHasBeenCreated = true;
+			}
+			if (msgHasBeenCreated) {
+				this.setMsgTTL(m);	
 				addToMessages(m, true);
 			}
 		}
@@ -947,6 +983,23 @@ public abstract class MessageRouter {
     public RoutingPropertyMap getRoutingProperties() {
 		return this.routingProperties;
 	}
+    
+    /**
+     * Method that sets the TTL of the message depending on the msg type
+     * @param m the message whose TTL is about to be set.
+     */
+    private void setMsgTTL(Message m) {
+    	switch(m.getType()) {
+		case DIRECTIVE:
+			m.setTtl(this.directiveTtl);
+			break;
+		case METRIC:
+			m.setTtl(this.metricTtl);
+			break;
+		default:
+			m.setTtl(this.msgTtl);	
+		}				
+    }
 
     /**
      * Method that reports to all the DirectiveListeners about the creation
