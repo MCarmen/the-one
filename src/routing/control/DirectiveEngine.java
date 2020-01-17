@@ -1,5 +1,8 @@
 package routing.control;
 
+import java.util.HashMap;
+
+import core.Message;
 import core.Settings;
 import core.SimClock;
 import core.control.ControlMessage;
@@ -140,7 +143,19 @@ public abstract class DirectiveEngine {
 	 * Flag set to true if the engine has received a control message in  a
 	 * directive cycle. False otherwise. This flag is reset each directive cycle.
 	 */
-	protected boolean receivedCtrlMsgInDirectiveCycle;
+	protected boolean receivedCtrlMsgInDirectiveCycle = false;
+	
+	/** 
+	 * Dictionary indexed by the id of the host that has generated the message (key).
+	 * This table contains the metrics received during a control cycle.  
+	 */
+	HashMap<Integer, ControlMessage> ctrlCycleMetricHistory = new HashMap<>();
+	
+	/** 
+	 * Dictionary indexed by the id of the host that has generated the message (key).
+	 * This table contains the directives received during a control cycle.  
+	 */
+	HashMap<Integer, ControlMessage> ctrlCycleDirectiveHistory = new HashMap<>();
 	
 	/**
 	 * Initializes the property settings.
@@ -179,10 +194,12 @@ public abstract class DirectiveEngine {
 	
 	/**
 	 * Method that resets all the settings that have information related to a 
-	 * directive cycle. This method might be override by subclasses.
+	 * directive cycle. This method might be overriden by subclasses.
 	 */
 	protected void resetDirectiveCycleSettings() {
 		this.receivedCtrlMsgInDirectiveCycle = false;
+		this.ctrlCycleDirectiveHistory.clear();
+		this.ctrlCycleMetricHistory.clear();
 	}
 		
 	/**
@@ -222,7 +239,9 @@ public abstract class DirectiveEngine {
 	 * It returns false otherwise.
 	 */
 	protected boolean isASelfGeneratedCtrlMsg(ControlMessage ctrlMsg) {
-		return (this.router.relatedWithThisHost(ctrlMsg.getFrom()) == 0);
+		boolean haveIGeneratedThisMsg = (this.router.relatedWithThisHost(ctrlMsg.getFrom()) == 0); //DEBUG
+		//return (this.router.relatedWithThisHost(ctrlMsg.getFrom()) == 0);
+		return haveIGeneratedThisMsg;
 	}
 			
 }
