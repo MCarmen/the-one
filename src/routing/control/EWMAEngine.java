@@ -1,5 +1,9 @@
 package routing.control;
 
+import java.util.Collection;
+import java.util.HashMap;
+
+import core.Message;
 import core.Settings;
 import core.SimClock;
 import core.control.ControlMessage;
@@ -158,24 +162,43 @@ public class EWMAEngine extends DirectiveEngine {
 //		return adjusted;
 //	}
 	
+	/**
+	 * Generic method that first checks whether the ctrlMessage contains a  
+	 * field with the messageCode. If so, it checks if ctrlCycleControlHistory
+	 * contains an entry with the same host address as the ctrlMessage.from property. 
+	 * In that case, if ctrlMessage is older than the one already indexed, 
+	 * ctrlMessage is not added to the history. If the history does not have 
+	 * any entry ctrlMessage.from, ctrlMessage is added.
+	 * @param ctrlMessage the message to be added to the history.
+	 * @param ctrlCycleControlHistory the history dictionary.
+	 * @param messageCode the control message code field.
+	 */
+	//MetricCode.CONGESTION_CODE.toString()
+	public void addCtrlMsg(ControlMessage ctrlMessage, 
+			HashMap<Integer, ControlMessage> ctrlCycleControlHistory, 
+			String messageCode) {
+		boolean putMetric = true;
+		
+		if ( ctrlMessage.containsProperty​(messageCode)) {
+			if(!this.isASelfGeneratedCtrlMsg(ctrlMessage)) {
+				this.receivedCtrlMsgInDirectiveCycle = true;
+			}			
+			if (ctrlCycleControlHistory.containsKey(ctrlMessage.getFrom().getAddress())){
+				ControlMessage indexedCtrlMessage = ctrlCycleControlHistory.get(ctrlMessage.getFrom().getAddress());
+				if (indexedCtrlMessage.getCreationTime() >= ctrlMessage.getCreationTime()) {
+					putMetric = false;
+				}
+			}
+			if(putMetric) {
+				ctrlCycleControlHistory.put(ctrlMessage.getFrom().getAddress(), ctrlMessage);
+			}			
+		}	
+		
+	}
+	
 	@Override
 	public void addMetric(ControlMessage metric) {
-		CongestionMetricPerWT nextCongestionReading;
-		double congestionMetricAvg;
-		double congestionMetricMeanDeviationAvg = 0;
-		
-		if(!this.isASelfGeneratedCtrlMsg(metric)) {
-			this.receivedCtrlMsgInDirectiveCycle = true;
-		}
-		if ( metric.containsProperty​(MetricCode.DROPS_CODE.toString())) {
-			nextCongestionReading = (CongestionMetricPerWT)metric.getProperty(MetricCode.DROPS_CODE.toString());
-			//congestionMetricMeanDeviationAvg = this.sCongestionMeanDeviation.getValue();
-			//this.sCongestionMeanDeviation.aggregateValue(nextCongestionReading.getCongestionMetric(), this.sCongestionAverage);
-			congestionMetricAvg = this.sCongestionAverage.getValue();
-			this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionMetric());
-			this.directiveDetails.addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue(), 
-					congestionMetricMeanDeviationAvg, this.sCongestionMeanDeviation.getValue());
-		}
+		this.addCtrlMsg(metric, this.ctrlCycleMetricHistory, MetricCode.CONGESTION_CODE.toString());		
 	}
 
 	@Override
@@ -185,20 +208,45 @@ public class EWMAEngine extends DirectiveEngine {
 	 * @param directive the directive to be aggregated.
 	 */
 	public void addDirective(ControlMessage directive) {
+		this.addCtrlMsg(directive, this.ctrlCycleDirectiveHistory, DirectiveCode.NROF_COPIES_CODE.toString());		
+	}
+	
+	/**
+	 * Method that goes over the the ctrlCycleMetricHistory aggregating through
+	 * an EWMA each entry into the property "sCongestionAverage".
+	 */
+	private void resumeCtrlCycleMetricHistory() {
+		Collection<ControlMessage> metricHistory = this.ctrlCycleMetricHistory.values();
+		CongestionMetricPerWT nextCongestionReading;
+		double congestionMetricAvg;
+		double congestionMetricMeanDeviationAvg = 0;
+		
+		for(Message msg : metricHistory) {
+			MetricMessage metric = (MetricMessage)msg;
+			nextCongestionReading = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE.toString());
+			congestionMetricAvg = this.sCongestionAverage.getValue();
+			this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionMetric());
+			this.directiveDetails.addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue(), 
+					congestionMetricMeanDeviationAvg, this.sCongestionMeanDeviation.getValue());	
+		}		
+	}
+	
+	/**
+	 * Method that goes over the the ctrlCycleDirectiveHistory aggregating through
+	 * an EWMA each entry into the property "sNrofMsgCopiesAverage".
+	 */
+	private void resumeCtrlCycleDirectiveHistory() {
+		Collection<ControlMessage> directiveHistory = this.ctrlCycleDirectiveHistory.values();		
 		double nextNrofCopiesReading = 0;
 		double directiveAvg = 0;
-
-		if(!this.isASelfGeneratedCtrlMsg(directive)) {
-			this.receivedCtrlMsgInDirectiveCycle = true;
-		}
-		if (directive.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
+		
+		for(Message msg : directiveHistory) {
+			DirectiveMessage directive = (DirectiveMessage)msg; 
 			nextNrofCopiesReading = (int) directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 			directiveAvg = this.sNrofMsgCopiesAverage.getValue();
-			// this.sDirectivesMeanDeviation.aggregateValue(nextNrofCopiesReading,
-			// this.sNrofMsgCopiesAverage);
 			this.sNrofMsgCopiesAverage.aggregateValue(nextNrofCopiesReading);
+			this.directiveDetails.addDirectiveUsed(directive, directiveAvg, nextNrofCopiesReading);
 		}
-		this.directiveDetails.addDirectiveUsed(directive, directiveAvg, nextNrofCopiesReading);
 	}
 	
 	/**
@@ -241,6 +289,9 @@ public class EWMAEngine extends DirectiveEngine {
 		double newNrofCopies = this.router.getRoutingProperties()
 				.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		DirectiveDetails currentDirectiveDetails = null;
+		
+		this.resumeCtrlCycleMetricHistory();
+		this.resumeCtrlCycleDirectiveHistory();
 		
 		// if we have received metrics and no silence from other nodes != from ourselves.
 		if (this.sCongestionAverage.isSet() && this.receivedCtrlMsgInDirectiveCycle) {
