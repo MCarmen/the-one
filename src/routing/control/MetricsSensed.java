@@ -101,7 +101,7 @@ public class MetricsSensed {
 		double occupancy = ((this.bufferSize - bufferFreeSpace) + this.bytesDroppedPerWT)/this.bufferSize;
 		this.congestionMetricPerWT = 
 				new BufferOccupancyPerWT(occupancy, SimClock.getTime() - this.sensingWindowTime);
-		message.addProperty(MetricCode.DROPS_CODE.toString(), this.congestionMetricPerWT);
+		message.addProperty(MetricCode.CONGESTION_CODE.toString(), this.congestionMetricPerWT);
 		this.history.add(this.congestionMetricPerWT);
 		
 		this.reset();
