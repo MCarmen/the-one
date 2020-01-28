@@ -118,15 +118,12 @@ public class Controller {
     
     /**
      * Method that injects a metric into the directiveEngine to be considered 
-     * when generating the next directive. Metrics generated during the 
-     * warmup period are ignored.
+     * when generating the next directive. 
      * @param message the message containing metrics.
      */
-    public void addMetric(ControlMessage message) {
-    	if(!this.isWarmup()) {
-    		this.directiveEngine.addMetric(message);
-    	}
-    }
+	public void addMetric(ControlMessage message) {
+		this.directiveEngine.addMetric(message);
+	}
         	
     /**
      * Method that injects a directive into the directiveEngine to be considered 
@@ -152,10 +149,8 @@ public class Controller {
 	 * directive details. It returns Null if the directive has not been generated.  
 	 */
 	public DirectiveDetails fillMessageWithDirective(Message message) {
-		double currentTime = SimClock.getTime(); //DEBUG
-		DirectiveDetails directiveDetails = (!this.isWarmup()) ?
-				this.directiveEngine.generateDirective((ControlMessage)message) :
-				null;
+		DirectiveDetails directiveDetails = this.directiveEngine.generateDirective((ControlMessage)message);
+
 		return directiveDetails;
     }
 	
@@ -163,7 +158,7 @@ public class Controller {
 	 * Returns true if the warm up period is still ongoing (simTime < warmup)
 	 * @return true if the warm up period is still ongoing, false if not
 	 */
-	protected boolean isWarmup() {
+	public boolean isWarmup() {
 		return this.warmupTime > SimClock.getTime();
 	}
 
