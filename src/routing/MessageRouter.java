@@ -671,16 +671,16 @@ public abstract class MessageRouter {
 	public boolean createNewMessage(Message m) {
 		boolean msgHasBeenCreated = false;
 
-		if (this.msgHasToBeCreated()) {
+		if (this.msgHasToBeCreated(m)) {
 			switch(m.getType()) {
 				case DIRECTIVE: 
 					DirectiveDetails directiveDetails;
 					directiveDetails = this.controller.fillMessageWithDirective(m);
-					// We add the directive to the deliveredMessages list so it will
-					// not be considered by the controller that generated it in case
-					// it receives it.
 					msgHasBeenCreated = (directiveDetails != null) ? true : false;
 					if (msgHasBeenCreated) {
+						// We add the directive to the deliveredMessages list so it will
+						// not be considered by the controller that generated it in case
+						// it receives it.						
 						this.deliveredMessages.put(m.getId(), m);
 						this.reportDirectiveCreated(directiveDetails);
 					}
@@ -1034,10 +1034,14 @@ public abstract class MessageRouter {
      * Method that checks if the setting simTimeStopRate is set. 
      * If so, calculates the current percentage of the simulation ran up to date.
      * If the percentage is >= than the setting simTimeStopRate, the method 
-     * returns false. Otherwise, the method returns true. 
-     * @return
+     * returns false. Otherwise, the method checks whether the msg is a control one.
+     * If so, it checks whether the control.warmup is set. If so no control msg is 
+     * generated previous to the warm up and therefore the method returns false.  
+     * Otherwise it returns true.
+     * @param m the message that has to be created. 
+     * @return true/false whether the message has to be created or not.
      */
-    protected boolean msgHasToBeCreated() {
+    protected boolean msgHasToBeCreated(Message m) {
     	boolean hasToBeCreated = true;
     	if (this.simTimeStopRate > 0) {
            SimScenario scen = SimScenario.getInstance();
@@ -1048,9 +1052,13 @@ public abstract class MessageRouter {
         	   hasToBeCreated = false;
            }
     	}
-    	
+    	if(hasToBeCreated && m.isControlMsg() && this.controller.isWarmup()) {
+    		hasToBeCreated = false;
+    	}
     	return hasToBeCreated;
     }
+    
+    
     
 	private static enum TransferredCode {
 		MESSAGE_DESTINATION_REACHED_CODE, 
