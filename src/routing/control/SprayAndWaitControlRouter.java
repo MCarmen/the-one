@@ -73,10 +73,10 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * Control messages are configured with one msg copy.
 	 */
 	public boolean createNewMessage(Message msg) {
+		boolean messageCreated = super.createNewMessage(msg);
 		int msgCountPropertyValue = (msg.isControlMsg()) ? 1 :
 				this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);						
 		msg.addProperty(MSG_COUNT_PROPERTY, msgCountPropertyValue);
-		boolean messageCreated = super.createNewMessage(msg);
 		return messageCreated;
 	}
 	
