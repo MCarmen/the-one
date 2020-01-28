@@ -69,7 +69,8 @@ public class DiscreteTwoFrequencyMessageEventGenerator extends MessageEventGener
 	 * the current generation rate. 
 	 * @return the time difference for the next message generation.
 	 */
-	protected int drawNextEventTimeDiff() {		
+	protected int drawNextEventTimeDiff() {	
+		this.updateCurrentGenerationRateMode();
 		int timeDiff = (this.currentMessageGenerationRateMode == MessageGenerationRateMode.HIGH_FREQ) ?
 				this.highFrequency : this.lowFrequency;
 		return timeDiff;
