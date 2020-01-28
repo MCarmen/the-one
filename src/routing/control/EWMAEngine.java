@@ -226,8 +226,7 @@ public class EWMAEngine extends DirectiveEngine {
 			nextCongestionReading = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE.toString());
 			congestionMetricAvg = this.sCongestionAverage.getValue();
 			this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionMetric());
-			this.directiveDetails.addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue(), 
-					congestionMetricMeanDeviationAvg, this.sCongestionMeanDeviation.getValue());	
+			this.directiveDetails.addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue());	
 		}		
 	}
 	
@@ -245,7 +244,8 @@ public class EWMAEngine extends DirectiveEngine {
 			nextNrofCopiesReading = (int) directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 			directiveAvg = this.sNrofMsgCopiesAverage.getValue();
 			this.sNrofMsgCopiesAverage.aggregateValue(nextNrofCopiesReading);
-			this.directiveDetails.addDirectiveUsed(directive, directiveAvg, nextNrofCopiesReading);
+			this.directiveDetails.addDirectiveUsed(
+					directive, directiveAvg, nextNrofCopiesReading,this.sNrofMsgCopiesAverage.getValue());
 		}
 	}
 	
@@ -288,6 +288,7 @@ public class EWMAEngine extends DirectiveEngine {
 		double currentTime = SimClock.getTime(); //DEBUG
 		double newNrofCopies = this.router.getRoutingProperties()
 				.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
+		int lasCtrlCycleNrofCopies = (int)newNrofCopies;
 		DirectiveDetails currentDirectiveDetails = null;
 		
 		this.resumeCtrlCycleMetricHistory();
@@ -321,7 +322,7 @@ public class EWMAEngine extends DirectiveEngine {
 		this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
 			newNrofCopiesIntValue);
 			
-		this.directiveDetails.init(message, this.congestionState);
+		this.directiveDetails.init(message, lasCtrlCycleNrofCopies, this.congestionState);
 		currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
 
 		this.resetDirectiveCycleSettings();
