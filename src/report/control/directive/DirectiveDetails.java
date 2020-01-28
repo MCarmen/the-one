@@ -24,6 +24,10 @@ public class DirectiveDetails {
 		
 	/** Value of the field containing the number of copies.  */
 	private int newNrofCopies;
+
+	/** Value of the field containing the number of copies in the previous control
+	 * cycle.  */
+	private int lastCtrlCycleNrofCopies;
 	
 	/** List of the identifiers of the aggregated directives used to 
 	 * generate  this one.*/
@@ -35,8 +39,9 @@ public class DirectiveDetails {
 	/** When the directive was created */
 	private int creationTime;
 	
+	/** The congestion stata under which this directive was generated. */
 	private EWMAEngine.CongestionState congestionState;
-
+	
 	/**
 	 * Constructor that initializes the list of the ids of the directives used
 	 * to generate this directive.
@@ -54,6 +59,7 @@ public class DirectiveDetails {
 		this.directiveID = directiveDetails.getDirectiveID();
 		this.generatedByNode = directiveDetails.getGeneratedByNode();	
 		this.newNrofCopies = directiveDetails.getNewNrofCopies();
+		this.lastCtrlCycleNrofCopies = directiveDetails.getLastCtrlCycleNrofCopies();
 		this.directivesUsed = new ArrayList<>(directiveDetails.directivesUsed);
 		this.metricsUsed = new ArrayList<>(directiveDetails.metricsUsed);
 		this.creationTime = directiveDetails.getCreationTime();
@@ -80,20 +86,8 @@ public class DirectiveDetails {
 		return congestionState;
 	}
 	
-	
-	/** 
-	 * Method to be invoked when the directive has been created and therefore
-	 * the message has been set with the directive fields.
-	 * These fields are used to initialize this object.   
-	 * @param m the message filled with the directive fields.
-	 */	
-	public void init(Message m) {
-		this.directiveID = m.getId();
-		this.generatedByNode = m.getFrom().toString();
-		this.creationTime = (int)m.getCreationTime();
-		if (m.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-			this.newNrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
-		}		
+	public int getLastCtrlCycleNrofCopies() {
+		return lastCtrlCycleNrofCopies;
 	}
 	
 	/** 
@@ -101,21 +95,31 @@ public class DirectiveDetails {
 	 * the message has been set with the directive fields.
 	 * These fields are used to initialize this object.   
 	 * @param m the message filled with the directive fields.
-	 * @param congestionState the congestionState after generating the directive.
+	 * @param lastCtrlCycleNrofCopies the number of copies calculated in the 
+	 * previous control cycle. If this method is called in the first control 
+	 * cycle this parameter should be set to -1.
+	 * @param congestionState the congestionState after generating the directive. 
 	 */	
-	public void init(Message m, CongestionState congestionState) {
-		this.init(m);
+	public void init(Message m, int lastCtrlCycleNrofCopies, CongestionState congestionState) {
+		this.directiveID = m.getId();
+		this.generatedByNode = m.getFrom().toString();
+		this.creationTime = (int)m.getCreationTime();
+		if (m.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
+			this.newNrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
+		}
 		this.congestionState = congestionState;
-	}	
-			
+		this.lastCtrlCycleNrofCopies = lastCtrlCycleNrofCopies;
+	}
+					
 	public void addDirectiveUsed(ControlMessage directive, double currentAggregatedDirectivesAvg,
-			double directiveSensed) {
+			double directiveSensed, double newDirecivesAvg) {
 		Properties directiveProperties = new Properties();
 		
 		directiveProperties.put("id", directive.getId());
 		directiveProperties.put("from", directive.getFrom());
-		directiveProperties.put("dirS", directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString()));
-		directiveProperties.put("dirAvg", currentAggregatedDirectivesAvg);
+		directiveProperties.put("dirS", new DecimalFormat("#0.00").format(directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())));
+		directiveProperties.put("dirAvg", new DecimalFormat("#0.00").format(currentAggregatedDirectivesAvg));
+		directiveProperties.put("newDirAvg", new DecimalFormat("#0.00").format(newDirecivesAvg));
 		
 		this.directivesUsed.add(directiveProperties);
 	}
@@ -126,15 +130,11 @@ public class DirectiveDetails {
 	 * @param metric The received metric about to be aggregated
 	 * @param currentCongestionAverage The drops measurement aggregated until now.
 	 * @param newCongestionAverage The drops measurement after the metric passed as 
-	 * a parameter is aggregated.
-	 * @param currentMeanDeviationAverage the current meanDeviation of the measure.
-	 * @param newMeanDeviationAverage the new meanDeviation after aggregating the new 
-	 * deviation of the metric measure's to the mean. 
-	 *  
+	 * a parameter is aggregated.  
 	 */
 	public void addMetricUsed(ControlMessage metric,
-			double currentCongestionAverage, double newCongestionAverage, 
-			double currentMeanDeviationAverage, double newMeanDeviationAverage) {
+			double currentCongestionAverage, double newCongestionAverage 
+			) {
 		Properties metricProperties = new Properties();
 		CongestionMetricPerWT congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE.toString());
 		double congestionSensed = congestionMetric.getCongestionMetric();
@@ -143,8 +143,7 @@ public class DirectiveDetails {
 		metricProperties.put("from", metric.getFrom());
 		metricProperties.put("CongS", new DecimalFormat("#0.00").format(congestionSensed));
 		metricProperties.put("CongAvg" , new DecimalFormat("#0.00").format(currentCongestionAverage));
-		//metricProperties.put("DrpMeanDeviationAvg", new DecimalFormat("#0.00").format(currentMeanDeviationAverage));
-		//metricProperties.put("NDrpMeanDeviationAvg", new DecimalFormat("#0.00").format(newMeanDeviationAverage));
+		metricProperties.put("NewCongAvg" , new DecimalFormat("#0.00").format(newCongestionAverage));
 		
 		this.metricsUsed.add(metricProperties);
 	}
@@ -159,8 +158,8 @@ public class DirectiveDetails {
 	}
 	
 	public String toString() {
-		return String.format("%s %s %d %d %s %s %s", this.directiveID, 
-				this.generatedByNode, this.newNrofCopies, this.creationTime, 
-				this.directivesUsed, this.metricsUsed, this.congestionState);
+		return String.format("%s %s %d %d %d %s %s %s", this.directiveID, 
+				this.generatedByNode, this.newNrofCopies, this.lastCtrlCycleNrofCopies, 
+				this.creationTime, this.directivesUsed, this.metricsUsed, this.congestionState);
 	}
 }
