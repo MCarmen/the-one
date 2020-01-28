@@ -89,7 +89,7 @@ public class MessageDetailedReport extends Report implements MessageListener{
 	 * was successfully transferred. 
 	 * @param id Id of the transferred message
 	 * @param from Host the message was from (previous hop)
-	 * @param to the thost this message has been transferred to
+	 * @param to the host this message has been transferred to
 	 * @param isFirstDelivery if the 'to' host is the final destination of the 
 	 * message and it is the first time the 'to' host has received the message.
 	 */
