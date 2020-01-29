@@ -1052,7 +1052,7 @@ public abstract class MessageRouter {
         	   hasToBeCreated = false;
            }
     	}
-    	if(hasToBeCreated && m.isControlMsg() && this.controller.isWarmup()) {
+    	if(hasToBeCreated && m.isControlMsg() && this.amIController && this.controller.isWarmup()) {
     		hasToBeCreated = false;
     	}
     	return hasToBeCreated;
