@@ -146,9 +146,6 @@ public abstract class MessageRouter {
 	protected MetricsSensed metricsSensed;
 	/** Map to be filled by the specific routers with specific routing information*/
 	protected RoutingPropertyMap routingProperties;
-	/** Percentage of already simulated time from which we are not creating 
-	 * new messages. */
-	protected double simTimeStopRate = -1;
 	/**Flag indicating whether the router is a controller*/
 	private boolean amIController = false;
 	/**Flag indicating whether the system is a controlled one.*/
@@ -196,9 +193,6 @@ public abstract class MessageRouter {
 		else {
 			sendQueueMode = Q_MODE_RANDOM;
 		}
-		if (s.contains(MessageRouter.SIM_TIME_STOP_RATE)) {
-			this.simTimeStopRate = s.getDouble(MessageRouter.SIM_TIME_STOP_RATE);
-		}
 		this.setUpControl(s);
 	}
 
@@ -232,7 +226,6 @@ public abstract class MessageRouter {
 		this.bufferSize = r.bufferSize;
 		this.msgTtl = r.msgTtl;
 		this.sendQueueMode = r.sendQueueMode;
-		this.simTimeStopRate = r.simTimeStopRate;
 
 		this.applications = new HashMap<String, Collection<Application>>();
 		for (Collection<Application> apps : r.applications.values()) {
@@ -671,36 +664,34 @@ public abstract class MessageRouter {
 	public boolean createNewMessage(Message m) {
 		boolean msgHasBeenCreated = false;
 
-		if (this.msgHasToBeCreated(m)) {
-			switch(m.getType()) {
-				case DIRECTIVE: 
-					DirectiveDetails directiveDetails;
-					directiveDetails = this.controller.fillMessageWithDirective(m);
-					msgHasBeenCreated = (directiveDetails != null) ? true : false;
-					if (msgHasBeenCreated) {
-						// We add the directive to the deliveredMessages list so it will
-						// not be considered by the controller that generated it in case
-						// it receives it.						
-						this.deliveredMessages.put(m.getId(), m);
-						this.reportDirectiveCreated(directiveDetails);
-					}
-					break;
-				case METRIC:
-					this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
-					if (this.isControlMsgGeneratedByMeAsAController((MetricMessage)m)) {
-						this.setMsgTTL(m);
-						this.controller.addMetric((MetricMessage)m);
-					}else {
-						msgHasBeenCreated = true;
-					}		
-					break;
-				default: //Data Message
-					msgHasBeenCreated = true;
-			}
+		switch (m.getType()) {
+		case DIRECTIVE:
+			DirectiveDetails directiveDetails;
+			directiveDetails = this.controller.fillMessageWithDirective(m);
+			msgHasBeenCreated = (directiveDetails != null) ? true : false;
 			if (msgHasBeenCreated) {
-				this.setMsgTTL(m);	
-				addToMessages(m, true);
+				// We add the directive to the deliveredMessages list so it will
+				// not be considered by the controller that generated it in case
+				// it receives it.
+				this.deliveredMessages.put(m.getId(), m);
+				this.reportDirectiveCreated(directiveDetails);
 			}
+			break;
+		case METRIC:
+			this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
+			if (this.isControlMsgGeneratedByMeAsAController((MetricMessage) m)) {
+				this.setMsgTTL(m);
+				this.controller.addMetric((MetricMessage) m);
+			} else {
+				msgHasBeenCreated = true;
+			}
+			break;
+		default: // Data Message
+			msgHasBeenCreated = true;
+		}
+		if (msgHasBeenCreated) {
+			this.setMsgTTL(m);
+			addToMessages(m, true);
 		}
 
 		return msgHasBeenCreated;
@@ -1029,35 +1020,7 @@ public abstract class MessageRouter {
 			}
 		}
     }
-    
-    /**
-     * Method that checks if the setting simTimeStopRate is set. 
-     * If so, calculates the current percentage of the simulation ran up to date.
-     * If the percentage is >= than the setting simTimeStopRate, the method 
-     * returns false. Otherwise, the method checks whether the msg is a control one.
-     * If so, it checks whether the control.warmup is set. If so no control msg is 
-     * generated previous to the warm up and therefore the method returns false.  
-     * Otherwise it returns true.
-     * @param m the message that has to be created. 
-     * @return true/false whether the message has to be created or not.
-     */
-    protected boolean msgHasToBeCreated(Message m) {
-    	boolean hasToBeCreated = true;
-    	if (this.simTimeStopRate > 0) {
-           SimScenario scen = SimScenario.getInstance();
-           double simTime = SimClock.getTime();
-           double endTime = scen.getEndTime();           
-           double prop = simTime / endTime;
-           if(prop > this.simTimeStopRate) {
-        	   hasToBeCreated = false;
-           }
-    	}
-    	if(hasToBeCreated && m.isControlMsg() && this.amIController && this.controller.isWarmup()) {
-    		hasToBeCreated = false;
-    	}
-    	return hasToBeCreated;
-    }
-    
+        
     
     
 	private static enum TransferredCode {
