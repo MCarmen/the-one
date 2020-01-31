@@ -13,15 +13,25 @@ import core.Settings;
  * @author Frans Ekman
  */
 public class RandomWalk extends MovementModel implements SwitchableMovement {
-
+	/** node's walk distance CSV (min, max) -setting id ({@value})*/
+	private static final String DISTANCE_S = "distance";
+	/** default setting for distance distribution in meters*/
+	private static final double[] DEF_DISTANCE = {0,50};
+	/** Distance distribution array containing the minDistance and the maxDistance in meters*/
+	private double[] distance = DEF_DISTANCE;
 	private Coord lastWaypoint;
 	private double minDistance;
 	private double maxDistance;
 
 	public RandomWalk(Settings settings) {
 		super(settings);
-		minDistance = 0;
-		maxDistance = 50;
+		
+		if(settings.contains(DISTANCE_S)){
+			this.distance = settings.getCsvDoubles(DISTANCE_S);
+		}
+		
+		minDistance = this.distance[0];
+		maxDistance = this.distance[1];
 	}
 
 	private RandomWalk(RandomWalk rwp) {
