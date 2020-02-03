@@ -13,6 +13,7 @@ import core.control.MetricCode;
 import routing.control.EWMAEngine;
 import routing.control.EWMAEngine.CongestionState;
 import routing.control.metric.CongestionMetricPerWT;
+import routing.control.util.EWMAProperty;
 
 public class DirectiveDetails {
 	
@@ -39,8 +40,14 @@ public class DirectiveDetails {
 	/** When the directive was created */
 	private int creationTime;
 	
-	/** The congestion stata under which this directive was generated. */
+	/** The congestion state under which this directive was generated. */
 	private EWMAEngine.CongestionState congestionState;
+	
+	/** Accumulated soften nrofMsgCopies average from the received directives. */
+	private double nrofMsgCopiesAverage;
+	
+	/** Accumulated soften congestion average  */
+	private double congestionAverage; 
 	
 	/**
 	 * Constructor that initializes the list of the ids of the directives used
@@ -63,6 +70,8 @@ public class DirectiveDetails {
 		this.directivesUsed = new ArrayList<>(directiveDetails.directivesUsed);
 		this.metricsUsed = new ArrayList<>(directiveDetails.metricsUsed);
 		this.creationTime = directiveDetails.getCreationTime();
+		this.congestionAverage = directiveDetails.congestionAverage;
+		this.nrofMsgCopiesAverage = directiveDetails.nrofMsgCopiesAverage;
 		this.congestionState = directiveDetails.getCongestionState();
 	}
 	
@@ -100,13 +109,16 @@ public class DirectiveDetails {
 	 * cycle this parameter should be set to -1.
 	 * @param congestionState the congestionState after generating the directive. 
 	 */	
-	public void init(Message m, int lastCtrlCycleNrofCopies, CongestionState congestionState) {
+	public void init(Message m, int lastCtrlCycleNrofCopies, 
+		double congestionAverage,  double nrofMsgCopiesAverage, CongestionState congestionState) {
 		this.directiveID = m.getId();
 		this.generatedByNode = m.getFrom().toString();
 		this.creationTime = (int)m.getCreationTime();
 		if (m.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 			this.newNrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
 		}
+		this.congestionAverage = congestionAverage;
+		this.nrofMsgCopiesAverage = nrofMsgCopiesAverage;
 		this.congestionState = congestionState;
 		this.lastCtrlCycleNrofCopies = lastCtrlCycleNrofCopies;
 	}
@@ -158,8 +170,9 @@ public class DirectiveDetails {
 	}
 	
 	public String toString() {
-		return String.format("%s %s %d %d %d %s %s %s", this.directiveID, 
-				this.generatedByNode, this.newNrofCopies, this.lastCtrlCycleNrofCopies, 
-				this.creationTime, this.directivesUsed, this.metricsUsed, this.congestionState);
+		return String.format("%s %d %s %d %d %.2f %.2f %s %s %s", this.directiveID, this.creationTime, 
+				this.generatedByNode, this.lastCtrlCycleNrofCopies, this.newNrofCopies,  
+				this.congestionAverage, this.nrofMsgCopiesAverage,
+				this.directivesUsed, this.metricsUsed, this.congestionState);
 	}
 }
