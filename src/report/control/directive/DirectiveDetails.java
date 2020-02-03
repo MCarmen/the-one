@@ -8,12 +8,10 @@ import java.util.Properties;
 import core.Message;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
-import core.control.DirectiveMessage;
 import core.control.MetricCode;
 import routing.control.EWMAEngine;
 import routing.control.EWMAEngine.CongestionState;
 import routing.control.metric.CongestionMetricPerWT;
-import routing.control.util.EWMAProperty;
 
 public class DirectiveDetails {
 	
@@ -172,7 +170,7 @@ public class DirectiveDetails {
 	public String toString() {
 		return String.format("%s %d %s %d %d %.2f %.2f %s %s %s", this.directiveID, this.creationTime, 
 				this.generatedByNode, this.lastCtrlCycleNrofCopies, this.newNrofCopies,  
-				this.congestionAverage, this.nrofMsgCopiesAverage,
-				this.directivesUsed, this.metricsUsed, this.congestionState);
+				this.congestionAverage, this.nrofMsgCopiesAverage, this.congestionState, 
+				this.directivesUsed, this.metricsUsed);
 	}
 }
