@@ -14,8 +14,7 @@ import core.control.MetricMessage;
 import report.control.directive.DirectiveDetails;
 import routing.MessageRouter;
 import routing.control.metric.CongestionMetricPerWT;
-import routing.control.util.EWMAProperty;
-import routing.control.util.MeanDeviationEWMAProperty;;
+import routing.control.util.EWMAProperty;;
 
 
 
@@ -80,21 +79,7 @@ public class EWMAEngine extends DirectiveEngine {
 	 */	
 	private double nrofCopiesAlpha;	
 		
-		
-	/** The aggregated drops after the last metric was generated */
-	//private double lastSCongestionAvg = -1;
-	
-	/**
-	 * Support class to calculate the mean deviation of the measured drops during 
-	 * all the simulation.
-	 */
-	private MeanDeviationEWMAProperty sCongestionMeanDeviation; 
-	
-	/**
-	 * Support class to calculate the mean deviation of the received directives during 
-	 * all the simulation.
-	 */
-	private MeanDeviationEWMAProperty sDirectivesMeanDeviation;
+
 	
 	/**
 	 * State of congestion of the network.
@@ -125,8 +110,6 @@ public class EWMAEngine extends DirectiveEngine {
 		
 		this.sCongestionAverage = new EWMAProperty(this.congestionAlpha);
 		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);	
-		this.sCongestionMeanDeviation = new MeanDeviationEWMAProperty(this.meanDeviationFactor);
-		this.sDirectivesMeanDeviation = new MeanDeviationEWMAProperty(this.meanDeviationFactor);
 	}
 	
 	@Override
@@ -219,7 +202,6 @@ public class EWMAEngine extends DirectiveEngine {
 		Collection<ControlMessage> metricHistory = this.ctrlCycleMetricHistory.values();
 		CongestionMetricPerWT nextCongestionReading;
 		double congestionMetricAvg;
-		double congestionMetricMeanDeviationAvg = 0;
 		
 		for(Message msg : metricHistory) {
 			MetricMessage metric = (MetricMessage)msg;
@@ -322,7 +304,8 @@ public class EWMAEngine extends DirectiveEngine {
 		this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
 			newNrofCopiesIntValue);
 			
-		this.directiveDetails.init(message, lasCtrlCycleNrofCopies, this.congestionState);
+		this.directiveDetails.init(message, lasCtrlCycleNrofCopies, this.sCongestionAverage.getValue(),
+				this.sNrofMsgCopiesAverage.getValue(), this.congestionState);
 		currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
 
 		this.resetDirectiveCycleSettings();
