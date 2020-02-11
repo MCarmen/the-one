@@ -120,6 +120,7 @@ public class Settings {
 					" first value should be smaller or equal to second value");
 		}
 	}
+	
 
 	/**
 	 * Makes sure that the given settings value is positive
