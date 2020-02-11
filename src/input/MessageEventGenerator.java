@@ -4,10 +4,12 @@
  */
 package input;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import core.Settings;
 import core.SettingsError;
+import util.Range;
 
 /**
  * Message creation -external events generator. Creates uniformly distributed
@@ -47,10 +49,15 @@ public class MessageEventGenerator implements EventQueue {
 
 	/** Time of the next event (simulated seconds) */
 	protected double nextEventsTime = 0;
-	/** Range of host addresses that can be senders or receivers */
-	protected int[] hostRange = {0, 0};
+	/** 
+	 * Range of host addresses that can be senders or receivers. The format 
+	 * could be: 1, 3-5, 8-10 or 0-3. The values we get from the rang are: 
+	 * [min max): form min to max-1.  
+	 */
+	protected Range[] hostRange = null;
 	/** Range of host addresses that can be receivers */
-	protected int[] toHostRange = null;
+
+	protected Range[] toHostRange = null;
 	/** Next identifier for a message */
 	private int id = 0;
 	/** Prefix for the messages */
@@ -74,7 +81,7 @@ public class MessageEventGenerator implements EventQueue {
 	public MessageEventGenerator(Settings s){
 		this.sizeRange = s.getCsvInts(MESSAGE_SIZE_S);
 		this.msgInterval = s.getCsvInts(MESSAGE_INTERVAL_S);
-		this.hostRange = s.getCsvInts(HOST_RANGE_S, 2);
+		this.hostRange = s.getCsvRanges(HOST_RANGE_S);
 		this.idPrefix = s.getSetting(MESSAGE_ID_PREFIX_S);
 
 		if (s.contains(MESSAGE_TIME_S)) {
@@ -84,7 +91,7 @@ public class MessageEventGenerator implements EventQueue {
 			this.msgTime = null;
 		}
 		if (s.contains(TO_HOST_RANGE_S)) {
-			this.toHostRange = s.getCsvInts(TO_HOST_RANGE_S, 2);
+			this.toHostRange = s.getCsvRanges(TO_HOST_RANGE_S);
 		}
 		else {
 			this.toHostRange = null;
@@ -107,41 +114,61 @@ public class MessageEventGenerator implements EventQueue {
 		else {
 			s.assertValidRange(this.msgInterval, MESSAGE_INTERVAL_S);
 		}
-		s.assertValidRange(this.hostRange, HOST_RANGE_S);
-
-		if (this.hostRange[1] - this.hostRange[0] < 2) {
-			if (this.toHostRange == null) {
-				throw new SettingsError("Host range must contain at least two "
-						+ "nodes unless toHostRange is defined");
-			}
-			else if (toHostRange[0] == this.hostRange[0] &&
-					toHostRange[1] == this.hostRange[1]) {
-				// XXX: teemuk: Since (X,X) == (X,X+1) in drawHostAddress()
-				// there's still a boundary condition that can cause an
-				// infinite loop.
-				throw new SettingsError("If to and from host ranges contain" +
-						" only one host, they can't be the equal");
+		
+		if (this.hostRange.length == 1) {
+			// The values we get from the range are: [min, max)
+			if (this.hostRange[0].getMax() - this.hostRange[0].getMin() < 2) {
+				if (this.toHostRange == null) {// toHostRange = hostRange
+					throw new SettingsError(
+							"Host range must contain at least two " + "nodes unless toHostRange is defined");
+				}else if ( (this.toHostRange.length == 1) && 
+					(toHostRange[0].getMin() == this.hostRange[0].getMin() && toHostRange[0].getMax() == this.hostRange[0].getMax()) ){
+					throw new SettingsError(
+							"If to and from host ranges contain" + " only one host, they can't be the equal");					
+				}
 			}
 		}
-
+	
 		/* calculate the first event's time */
 		this.nextEventsTime = (this.msgTime != null ? this.msgTime[0] : 0)
 			+ msgInterval[0] +
 			(msgInterval[0] == msgInterval[1] ? 0 :
 			rng.nextInt(msgInterval[1] - msgInterval[0]));
 	}
+	 
+	
 
+	/**
+	 * Method that returns in a plain array of int, all the addresses of the hosts
+	 * in all the ranges of hostRange.
+	 * 
+	 * @param hostRange
+	 * @return An array with the addresses of the hosts.
+	 */
+	protected final ArrayList<Integer> getAllHostsAddresses(Range[] hostRange) {
+		ArrayList<Integer> allHostsAddresses = new ArrayList<>();
+		for (Range aRange : hostRange) {
+			if (aRange.isOneElementRange()) {
+				allHostsAddresses.add((int)aRange.getMin());
+			} else {
+				for (int hostAddr = (int) aRange.getMin(); hostAddr < aRange.getMax(); hostAddr++) {
+					allHostsAddresses.add(hostAddr);
+				}
+			}
+		}
+		return allHostsAddresses;
+	}
 
 	/**
 	 * Draws a random host address from the configured address range
-	 * @param hostRange The range of hosts
+	 * 
+	 * @param hostRange An array of range of hosts. An example of the ranges could
+	 *                  be: 3, 6-19, 54-60
 	 * @return A random host address
 	 */
-	protected int drawHostAddress(int hostRange[]) {
-		if (hostRange[1] == hostRange[0]) {
-			return hostRange[0];
-		}
-		return hostRange[0] + rng.nextInt(hostRange[1] - hostRange[0]);
+	protected int drawHostAddress(Range[] hostRange) {
+		ArrayList<Integer> allHosts = this.getAllHostsAddresses(hostRange);
+		return allHosts.get(rng.nextInt(allHosts.size()-1));
 	}
 
 	/**
@@ -171,7 +198,7 @@ public class MessageEventGenerator implements EventQueue {
 	 * @param from the "from" address
 	 * @return a destination address from the range, but different from "from"
 	 */
-	protected int drawToAddress(int hostRange[], int from) {
+	protected int drawToAddress(Range[] hostRange, int from) {
 		int to;
 		do {
 			to = this.toHostRange != null ? drawHostAddress(this.toHostRange):
@@ -194,7 +221,7 @@ public class MessageEventGenerator implements EventQueue {
 
 		/* Get two *different* nodes randomly from the host ranges */
 		from = drawHostAddress(this.hostRange);
-		to = drawToAddress(hostRange, from);
+		to = drawToAddress(this.hostRange, from);
 
 		msgSize = drawMessageSize();
 		interval = drawNextEventTimeDiff();
