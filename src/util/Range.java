@@ -67,6 +67,23 @@ public class Range {
 	public boolean isInRange(double value) {
 		return (value >= min && value <= max);
 	}
+	
+	/**
+	 * Method that checks whether the min and the max values of the range is 
+	 * the same: [1,1]
+	 * @return true if the min==max else otherwise. 
+	 */
+	public boolean isOneElementRange() {
+		return (this.min == this.max);
+	}
+	
+	public double getMin() {
+		return min;
+	}
+	
+	public double getMax() {
+		return max;
+	}
 
 	@Override
 	public String toString() {
