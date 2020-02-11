@@ -9,6 +9,7 @@ import java.util.List;
 import core.Settings;
 import input.ExternalEvent;
 import input.MessageEventGenerator;
+import util.Range;
 
 /**
  * Super class of Metric and Directive Event Generators
@@ -45,15 +46,15 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 	 * from where to choose to be the event's to field.  
 	 * @see input.EventQueue#nextEvent()
 	 */
-	private List<ExternalEvent> nextEvents(int[] fromHostRange, int[] toHostRange) {
+	private List<ExternalEvent> nextEvents(Range[] fromHostRange, Range[] toHostRange) {
 		int responseSize = 0; /* zero stands for one way messages */
+		ArrayList<Integer> allFromHostsAddr = this.getAllHostsAddresses(fromHostRange);
 		int msgSize = drawMessageSize();
 		int interval = drawNextEventTimeDiff();
 
 		int to;
 		List<ExternalEvent> nextEvents = new ArrayList<ExternalEvent>();
-
-		for(int from = fromHostRange[0]; from < fromHostRange[1]; from++) {
+		for(Integer from : allFromHostsAddr) {			
 			/* Get two *different* nodes randomly from the toHostRange range */		
 			to = drawToAddress(toHostRange, from); 
 			nextEvents.add(this.getEvent(from, to, this.getID(), msgSize,
@@ -90,15 +91,12 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 	 * ctrl msg and himself is the destination. In this situation we need to 
 	 * allow the 'from' and 'to' variables have the same value.   
 	 */
-	protected int drawToAddress(int hostRange[], int from) {
+	protected int drawToAddress(Range[] hostRange, int from) {
 		int to;
-		if ((hostRange[1]-hostRange[0]) == 1) {
-			to = hostRange[0];
+		if ((hostRange.length == 1) && (hostRange[0].isOneElementRange())) {
+			to = (int)hostRange[0].getMin();
 		}else {
-			do {
-				to = this.toHostRange != null ? drawHostAddress(this.toHostRange):
-					drawHostAddress(this.hostRange);
-			} while (from==to);			
+			to = super.drawToAddress(hostRange, from);
 		}
 		return to;
 	}
