@@ -28,7 +28,7 @@ public class BroadcastMessageEventGenerator extends MessageEventGenerator {
 		from = drawHostAddress(this.hostRange);
 		/* Get whatever host from the toHost range, as it is not going to be 
 		 * used, as it is a broadcast message.*/
-		to = this.toHostRange[0];
+		to = this.drawToAddress(this.toHostRange, from);
 
 		msgSize = drawMessageSize();
 		interval = drawNextEventTimeDiff();
