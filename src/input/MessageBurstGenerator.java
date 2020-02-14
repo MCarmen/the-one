@@ -4,6 +4,8 @@
  */
 package input;
 
+import java.util.ArrayList;
+
 import core.Settings;
 
 /**
@@ -42,36 +44,26 @@ public class MessageBurstGenerator extends MessageEventGenerator {
 		int to;
 		boolean nextBurst = false;
 
-		from = this.hostRange[0] + nextFromOffset;
-		to = this.toHostRange[0] + nextToOffset;
+		ArrayList<Integer> allfromHostsAddresses = this.getAllHostsAddresses(this.hostRange);
+		ArrayList<Integer> allToHostsAddresses = this.getAllHostsAddresses(this.toHostRange);
+
+		from = allfromHostsAddresses.get(nextFromOffset);
+		to = allToHostsAddresses.get(nextToOffset);
 
 		if (to == from) { /* skip self */
-			to = this.toHostRange[0] + (++nextToOffset);
+			to = allToHostsAddresses.get(++nextToOffset);
 		}
 
 		msgSize = drawMessageSize();
-		MessageCreateEvent mce = new MessageCreateEvent(from, to, getID(),
-				msgSize, responseSize, this.nextEventsTime);
-
-		if (to < this.toHostRange[1] - 1) {
+		MessageCreateEvent mce = new MessageCreateEvent(from, to, getID(), msgSize, responseSize, this.nextEventsTime);
+		if (this.nextToOffset < allToHostsAddresses.size() - 1) {
 			this.nextToOffset++;
+		} else if (this.nextFromOffset < allfromHostsAddresses.size() - 1) {
+			this.nextFromOffset++;
+			this.nextToOffset = 0;
 		} else {
-			if (from < this.hostRange[1] - 1) {
-				this.nextFromOffset++;
-				this.nextToOffset = 0;
-			} else {
-				nextBurst = true;
-			}
-		}
-
-		if (this.hostRange[0] + nextFromOffset ==
-			this.toHostRange[0] + nextToOffset) {
-			/* to and from would be same for next event */
-			nextToOffset++;
-			if (nextToOffset >= toHostRange[1]) {
-				/* TODO: doesn't work correctly with non-aligned ranges */
-				nextBurst = true;
-			}
+			/* TODO: doesn't work correctly with non-aligned ranges */			
+			nextBurst = true;
 		}
 
 		if (nextBurst) {
