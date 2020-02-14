@@ -28,14 +28,15 @@ public class OneFromEachMessageGenerator extends MessageEventGenerator {
 	public OneFromEachMessageGenerator(Settings s) {
 		super(s);
 		this.fromIds = new ArrayList<Integer>();
+		ArrayList<Integer> fromIds;
+ 
 
 		if (toHostRange == null) {
 			throw new SettingsError("Destination host (" + TO_HOST_RANGE_S +
 					") must be defined");
 		}
-		for (int i = hostRange[0]; i < hostRange[1]; i++) {
-			fromIds.add(i);
-		}
+		fromIds = this.getAllHostsAddresses(this.hostRange);
+
 		Collections.shuffle(fromIds, rng);
 	}
 
