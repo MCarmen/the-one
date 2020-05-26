@@ -2,7 +2,7 @@ The ONE v1.6.0 with a Control Service
 =====================================
 This project is a fork of the akeranen/the-one project.
 We have added a control service which is used to have an overview of the 
-status of the network. 
+status of the opportunistic network. 
 To implement the control service, several control sub-packages have been 
 added to the already existing packages. The class routing.MessageRouter 
 has been modified.
