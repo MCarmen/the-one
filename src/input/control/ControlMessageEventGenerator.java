@@ -47,7 +47,6 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 	 * @see input.EventQueue#nextEvent()
 	 */
 	private List<ExternalEvent> nextEvents(Range[] fromHostRange, Range[] toHostRange) {
-		int responseSize = 0; /* zero stands for one way messages */
 		ArrayList<Integer> allFromHostsAddr = this.getAllHostsAddresses(fromHostRange);
 		int msgSize = drawMessageSize();
 		int interval = drawNextEventTimeDiff();
@@ -57,6 +56,7 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 		for(Integer from : allFromHostsAddr) {			
 			/* Get two *different* nodes randomly from the toHostRange range */		
 			to = drawToAddress(toHostRange, from); 
+			//System.out.println(String.format("From: %d To: %d", from, to) );//DEBUG
 			nextEvents.add(this.getEvent(from, to, this.getID(), msgSize,
 					this.nextEventsTime));
 		}
@@ -92,6 +92,7 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 	 * allow the 'from' and 'to' variables have the same value.   
 	 */
 	protected int drawToAddress(Range[] hostRange, int from) {
+		//int to = this.drawHostAddress(hostRange);
 		int to;
 		if ((hostRange.length == 1) && (hostRange[0].isOneElementRange())) {
 			to = (int)hostRange[0].getMin();
