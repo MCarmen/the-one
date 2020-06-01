@@ -140,7 +140,8 @@ public class MessageEventGenerator implements EventQueue {
 
 	/**
 	 * Method that returns in a plain array of int, all the addresses of the hosts
-	 * in all the ranges of hostRange.
+	 * in all the ranges of hostRange. Each Range is considered as [min,max) so the 
+	 * max is not included in the array.
 	 * 
 	 * @param hostRange
 	 * @return An array with the addresses of the hosts.
@@ -168,7 +169,7 @@ public class MessageEventGenerator implements EventQueue {
 	 */
 	protected int drawHostAddress(Range[] hostRange) {
 		ArrayList<Integer> allHosts = this.getAllHostsAddresses(hostRange);
-		return allHosts.get(rng.nextInt(allHosts.size()-1));
+		return allHosts.get(rng.nextInt(allHosts.size()));
 	}
 
 	/**
