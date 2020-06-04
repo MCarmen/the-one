@@ -153,7 +153,7 @@ public class DirectiveDetails {
 		double congestionSensed = congestionMetric.getCongestionMetric();
 		
 		metricProperties.put("id", metric.getId());
-		metricProperties.put("creationT", metric.getCreationTime());
+		metricProperties.put("creationT", new DecimalFormat("#0").format(metric.getCreationTime()));
 		metricProperties.put("from", metric.getFrom());
 		metricProperties.put("CongS", new DecimalFormat("#0.00").format(congestionSensed));
 		metricProperties.put("CongAvg" , new DecimalFormat("#0.00").format(currentCongestionAverage));
