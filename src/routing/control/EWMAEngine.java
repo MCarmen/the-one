@@ -232,18 +232,22 @@ public class EWMAEngine extends DirectiveEngine {
 	}
 	
 	/**
+	 * Method that updates the controller congestion state depending on the last congestionAverage
+	 * calculated in the last control cycle.
+	 */
+	/**
 	 * Method that updates the current congestion state of the node depending on the
 	 * current congestion reading.
 	 */
 	private void updateCongestionSate() {
 		switch (this.congestionState) {
 		case INITIAL:
-			this.congestionState = (this.sCongestionAverage.getValue() >= this.congestionThrMax)
+			this.congestionState = (this.sCongestionAverage.getValue() >= this.congestionThrMin)
 					? CongestionState.CONGESTION
 					: CongestionState.NO_CONGESTION;
 			break;
 		case NO_CONGESTION:
-			if (this.sCongestionAverage.getValue() >= this.congestionThrMax) {
+			if (this.sCongestionAverage.getValue() >= this.congestionThrMin) {
 				this.congestionState = CongestionState.CONGESTION;
 			}
 			break;
@@ -296,7 +300,8 @@ public class EWMAEngine extends DirectiveEngine {
 		}
 		
 		//int newNrofCopiesIntValue = Math.min(((int)newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
-		int newNrofCopiesIntValue = Math.min((int)newNrofCopies, this.maxCopies);
+		int newNrofCopiesIntValue = (this.maxCopies != DirectiveEngine.DEF_MAXCOPIES) ?
+				Math.min((int)newNrofCopies, this.maxCopies) : (int)newNrofCopies;
 							
 		//Adding the 'L' property in the Directive message.
 		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
