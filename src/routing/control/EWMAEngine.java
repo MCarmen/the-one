@@ -66,8 +66,8 @@ public class EWMAEngine extends DirectiveEngine {
 	private double congestionAlpha;
 	
 	/** 
-	 * Alpha to be used to calculate sNrofCopiesAverage, from the received 
-	 * directives, with the EWMA:
+	 * Alpha to be used to aggregate to the sNrofCopiesAverage soft average the new  
+	 * nrofCopies_messured from the received directive, with the EWMA:
 	 * sNrofCopiesAverage = (1-directivesAlpha) * sNrofCopiesAverage + directivesAlpha * nrofCopies_messured.
 	 */	
 	private double directivesAlpha;
@@ -288,16 +288,18 @@ public class EWMAEngine extends DirectiveEngine {
 				newNrofCopies = Math.ceil(newNrofCopies + this.additiveIncrease);
 			} else if (this.congestionState == CongestionState.CONGESTION) {
 				// multiplicative decrease
-				newNrofCopies = Math.ceil(newNrofCopies * this.multiplicativeDecrease);
+				newNrofCopies = Math.floor(newNrofCopies * this.multiplicativeDecrease);
 				if (newNrofCopies <= 0)
 					newNrofCopies = 1;
 			}
 		}
 		 				
+		/*
 		//number of copies aggregated from received directives.
 		if (this.sNrofMsgCopiesAverage.isSet()) {
-			newNrofCopies = Math.floor(EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha));
+			//newNrofCopies = Math.floor(EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha));
 		}
+		*/
 		
 		//int newNrofCopiesIntValue = Math.min(((int)newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
 		int newNrofCopiesIntValue = (this.maxCopies != DirectiveEngine.DEF_MAXCOPIES) ?
