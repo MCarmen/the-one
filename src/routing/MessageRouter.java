@@ -647,7 +647,7 @@ public abstract class MessageRouter {
 	 * {@link MetricsSensed#fillMessageWithMetric(Message)}. If there is no 
 	 * metric available this method returns false.
 	 * If a metric is created and the node is a controller, the metric msg is 
-	 * aggregated to the node's metrics internally and it is not sent to the 
+	 * aggregated to the node's metrics internally and it is sent to the 
 	 * network. 	 
 	 * If the message to be created is a new directive, the router delegates the
 	 * the fulfillment of the message with the directive to 
@@ -682,6 +682,11 @@ public abstract class MessageRouter {
 			if (this.isControlMsgGeneratedByMeAsAController((MetricMessage) m)) {
 				this.setMsgTTL(m);
 				this.controller.addMetric((MetricMessage) m);
+				msgHasBeenCreated = true; // sending the metric. Comment it to not sent it.
+				// We add the metric to the deliveredMessages list so it will 
+				// not be considered by the controller that generated it in case 
+				// it receives it. Remove that line if finally the message is not sent. 
+				this.deliveredMessages.put(m.getId(), m); 
 			} else {
 				msgHasBeenCreated = true;
 			}
