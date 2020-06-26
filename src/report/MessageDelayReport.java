@@ -18,10 +18,10 @@ import core.MessageListener;
  */
 public class MessageDelayReport extends Report implements MessageListener {
 	public static final String HEADER =
-	    "# messageDelay  cumulativeProbability";
+	    "# messageDelay  cumulativeDelayAverage cumulativeProbability";
 	/** all message delays */
-	private List<Double> delays;
-	private int nrofCreated;
+	protected List<Double> delays;
+	protected int nrofCreated;
 
 	/**
 	 * Constructor.
@@ -63,12 +63,19 @@ public class MessageDelayReport extends Report implements MessageListener {
 			return;
 		}
 		double cumProb = 0; // cumulative probability
+		double cumDelay = 0; //cumulative delay
+		double delayUpTo = 0;//
+		int j;
 
 		java.util.Collections.sort(delays);
 
 		for (int i=0; i < delays.size(); i++) {
 			cumProb += 1.0/nrofCreated;
-			write(format(delays.get(i)) + " " + format(cumProb));
+			for(j=0; j<= i; j++) {
+				delayUpTo += delays.get(j);
+			}
+			cumDelay = delayUpTo/j;		
+			write(String.format("%.2f %.2f %.2f", this.delays.get(i), cumDelay, cumProb));
 		}
 		super.done();
 	}
