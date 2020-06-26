@@ -62,20 +62,17 @@ public class MessageDelayReport extends Report implements MessageListener {
 			super.done();
 			return;
 		}
+		double currentDelay = 0;
 		double cumProb = 0; // cumulative probability
 		double cumDelay = 0; //cumulative delay
-		double delayUpTo = 0;//
-		int j;
 
 		java.util.Collections.sort(delays);
 
 		for (int i=0; i < delays.size(); i++) {
 			cumProb += 1.0/nrofCreated;
-			for(j=0; j<= i; j++) {
-				delayUpTo += delays.get(j);
-			}
-			cumDelay = delayUpTo/j;		
-			write(String.format("%.2f %.2f %.2f", this.delays.get(i), cumDelay, cumProb));
+			currentDelay = delays.get(i);
+			cumDelay += currentDelay;		
+			write(String.format("%.2f %.2f %.2f", currentDelay, cumDelay/(i+1), cumProb));
 		}
 		super.done();
 	}
