@@ -277,44 +277,46 @@ public class EWMAEngine extends DirectiveEngine {
 		int lasCtrlCycleNrofCopies = (int)newNrofCopies;
 		DirectiveDetails currentDirectiveDetails = null;
 		
-		this.resumeCtrlCycleMetricHistory();
-		this.resumeCtrlCycleDirectiveHistory();
-		
 		// if we have received metrics and no silence from other nodes != from ourselves.
-		if (this.sCongestionAverage.isSet() && this.receivedCtrlMsgInDirectiveCycle) {
-			this.updateCongestionSate();
-			if (this.congestionState == CongestionState.NO_CONGESTION) {
-				// applying additive increase
-				newNrofCopies = Math.ceil(newNrofCopies + this.additiveIncrease);
-			} else if (this.congestionState == CongestionState.CONGESTION) {
-				// multiplicative decrease
-				newNrofCopies = Math.floor(newNrofCopies * this.multiplicativeDecrease);
-				if (newNrofCopies <= 0)
-					newNrofCopies = 1;
-			}
-		}
-		 				
-		/*
-		//number of copies aggregated from received directives.
-		if (this.sNrofMsgCopiesAverage.isSet()) {
-			//newNrofCopies = Math.floor(EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha));
-		}
-		*/
-		
-		//int newNrofCopiesIntValue = Math.min(((int)newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
-		int newNrofCopiesIntValue = (this.maxCopies != DirectiveEngine.DEF_MAXCOPIES) ?
-				Math.min((int)newNrofCopies, this.maxCopies) : (int)newNrofCopies;
-							
-		//Adding the 'L' property in the Directive message.
-		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
-		//modifying, in the routingConfiguration map, the initial number of copies for new messages.
-		this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
-			newNrofCopiesIntValue);
-			
-		this.directiveDetails.init(message, lasCtrlCycleNrofCopies, this.sCongestionAverage.getValue(),
-				this.sNrofMsgCopiesAverage.getValue(), this.congestionState);
-		currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);
+		if (this.receivedCtrlMsgInDirectiveCycle) {
+			this.resumeCtrlCycleMetricHistory();
+			this.resumeCtrlCycleDirectiveHistory();
+			if (this.sCongestionAverage.isSet()) {
+				this.updateCongestionSate();
+				if (this.congestionState == CongestionState.NO_CONGESTION) {
+					// applying additive increase
+					newNrofCopies = Math.ceil(newNrofCopies + this.additiveIncrease);
+				} else if (this.congestionState == CongestionState.CONGESTION) {
+					// multiplicative decrease
+					newNrofCopies = Math.floor(newNrofCopies * this.multiplicativeDecrease);
+					if (newNrofCopies <= 0)
+						newNrofCopies = 1;
+				}
+				
+				/*
+				//number of copies aggregated from received directives.
+				if (this.sNrofMsgCopiesAverage.isSet()) {
+					//newNrofCopies = Math.floor(EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha));
+				}
+				*/
 
+				//int newNrofCopiesIntValue = Math.min(((int)newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
+				int newNrofCopiesIntValue = (this.maxCopies != DirectiveEngine.DEF_MAXCOPIES) ?
+						Math.min((int)newNrofCopies, this.maxCopies) : (int)newNrofCopies;
+									
+				//Adding the 'L' property in the Directive message.
+				((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
+				//modifying, in the routingConfiguration map, the initial number of copies for new messages.
+				this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
+					newNrofCopiesIntValue);
+					
+				this.directiveDetails.init(message, lasCtrlCycleNrofCopies, this.sCongestionAverage.getValue(),
+						this.sNrofMsgCopiesAverage.getValue(), this.congestionState);
+				currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);				
+			}//end if this.sCongestionAverage.isSet
+		}//end if we have received metrics and no silence from other nodes.
+
+		 				
 		this.resetDirectiveCycleSettings();
 		return currentDirectiveDetails;
 	}
