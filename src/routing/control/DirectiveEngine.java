@@ -25,8 +25,6 @@ public abstract class DirectiveEngine {
 	 * It is used to decrement by a ratio the number of copies of the msg(L). */	
 	protected static final String MULTIPLICATIVE_DECREASE_S =  "multiplicativeDecrease";
 	
-	/** meanDeviationFactor -setting id ({@value}) in the control name space. */
-	protected static final String MEAN_DEVIATION_FACTOR_S = "meanDeviationFactor";	
 
 	/** metricGenerationInterval -setting id ({@value}) in the control name space. */
 	protected static final String METRICS_GENERATION_INTERVAL_S = "metricGenerationInterval";
@@ -40,8 +38,17 @@ public abstract class DirectiveEngine {
 	/** directive time to live -setting id ({@value}) in the control name space */
 	protected static final String DIRECTIVE_TTL_S = "directiveTtl";
 		
-	/** maxCopies -setting id ({@value}) in the control name space */
+	/** 
+	 * maxCopies -setting id ({@value}) in the control name space
+	 * Upper limit for the replication level (L). 
+	 */
 	protected static final String MAXCOPIES_S = "maxCopies";
+	
+	/** 
+	 * minCopies -setting id ({@value}) in the control name space
+	 * Low limit allowed for the replication level (L).  
+	 */	
+	protected static final String MINCOPIES_S = "minCopies";
 	
 	/** congestionThrMax -setting id ({@value}) in the control name space*/
 	private static final String CONGESTION_THRMAX_S = "congestionThrMax";
@@ -69,6 +76,9 @@ public abstract class DirectiveEngine {
 	/** maxCopies default value if it is not specified in the settings ({@value})  */
 	/** This default value implies the setting is not considered. */
 	protected static final int DEF_MAXCOPIES = -1;
+	
+	/** minCopies default value if it is not specified in the settings ({@value})  */
+	protected static final int DEF_MINCOPIES = 1;
 	
 	/** dropsThrMax-setting's default value if it is not specified in the settings 
 	 ({@value}) */
@@ -137,7 +147,10 @@ public abstract class DirectiveEngine {
 	protected DirectiveDetails directiveDetails;
 
 	/** The allowed maximum number of copies of the message in the network. */
-	protected int maxCopies;	
+	protected int maxCopies;
+	
+	/** The minimum number of copies of the message in the network. */
+	protected int minCopies;	
 	
 	/** 
 	 * Flag set to true if the engine has received a control message in  a
@@ -178,14 +191,14 @@ public abstract class DirectiveEngine {
 				engineSettings.getDouble(ADDITIVE_INCREASE_S) : DEF_ADDITIVE_INCREASE;
 		this.multiplicativeDecrease = (engineSettings.contains(MULTIPLICATIVE_DECREASE_S)) ? 
 				engineSettings.getDouble(MULTIPLICATIVE_DECREASE_S) : DEF_MULTIPLICATIVE_DECREASE;
-		this.meanDeviationFactor = (engineSettings.contains(MEAN_DEVIATION_FACTOR_S)) ?
-				engineSettings.getDouble(MEAN_DEVIATION_FACTOR_S) : DEF_MEAN_DEVIATION_FACTOR;
 		this.metricTTL = engineSettings.contains(METRIC_TTL_S) ?
 				engineSettings.getInt(METRIC_TTL_S) : DEF_METRIC_TTL;
 		this.directiveTTL = engineSettings.contains(DIRECTIVE_TTL_S) ?
 				engineSettings.getInt(DIRECTIVE_TTL_S) : DEF_DIRECTIVE_TTL;				
 		this.maxCopies = engineSettings.contains(MAXCOPIES_S) ? engineSettings.getInt(MAXCOPIES_S) : 
 					DirectiveEngine.DEF_MAXCOPIES;
+		this.minCopies = engineSettings.contains(MINCOPIES_S) ? engineSettings.getInt(MINCOPIES_S) : 
+			DirectiveEngine.DEF_MINCOPIES;		
 		this.congestionThrMax = engineSettings.contains(CONGESTION_THRMAX_S) ? 
 				engineSettings.getDouble(CONGESTION_THRMAX_S) : DEF_CONGESTION_THRMAX;
 		this.congestionThrMin = engineSettings.contains(CONGESTION_THRMIN_S) ? 
