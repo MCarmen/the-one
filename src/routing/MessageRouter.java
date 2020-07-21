@@ -22,9 +22,7 @@ import core.Settings;
 import core.SettingsError;
 import core.SimClock;
 import core.SimError;
-import core.SimScenario;
 import core.control.ControlMessage;
-import core.control.DirectiveMessage;
 import core.control.MetricMessage;
 import core.control.listener.DirectiveListener;
 import report.control.directive.DirectiveDetails;
@@ -366,8 +364,6 @@ public abstract class MessageRouter {
 	 * host passed as a parameter.
 	 */
 	public int relatedWithThisHost(DTNHost withHost) {
-		int localAddr = this.host.getAddress(); //DEBUG !!!!!
-		int fromAddr = withHost.getAddress(); //DEBUG !!!!!
 		return this.host.compareTo(withHost);
 	}
 
