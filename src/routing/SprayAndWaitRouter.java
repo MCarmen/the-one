@@ -12,7 +12,6 @@ import core.DTNHost;
 import core.Message;
 import core.MessageListener;
 import core.Settings;
-import core.control.DirectiveCode;
 import routing.control.SprayAndWaitRoutingPropertyMap;
 
 /**
@@ -183,15 +182,6 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 	public int getInitialNrofCopies() {
 		return initialNrofCopies;
-	}
-
-	
-	@Override
-	protected void applyDirective(Message message) {
-		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-			super.applyDirective(message);
-			this.routingProperties.put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, (Integer)(message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())));
-		}
 	}
 	
 }
