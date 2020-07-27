@@ -55,11 +55,15 @@ public class NewDirectiveReport extends Report implements DirectiveListener {
 	}
 
 	@Override
-	public void directiveApplied(Message m, DTNHost to) {
+	public void directiveReceived(Message m, DTNHost to) {
 		// TODO Auto-generated method stub
 	}
 	
-
+	@Override
+	public void directiveAppliedToBufferedMessages(BufferedMessageUpdate msgsUpdates) {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public void directiveCreated(DirectiveDetails directiveDetails) {
