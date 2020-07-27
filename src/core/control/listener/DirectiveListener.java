@@ -6,6 +6,7 @@ package core.control.listener;
 import core.DTNHost;
 import core.Message;
 import core.MessageListener;
+import report.control.directive.BufferedMessageUpdate;
 import report.control.directive.DirectiveDetails;
 
 /**
@@ -14,6 +15,7 @@ import report.control.directive.DirectiveDetails;
  *
  */
 public interface DirectiveListener extends MessageListener {
-	public void directiveApplied(Message m, DTNHost to);
+	public void directiveReceived(Message m, DTNHost to);
 	public void directiveCreated(DirectiveDetails directiveDetails);
+	public void directiveAppliedToBufferedMessages(BufferedMessageUpdate msgsUpdates);
 }
