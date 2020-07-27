@@ -690,12 +690,6 @@ public abstract class ActiveRouter extends MessageRouter {
 		return top;
 	}
 	
-	@Override
-	/**
-	 * A plain ActiveRouter has nothing to do with directives.
-	 */
-    protected void applyDirective(Message message) {
-	
-	}
+
 
 }
