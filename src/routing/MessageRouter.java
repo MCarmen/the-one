@@ -25,6 +25,7 @@ import core.SimError;
 import core.control.ControlMessage;
 import core.control.MetricMessage;
 import core.control.listener.DirectiveListener;
+import report.control.directive.BufferedMessageUpdate;
 import report.control.directive.DirectiveDetails;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
@@ -500,7 +501,7 @@ public abstract class MessageRouter {
 					isFirstDelivery = true;
 				}
 				this.applyDirective(aMessage);
-				this.reportAppliedDirective(aMessage);
+				this.reportReceivedDirective(aMessage);
 
 				break;				
 		}
@@ -927,10 +928,10 @@ public abstract class MessageRouter {
     }
     
     /**
-     * Method that applies the directive specified in the directivesMessage
+     * Method that applies the directive encapsulated in the message
      * passed as a parameter and informs the listeners. This method should be 
-     * overwrite by the subclasses.
-     * @param message The directive the controller will be configured with. 
+     * overwritten by the subclasses.
+     * @param message The received directive. 
      */
     protected abstract void applyDirective(Message message);
 	
@@ -1008,21 +1009,34 @@ public abstract class MessageRouter {
     		}
     	}
     }
-    
+        
     /**
-     * Method that reports to all the DirectiveListeners about that a directive
-     * has been applied.
+     * Method that reports to all the DirectiveListeners about the reception of a 
+     * Directive.
      * @param message The message containing the directive.
      */
-    protected void reportAppliedDirective(Message message){
+    protected void reportReceivedDirective(Message message){
 		for (MessageListener ml : this.mListeners) {
 			if (ml instanceof DirectiveListener) {
-				((DirectiveListener)ml).directiveApplied(message, this.host);
+				((DirectiveListener)ml).directiveReceived(message, this.host);
 			}
 		}
     }
-        
     
+    /**
+     * Method that reports to all the DirectiveListeners the node's buffered messages that have been 
+     * updated with a new nrofCopies value.
+     * @param messagesUpdates the node's buffered messages updated with a new nrofCopies value.
+     */
+    protected void reportAppliedDirectiveToBufferedMessages(BufferedMessageUpdate messagesUpdates) {
+    	for (MessageListener ml : this.mListeners) {
+			if (ml instanceof DirectiveListener) {
+				((DirectiveListener)ml).directiveAppliedToBufferedMessages(messagesUpdates);
+			}
+		}    	
+    }
+        
+ 
     
 	private static enum TransferredCode {
 		MESSAGE_DESTINATION_REACHED_CODE, 
