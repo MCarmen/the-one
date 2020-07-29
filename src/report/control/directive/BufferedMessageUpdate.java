@@ -43,21 +43,19 @@ public class BufferedMessageUpdate {
 	 * Class that encapsulates a change of the value of the message field MSG_COUNT_PROPERTY
 	 */
 	private static class MessageUpdate {
-		private String msgID;
-		private int nrofHops;
+		private Message msg;
 		private int currentNrofCopies;
 		private int newNrofCopies;
 		
 		public MessageUpdate(Message msg, int currentNrofCopies, int newNrofCopies) {
-			this.msgID = msg.getId();
-			this.nrofHops = msg.getHopCount();
+			this.msg = msg;
 			this.currentNrofCopies = currentNrofCopies;
 			this.newNrofCopies = newNrofCopies;
 		}
 		
 		public String toString() {
-			return String.format("{msgID: %s, hops: %d, L: %d, newL: %d}", this.msgID, this.nrofHops, this.currentNrofCopies,
-					this.newNrofCopies);
+			return String.format("{msgID: %s, hops: %d (%s), L: %d, newL: %d}", this.msg.getId(), this.msg.getHopCount(), this.msg.getHops(),
+					this.currentNrofCopies, this.newNrofCopies);
 		}
 	}
 	
