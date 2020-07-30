@@ -75,6 +75,16 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	@Override
 	public Message messageTransferred(String id, DTNHost from) {
 		Message msg = super.messageTransferred(id, from);
+		this.updateNrOfCopies(msg);
+		return msg;
+	}
+	
+	/**
+	 * Method that updates the number of copies of the message transfered to us. 
+	 * Subclasses might need to override this class. 
+	 * @param msg the message to be modified with a new number of copies.
+	 */
+	protected void updateNrOfCopies(Message msg) {
 		Integer nrofCopies = (Integer)msg.getProperty(MSG_COUNT_PROPERTY);
 
 		assert nrofCopies != null : "Not a SnW message: " + msg;
@@ -89,16 +99,24 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		}
 
 		msg.updateProperty(MSG_COUNT_PROPERTY, nrofCopies);
-		return msg;
 	}
 
 	@Override
 	public boolean createNewMessage(Message msg) {
+		this.setMsgCountProperty(msg);
+		boolean messageCreated = super.createNewMessage(msg);
+		return messageCreated;
+	}
+	
+	/**
+	 * Method that sets the value of the property MSG_COUNT_PROPERTY in a message. Subclasses should
+	 * override this method.
+	 * @param msg the message which MSG_COUNT_PROPERTY is to be set
+	 */
+	protected void setMsgCountProperty(Message msg) {
 		int msgCountPropertyValue = 
 				this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);						
 		msg.addProperty(MSG_COUNT_PROPERTY, msgCountPropertyValue);
-		boolean messageCreated = super.createNewMessage(msg);
-		return messageCreated;
 	}
 
 	@Override
