@@ -343,35 +343,17 @@ public abstract class ActiveRouter extends MessageRouter {
 		return oldest;
 	}
 	
+	
 	/**
 	 * If the message is of type message, it is direct delivery if the 
 	 * m.to == connectionHostPeer.
-	 * If the message is of type directive, it has always to be direct delivered.
-	 * If the message is of type metric, if the connectionHostPeer is a controller, 
-	 * it has always to be delivered.
-	 * 
-	 * m.getTo = con.getOtherNode
 	 * @param m The message to be direct delivered.
 	 * @param connectionHostPeer the connection host peer.
 	 * @return true if the message can be delivered directly of false otherwise.
 	 */
 	protected boolean isADirectDeliveryMessageForConnection(Message m, DTNHost connectionHostPeer) {
-		boolean isADirectDelivery = false;
-		
-		switch(m.getType()) {
-		case DIRECTIVE:
-			isADirectDelivery = true;
-			break;
-		case METRIC:
-			if (connectionHostPeer.getRouter().isAController()) {
-				isADirectDelivery = true;
-			}
-			break;
-		default:
-			if (m.getTo() == connectionHostPeer) {
-				isADirectDelivery = true;
-			}			
-		}
+		boolean isADirectDelivery = (m.getTo() == connectionHostPeer) ? true : false;
+	
 		return isADirectDelivery;
 	}
 
