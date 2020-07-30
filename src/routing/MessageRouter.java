@@ -425,6 +425,7 @@ public abstract class MessageRouter {
 	 */
 	public Message messageTransferred(String id, DTNHost from) {
 		Message incoming = removeFromIncomingBuffer(id, from);
+		Integer nrofCopies = (Integer)incoming.getProperty("SprayAndWaitRouter.copies");//DEBUG
 		boolean isFinalRecipient;
 		boolean isFirstDelivery; // is this first delivered instance of the msg
 
@@ -933,7 +934,8 @@ public abstract class MessageRouter {
      * overwritten by the subclasses.
      * @param message The received directive. 
      */
-    protected abstract void applyDirective(Message message);
+    protected void applyDirective(Message message) {    	
+    }
 	
 	/**
 	 * Method that analyzes the received message passed as a parameter and
