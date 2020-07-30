@@ -56,22 +56,8 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 */
 	public Message messageTransferred(String id, DTNHost from) {
 		Message msg = super.messageTransferred(id, from);
-		Integer nrofCopies = (Integer)msg.getProperty(MSG_COUNT_PROPERTY);
-
-		assert nrofCopies != null : "Not a SnW message: " + msg;
-
-		/* If it is a control msg the receiving node gets only single copy */
-		if (msg.isControlMsg()) {
-			nrofCopies = 1;
-		} else if (isBinary) {
-			/* in binary S'n'W the receiving node gets floor(n/2) copies */
-			nrofCopies = (int) Math.floor(nrofCopies / 2.0);
-		} else {
-			/* in standard S'n'W the receiving node gets only single copy */
-			nrofCopies = 1;
-		}
-
-		msg.updateProperty(MSG_COUNT_PROPERTY, nrofCopies);
+		this.updateNrOfCopies(msg);
+		
 		return msg;
 	}
 
@@ -184,23 +170,34 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
 			int directiveMsgCountValue = (Integer)(message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())); //L
 			this.routingProperties.put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, directiveMsgCountValue);
+			
 			BufferedMessageUpdate messagesUpdates = new BufferedMessageUpdate(
 					new ReceivedDirective(message.getId(), this.getHost().toString(), directiveMsgCountValue));
 			int newMsgCountValue;
 			
 			for (Message msg : this.getMessageCollection()) {
 				if (!msg.isControlMsg() && msg.containsProperty​(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY)) {
-					int currentMsgCount = (int) msg.getProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY);
+					int currentNrofCopies = (int) msg.getProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY);
+					/*
 					newMsgCountValue = (currentMsgCount > directiveMsgCountValue) ? directiveMsgCountValue
 							: (currentMsgCount < directiveMsgCountValue)
 									? (int) Math.round(directiveMsgCountValue / Math.pow(2, msg.getHopCount()))
 									: directiveMsgCountValue;
 					newMsgCountValue = Math.max(newMsgCountValue, 1);				
-					messagesUpdates.addUpdate(msg, currentMsgCount, newMsgCountValue);
-					msg.updateProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY, newMsgCountValue);
+					messagesUpdates.addUpdate(msg, currentMsgCount, newMsgCountValue);									
+					*/
+					/*
+					if (currentMsgCount > directiveMsgCountValue) {
+						newMsgCountValue = directiveMsgCountValue;
+						messagesUpdates.addUpdate(msg, currentMsgCount, newMsgCountValue);
+						msg.updateProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY, newMsgCountValue);						
+					}
+					*/
+					messagesUpdates.addUpdate(msg, currentNrofCopies, -1); //DEBUG
 				}
 			}
-			this.reportAppliedDirectiveToBufferedMessages(messagesUpdates);			
+			this.reportAppliedDirectiveToBufferedMessages(messagesUpdates);
+				
 		}
 	}
 
