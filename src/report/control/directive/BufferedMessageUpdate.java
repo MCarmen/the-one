@@ -34,7 +34,7 @@ public class BufferedMessageUpdate {
 	public String toString() {
 		String msgsUpdatesStr = "";
 		for(MessageUpdate msgUpdate : this.messageUpdate) {
-			msgsUpdatesStr += String.format("%s ", msgUpdate);
+			msgsUpdatesStr += String.format("%s\n", msgUpdate);
 		}
 		return String.format("%s [%s]", this.receivedDirective.toString(), msgsUpdatesStr);		
 	}
