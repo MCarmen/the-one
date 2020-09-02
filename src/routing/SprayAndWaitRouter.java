@@ -185,7 +185,9 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		nrofCopies = (Integer)msg.getProperty(MSG_COUNT_PROPERTY);
 		if (isBinary) {
 			/* in binary S'n'W the sending node keeps ceil(n/2) copies */
-			nrofCopies = (int)Math.ceil(nrofCopies/2.0);
+			if (nrofCopies > 1) {
+				nrofCopies = (int)Math.ceil(nrofCopies/2.0);
+			}
 		}
 		else {
 			nrofCopies--;
