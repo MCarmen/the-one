@@ -8,6 +8,12 @@ import core.Message;
 import core.control.listener.DirectiveListener;
 import report.Report;
 
+/**
+ * Class that reports the the updates made over the buffered messages after applying the received 
+ * directive. 
+ * @author mc
+ *
+ */
 public class AppliedDirectiveToBufferedMessagesReport extends Report implements DirectiveListener {
 	private List<BufferedMessageUpdate> updatedBufferedMessagesPerNode = new ArrayList<BufferedMessageUpdate>();
 
