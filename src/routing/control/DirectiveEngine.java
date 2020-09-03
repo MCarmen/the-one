@@ -257,4 +257,7 @@ public abstract class DirectiveEngine {
 		return haveIGeneratedThisMsg;
 	}
 			
+	protected boolean isMaxCopiesSet() {
+		return (this.maxCopies != DirectiveEngine.DEF_MAXCOPIES);
+	}
 }
