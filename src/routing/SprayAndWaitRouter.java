@@ -90,8 +90,10 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		assert nrofCopies != null : "Not a SnW message: " + msg;
 
 		if (isBinary) {
-			/* in binary S'n'W the receiving node gets floor(n/2) copies */
-			nrofCopies = (int)Math.floor(nrofCopies/2.0);
+			if (nrofCopies > 1) {
+				/* in binary S'n'W the receiving node gets floor(n/2) copies */
+				nrofCopies = (int)Math.floor(nrofCopies/2.0);
+			}
 		}
 		else {
 			/* in standard S'n'W the receiving node gets only single copy */
