@@ -274,9 +274,9 @@ public class EWMAEngine extends DirectiveEngine {
 	 */
 	public DirectiveDetails generateDirective(ControlMessage message) {
 		double currentTime = SimClock.getTime(); //DEBUG
-		double newNrofCopies = this.router.getRoutingProperties()
+		int lasCtrlCycleNrofCopies = (int)this.router.getRoutingProperties()
 				.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
-		int lasCtrlCycleNrofCopies = (int)newNrofCopies;
+		double newNrofCopies = lasCtrlCycleNrofCopies;
 		DirectiveDetails currentDirectiveDetails = null;
 		
 		// if we have received metrics and no silence from other nodes != from ourselves.
@@ -287,10 +287,10 @@ public class EWMAEngine extends DirectiveEngine {
 				this.updateCongestionSate();
 				if (this.congestionState == CongestionState.NO_CONGESTION) {
 					// applying additive increase
-					newNrofCopies = Math.ceil(newNrofCopies + this.additiveIncrease);
+					newNrofCopies = Math.ceil(lasCtrlCycleNrofCopies + this.additiveIncrease);
 				} else if (this.congestionState == CongestionState.CONGESTION) {
 					// multiplicative decrease
-					newNrofCopies = Math.floor(newNrofCopies * this.multiplicativeDecrease);
+					newNrofCopies = Math.floor(lasCtrlCycleNrofCopies * this.multiplicativeDecrease);
 					if (newNrofCopies < this.minCopies)
 						newNrofCopies = this.minCopies;
 				}
@@ -303,7 +303,7 @@ public class EWMAEngine extends DirectiveEngine {
 				*/
 
 				//int newNrofCopiesIntValue = Math.min(((int)newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
-				int newNrofCopiesIntValue = (this.maxCopies != DirectiveEngine.DEF_MAXCOPIES) ?
+				int newNrofCopiesIntValue = (this.isMaxCopiesSet()) ?
 						Math.min((int)newNrofCopies, this.maxCopies) : (int)newNrofCopies;
 									
 				//Adding the 'L' property in the Directive message.
