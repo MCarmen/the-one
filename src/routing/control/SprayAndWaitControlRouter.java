@@ -49,19 +49,10 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		return new SprayAndWaitControlRouter(this);
 	}
 	
-	@Override
 	/**
 	 * If the msg transferred is a control one it is transferred configured with 
 	 * one copy of the message in the node being transferred.
 	 */
-	public Message messageTransferred(String id, DTNHost from) {
-		Message msg = super.messageTransferred(id, from);
-		this.updateNrOfCopies(msg);
-		
-		return msg;
-	}
-
-	@Override
 	protected void updateNrOfCopies(Message msg) {
 		/* If it is a control msg the receiving node gets only single copy */
 		if (msg.isControlMsg()) {
@@ -158,8 +149,6 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * directive. This affects the nrofcopies of the new created data messages. It also affects the buffered 
 	 * data messages. The nrofcopies (L) of all the data messages in the queue will be reviewed following
 	 * this algorithm:
-	 * If L_msg > L_directive -> L_message = L_directive
-	 * If L_msg < L_directive:
 	 * We take into account the number of nodes the message has been through except the current one: n_nodes.
 	 * We calculate which would be the current L if the L_directive would be been applied when this
 	 * msg was created:
