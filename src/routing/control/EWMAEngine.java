@@ -232,30 +232,15 @@ public class EWMAEngine extends DirectiveEngine {
 	}
 	
 	/**
-	 * Method that updates the controller congestion state depending on the last congestionAverage
-	 * calculated in the last control cycle.
+	 * Method that updates the controller congestion state depending on the last
+	 * congestionAverage calculated in the last control cycle.
 	 */
-	/**
-	 * Method that updates the current congestion state of the node depending on the
-	 * current congestion reading.
-	 */
+
 	private void updateCongestionSate() {
-		switch (this.congestionState) {
-		case INITIAL:
-			this.congestionState = (this.sCongestionAverage.getValue() >= this.congestionThrMin)
-					? CongestionState.CONGESTION
-					: CongestionState.NO_CONGESTION;
-			break;
-		case NO_CONGESTION:
-			if (this.sCongestionAverage.getValue() >= this.congestionThrMin) {
-				this.congestionState = CongestionState.CONGESTION;
-			}
-			break;
-		case CONGESTION:
-			if (this.sCongestionAverage.getValue() < this.congestionThrMin) {
-				this.congestionState = CongestionState.NO_CONGESTION;
-			}
-		}
+		this.congestionState = ((this.sCongestionAverage.getValue() >= this.congestionThrMin)
+				&& (this.sCongestionAverage.getValue() < this.congestionThrMax)) ? CongestionState.OPTIMAL
+						: (this.sCongestionAverage.getValue() < this.congestionThrMin) ? CongestionState.UNDER_USE
+								: CongestionState.CONGESTION;
 	}
 
 	@Override
@@ -285,14 +270,14 @@ public class EWMAEngine extends DirectiveEngine {
 			this.resumeCtrlCycleDirectiveHistory();
 			if (this.sCongestionAverage.isSet()) {
 				this.updateCongestionSate();
-				if (this.congestionState == CongestionState.NO_CONGESTION) {
+				if (this.congestionState == CongestionState.UNDER_USE) {
 					// applying additive increase
-					newNrofCopies = Math.ceil(lasCtrlCycleNrofCopies + this.additiveIncrease);
+					newNrofCopies = Math.ceil(lasCtrlCycleNrofCopies + this.additiveIncrease);					
 				} else if (this.congestionState == CongestionState.CONGESTION) {
 					// multiplicative decrease
 					newNrofCopies = Math.floor(lasCtrlCycleNrofCopies * this.multiplicativeDecrease);
 					if (newNrofCopies < this.minCopies)
-						newNrofCopies = this.minCopies;
+						newNrofCopies = this.minCopies;					
 				}
 				
 				/*
@@ -324,7 +309,7 @@ public class EWMAEngine extends DirectiveEngine {
 	}
 
 	public static enum CongestionState{
-		CONGESTION, NO_CONGESTION, INITIAL;
+		CONGESTION, OPTIMAL, INITIAL, UNDER_USE;
 		
 		public String toString() {
 			String congestionStateStr;
@@ -332,9 +317,12 @@ public class EWMAEngine extends DirectiveEngine {
 			case CONGESTION: 
 				congestionStateStr="congestion";
 				break;
-			case NO_CONGESTION:	
-				congestionStateStr="no_congestion";
+			case OPTIMAL:	
+				congestionStateStr="optimal";
 				break;
+			case UNDER_USE:	
+				congestionStateStr="under_use";
+				break;								
 			default: 
 				congestionStateStr="initial";
 			}
