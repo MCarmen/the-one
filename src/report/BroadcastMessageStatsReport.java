@@ -1,6 +1,7 @@
 package report;
 
 import core.BroadcastMessage;
+import report.control.TControlMessageStatsReport;
 
 /**
  * Report for generating different kind of total statistics relaying performance 
@@ -11,7 +12,7 @@ import core.BroadcastMessage;
  * overhead ratio if no messages were delivered) "NaN" is reported for
  * double values and zero for integer median(s).
  */
-public class BroadcastMessageStatsReport extends TMessageStatsReport {
+public class BroadcastMessageStatsReport extends TControlMessageStatsReport {
 
 	public BroadcastMessageStatsReport(){
 		this.init(BroadcastMessage.class);
