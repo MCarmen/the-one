@@ -19,7 +19,7 @@ public class ReceivedDirective{
 	private double simTime;
 
 	/**
-	 * Creates an AppliedDirective object specifying the directive ID, the  
+	 * Creates an ReceivedDirective object specifying the directive ID, the  
 	 * node this directive is applied to, and the max copies of the message 
 	 * that can be in the network.
 	 * @param directiveID
