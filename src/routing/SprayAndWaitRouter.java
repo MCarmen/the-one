@@ -30,6 +30,12 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	/** Message property key */
 	public static final String MSG_COUNT_PROPERTY = SPRAYANDWAIT_NS + "." +
 		"copies";
+	
+	/** 
+	 * Msg property for the number of decreases by nrofcopies/2 applied to 
+	 * the message after every contact since the creation of the message.
+	 */
+	public static final String MSG_PROP_DECREASE_ITERATIONS = "decreaseIterations";
 
 	protected int initialNrofCopies;
 	protected boolean isBinary;
@@ -93,6 +99,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 			if (nrofCopies > 1) {
 				/* in binary S'n'W the receiving node gets floor(n/2) copies */
 				nrofCopies = (int)Math.floor(nrofCopies/2.0);
+				this.updateDecreaseIterations(msg);
 			}
 		}
 		else {
@@ -106,6 +113,8 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	@Override
 	public boolean createNewMessage(Message msg) {
 		this.setMsgCountProperty(msg);
+		msg.addProperty("Init_L_History", String.format("%d", this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY))); //DEBUG
+		msg.addProperty(MSG_PROP_DECREASE_ITERATIONS, 0);
 		boolean messageCreated = super.createNewMessage(msg);
 		return messageCreated;
 	}
@@ -186,9 +195,10 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		/* reduce the amount of copies left */ 
 		nrofCopies = (Integer)msg.getProperty(MSG_COUNT_PROPERTY);
 		if (isBinary) {
-			/* in binary S'n'W the sending node keeps ceil(n/2) copies */
+			/* in binary S'n'W the sending node keeps floor(n/2) copies */
 			if (nrofCopies > 1) {
-				nrofCopies = (int)Math.ceil(nrofCopies/2.0);
+				nrofCopies = (int)Math.floor(nrofCopies/2.0);	
+				this.updateDecreaseIterations(msg);
 			}
 		}
 		else {
@@ -204,6 +214,12 @@ public class SprayAndWaitRouter extends ActiveRouter {
 
 	public int getInitialNrofCopies() {
 		return initialNrofCopies;
+	}
+	
+	protected void updateDecreaseIterations(Message msg){
+		if(msg.containsProperty​(MSG_PROP_DECREASE_ITERATIONS)) {
+			msg.updateProperty(MSG_PROP_DECREASE_ITERATIONS, (int)msg.getProperty(MSG_PROP_DECREASE_ITERATIONS) + 1);
+		}
 	}
 	
 }
