@@ -70,7 +70,7 @@ public class AppliedDirectiveToBufferedMessagesReport extends Report implements 
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append(("Applied directives for scenario " + getScenarioName() +
 				"\nsim_time: " + format(getSimTime())));
-		strBuilder.append("\nSimTime | Applied to | Directive ID | nrofCopies | msg | hops | L | newL \n");
+		strBuilder.append("\nSimTime | Applied to | Directive ID | nrofCopies | msg | decreaseIter | L | newL \n");
 		for(BufferedMessageUpdate msgUpdate : this.updatedBufferedMessagesPerNode) {
 			strBuilder.append(String.format("%s\n", msgUpdate));
 		}		
