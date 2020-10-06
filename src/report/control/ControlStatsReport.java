@@ -4,9 +4,8 @@ import core.DTNHost;
 import core.Message;
 import core.Message.MessageType;
 import core.control.ControlMessage;
-import report.TMessageStatsReport;
 
-public class ControlStatsReport extends TMessageStatsReport{
+public class ControlStatsReport extends TControlMessageStatsReport{
 	private long nrofBytesOfDataMsgStarted;
 	private long nrofBytesOfDataMsgCreated;
 	private long nrofBytesOfControlMsgStarted;
