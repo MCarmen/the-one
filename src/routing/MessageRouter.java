@@ -137,6 +137,13 @@ public abstract class MessageRouter {
 	 * an integer.
 	 */
 	public static final String DIRECTIVE_TTL_S = "directiveTtl";
+	
+	/** 
+	 * Msg property set to true if the msg can be removed from the buffer.
+	 * It just applies to the data messages.
+	 */
+	public static final String MSG_PROP_ALIVE = "alive";
+	
 		
 	/** the controller instance in case this router is configured to be a 
 	 * controller */	
@@ -337,13 +344,16 @@ public abstract class MessageRouter {
 	 */
 	public long getFreeBufferSize() {
 		long occupancy = 0;
+		boolean msgAlive;
 
 		if (this.getBufferSize() == Integer.MAX_VALUE) {
 			return Integer.MAX_VALUE;
 		}
 
 		for (Message m : getMessageCollection()) {
-			occupancy += m.getSize();
+			if(!m.containsProperty​(MSG_PROP_ALIVE) || ((boolean)m.getProperty(MSG_PROP_ALIVE) == true)) {
+				occupancy += m.getSize();
+			}			
 		}
 
 		return this.getBufferSize() - occupancy;
@@ -690,7 +700,7 @@ public abstract class MessageRouter {
 			}
 			break;
 		default: // Data Message
-			msgHasBeenCreated = true;
+			msgHasBeenCreated = true;			
 		}
 		if (msgHasBeenCreated) {
 			this.setMsgTTL(m);
