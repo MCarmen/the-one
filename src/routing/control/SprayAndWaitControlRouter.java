@@ -13,6 +13,7 @@ import core.Settings;
 import core.control.DirectiveCode;
 import report.control.directive.BufferedMessageUpdate;
 import report.control.directive.ReceivedDirective;
+import routing.MessageRouter;
 import routing.SprayAndWaitRouter;
 
 /**
@@ -142,22 +143,26 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		return isADirectDelivery;
 	}
 
-	@Override
+	
 	/**
 	 * See {@link router.MessageRouter.applyDirective}. When a directive arrives the router modifies the
 	 * routingProperties map, changing the entry MSG_COUNT_PROPERTY with the new L encapsulated in the received
 	 * directive. This affects the nrofcopies of the new created data messages. It also affects the buffered 
 	 * data messages. The nrofcopies (L) of all the data messages in the queue will be reviewed following
 	 * this algorithm:
-	 * We take into account the number of nodes the message has been through except the current one: n_nodes.
-	 * We calculate which would be the current L if the L_directive would be been applied when this
-	 * msg was created:
-	 * L_current = L_directive/2^(n_nodes).
+	 * We take into account the times the message has had an encounter and has decremented the 
+	 * message property nrofCopies by a half.
+	 * We calculate which would be the newL if the initial L would have been L_directive and taking into
+	 * account all the decrease iterations been done over the message:
+	 * newL = L_directive/2^(decrease_iterations).
 	 * @param message The received directive.
 	 */
 	protected void applyDirective(Message message) {
 		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-			int directiveMsgCountValue = (Integer)(message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())); //L
+			int directiveMsgCountValue = (Integer)(message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())); //L 
+			int decreaseIterations;
+			int pow; 
+			boolean isAlive;
 			this.routingProperties.put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, directiveMsgCountValue);
 			
 			BufferedMessageUpdate messagesUpdates = new BufferedMessageUpdate(
@@ -165,28 +170,24 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 			int newMsgCountValue;
 			
 			for (Message msg : this.getMessageCollection()) {
-				if (!msg.isControlMsg() && msg.containsProperty​(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY)) {
-					int currentNrofCopies = (int) msg.getProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY);
-					/*
-					newMsgCountValue = (currentMsgCount > directiveMsgCountValue) ? directiveMsgCountValue
-							: (currentMsgCount < directiveMsgCountValue)
-									? (int) Math.round(directiveMsgCountValue / Math.pow(2, msg.getHopCount()))
-									: directiveMsgCountValue;
-					newMsgCountValue = Math.max(newMsgCountValue, 1);				
-					messagesUpdates.addUpdate(msg, currentMsgCount, newMsgCountValue);									
-					*/
-					/*
-					if (currentMsgCount > directiveMsgCountValue) {
-						newMsgCountValue = directiveMsgCountValue;
-						messagesUpdates.addUpdate(msg, currentMsgCount, newMsgCountValue);
-						msg.updateProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY, newMsgCountValue);						
-					}
-					*/
-					messagesUpdates.addUpdate(msg, currentNrofCopies, -1); //DEBUG
+				if (!msg.isControlMsg() && msg.containsProperty​(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY) && msg.containsProperty​(MSG_PROP_DECREASE_ITERATIONS)) {  										
+					int previousMsgCountValue = (int)msg.getProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY);
+					decreaseIterations = (int)msg.getProperty(MSG_PROP_DECREASE_ITERATIONS);
+					pow = (int)Math.pow(2, decreaseIterations);
+					newMsgCountValue = (int)(directiveMsgCountValue / pow);
+					msg.updateProperty(MSG_COUNT_PROPERTY, newMsgCountValue);
+					isAlive = (newMsgCountValue < 1) ? false : true;
+					msg.updateProperty(MessageRouter.MSG_PROP_ALIVE, isAlive);
+							;					
+//					System.out.println(String.format(
+//							"T: %.1f Msg: %s, directive: %d, hist: %s, iter: %d, pow: %d, newL: %d, alive: %b", 
+//							msg.getCreationTime(), msg.getId(), directiveMsgCountValue, msg.getProperty(MSG_PROP_INIT_L_HISTORY), decreaseIterations, pow, newMsgCountValue,
+//							(newMsgCountValue < 1) ? false : true));					
+					
+					messagesUpdates.addUpdate(msg.getId(), previousMsgCountValue, newMsgCountValue, decreaseIterations, isAlive); //DEBUG
 				}
 			}
-			this.reportAppliedDirectiveToBufferedMessages(messagesUpdates);
-				
+			this.reportAppliedDirectiveToBufferedMessages(messagesUpdates);				
 		}
 	}
 
