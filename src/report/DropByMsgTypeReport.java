@@ -5,7 +5,7 @@ import core.Message;
 import core.MessageListener;
 
 /**
- * This class is a base class for the ...
+ * This class is a base class for the Drop report based on the msg Type.
  * @author mc
  *
  */
