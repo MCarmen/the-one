@@ -260,7 +260,8 @@ public abstract class ActiveRouter extends MessageRouter {
 	}
 
 	/**
-	 * Removes messages from the buffer (oldest first) until
+	 * Removes messages from the buffer. The first ones to go are the ones with
+	 * the flag alive set to false. The second ones to go are the oldest ones until
 	 * there's enough space for the new message.
 	 * @param size Size of the new message
 	 * transferred, the transfer is aborted before message is removed
@@ -314,8 +315,9 @@ public abstract class ActiveRouter extends MessageRouter {
 
 
 	/**
-	 * Returns the oldest (by receive time) message in the message buffer
-	 * (that is not being sent if excludeMsgBeingSent is true).
+	 * Returns the oldest with the flag ALIVE set to false. If there is no 
+	 * message satisfying this condition then returns the oldest (by receive time) 
+	 * message in the message buffer (that is not being sent if excludeMsgBeingSent is true).
 	 * @param excludeMsgBeingSent If true, excludes message(s) that are
 	 * being sent from the oldest message check (i.e. if oldest message is
 	 * being sent, the second oldest message is returned)
@@ -326,12 +328,21 @@ public abstract class ActiveRouter extends MessageRouter {
 	protected Message getNextMessageToRemove(boolean excludeMsgBeingSent) {
 		Collection<Message> messages = this.getMessageCollection();
 		Message oldest = null;
+		Message oldestNotAlive = null;
 		for (Message m : messages) {
 
 			if (excludeMsgBeingSent && isSending(m.getId())) {
 				continue; // skip the message(s) that router is sending
 			}
-
+			
+			if(m.containsProperty​(MSG_PROP_ALIVE) && (boolean)m.getProperty(MSG_PROP_ALIVE) == false) {
+				if (oldestNotAlive == null) {
+					oldestNotAlive = m;
+				}else if(oldestNotAlive.getReceiveTime() > m.getReceiveTime()){
+					oldestNotAlive = m;
+				}
+			}
+			
 			if (oldest == null ) {
 				oldest = m;
 			}
@@ -340,7 +351,7 @@ public abstract class ActiveRouter extends MessageRouter {
 			}
 		}
 
-		return oldest;
+		return (oldestNotAlive!=null) ? oldestNotAlive : oldest;
 	}
 	
 	
