@@ -323,7 +323,7 @@ public class Message implements Comparable<Message> {
 	 * as determined by the equals method; false otherwise.
 	 */
 	public boolean containsProperty​(String key) {
-		return this.properties.containsKey(key);
+		return ((this.properties!=null) && (this.properties.containsKey(key)) );
 	}	
 
 	/**
