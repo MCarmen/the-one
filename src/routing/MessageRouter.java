@@ -25,8 +25,10 @@ import core.SimError;
 import core.control.ControlMessage;
 import core.control.MetricMessage;
 import core.control.listener.DirectiveListener;
+import core.control.listener.MetricListener;
 import report.control.directive.BufferedMessageUpdate;
 import report.control.directive.DirectiveDetails;
+import report.control.metric.MetricDetails;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
 import routing.control.RoutingPropertyMap;
@@ -115,7 +117,7 @@ public abstract class MessageRouter {
 
 	/** applications attached to the host */
 	private HashMap<String, Collection<Application>> applications = null;
-	
+		
 	/** host type -setting id ({@value}) in the Group name space */
 	public static final String TYPE_S = "type";
 	/** Default setting value for type specifying the type of a group 
@@ -159,7 +161,7 @@ public abstract class MessageRouter {
 	/** The Ttl for the metrics in minutes. */
 	protected int metricTtl;	
 	/** The Ttl for the directives in minutes. */
-	protected int directiveTtl;	
+	protected int directiveTtl;
 
 	/**
 	 * Constructor. Creates a new message router based on the settings in
@@ -344,7 +346,6 @@ public abstract class MessageRouter {
 	 */
 	public long getFreeBufferSize() {
 		long occupancy = 0;
-		boolean msgAlive;
 
 		if (this.getBufferSize() == Integer.MAX_VALUE) {
 			return Integer.MAX_VALUE;
@@ -478,15 +479,25 @@ public abstract class MessageRouter {
 					this.deliveredMessages.put(id, aMessage);
 				}
 				break;
-			case MESSAGE_DESTINATION_UNREACHED_CODE: case METRIC_DESTINATION_UNREACHED_CODE:
+			case MESSAGE_DESTINATION_UNREACHED_CODE: 
 				if(outgoing != null) {
 					this.addToMessages(aMessage, false);
 				}
 				break;
+			case METRIC_DESTINATION_UNREACHED_CODE:
+				if(outgoing != null) {
+					this.metricsSensed.addReceivedMetric((MetricMessage)aMessage);
+					if(!isDeliveredMessage(aMessage)) {
+						this.deliveredMessages.put(id, aMessage);
+						isFirstDelivery = true;
+					}	
+				}				
+				break;
 			case METRIC_DESTINATION_REACHED_CODE:
-				if(!this.controller.isACentralizedController() && (outgoing != null)) {
-					this.addToMessages(aMessage, false);
-				}
+// the commented code is not necessary if we do aggregate the metrics.				
+//				if(!this.controller.isACentralizedController() && (outgoing != null)) {
+//					this.addToMessages(aMessage, false);
+//				}
 				if(!isDeliveredMessage(aMessage)) {
 					this.deliveredMessages.put(id, aMessage);
 					this.controller.addMetric((ControlMessage)aMessage);
@@ -648,7 +659,7 @@ public abstract class MessageRouter {
 	}
 
 	/**
-	 * In case the message to be created is a normal one it is created straight 
+	 * In case the message to be created is a data one it is created straight 
 	 * away.
 	 * If the message to be created is a new metric, the router delegates
 	 * the fulfillment of the message, with the metric information, to 
@@ -660,9 +671,8 @@ public abstract class MessageRouter {
 	 * If the message to be created is a new directive, the router delegates the
 	 * the fulfillment of the message with the directive to 
 	 * {@link Controller#fillMessageWithDirective(ControlMessage)}.
-	 * If an standard message, or metric or directive is finally created, it is 
+	 * If a data message, or metric or directive is finally created, it is 
 	 * added to the list of messages of the router. 
-	 * If there is no directive/metric to be generated this method returns false.  
 	 * No message is created in case the simulation time exceeds a percentage 
 	 * defined in the settings.
 	 * @param m The message to create.
@@ -686,7 +696,7 @@ public abstract class MessageRouter {
 			}
 			break;
 		case METRIC:
-			this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
+			MetricDetails metricDetails = this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
 			if (this.isControlMsgGeneratedByMeAsAController((MetricMessage) m)) {
 				this.setMsgTTL(m);
 				this.controller.addMetric((MetricMessage) m);
@@ -697,6 +707,9 @@ public abstract class MessageRouter {
 				this.deliveredMessages.put(m.getId(), m); 
 			} else {
 				msgHasBeenCreated = true;
+			}
+			if(msgHasBeenCreated) {
+				this.reportNewMetric(metricDetails);
 			}
 			break;
 		default: // Data Message
@@ -912,7 +925,7 @@ public abstract class MessageRouter {
 		if (this.controlModeOn) {
 			Settings control_s = new Settings(CONTROL_NS);
 			this.metricTtl = (control_s.contains(METRIC_TTL_S)) ? control_s.getInt(METRIC_TTL_S) : Message.INFINITE_TTL;
-			this.directiveTtl = (control_s.contains(DIRECTIVE_TTL_S)) ? control_s.getInt(DIRECTIVE_TTL_S) : Message.INFINITE_TTL;
+			this.directiveTtl = (control_s.contains(DIRECTIVE_TTL_S)) ? control_s.getInt(DIRECTIVE_TTL_S) : Message.INFINITE_TTL;		
 		}
 	}
 		
@@ -1046,6 +1059,22 @@ public abstract class MessageRouter {
 				((DirectiveListener)ml).directiveAppliedToBufferedMessages(messagesUpdates);
 			}
 		}    	
+    }
+    
+    /**
+     * Method that reports to all the MetricListeners about the creation
+     * of a metric.
+     * @param metricDetails the details of the created metric or null
+     * if no metric has been created.
+     */
+    protected void reportNewMetric(MetricDetails metricDetails) {
+    	if(metricDetails != null) {
+    		for (MessageListener ml : this.mListeners) {
+    			if (ml instanceof MetricListener) {
+    				((MetricListener)ml).newMetric(metricDetails);
+    			}
+    		}
+    	}
     }
         
  
