@@ -158,7 +158,7 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * @param message The received directive.
 	 */
 	protected void applyDirective(Message message) {
-		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
+		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE)) {
 			int directiveMsgCountValue = (Integer)(message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())); //L 
 			int decreaseIterations;
 			int pow; 
