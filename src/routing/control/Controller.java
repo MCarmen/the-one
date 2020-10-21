@@ -6,6 +6,7 @@ import core.SimClock;
 import core.control.ControlMessage;
 import report.control.directive.DirectiveDetails;
 import routing.MessageRouter;
+import routing.control.util.Decay;
 
 
 
@@ -45,12 +46,16 @@ public class Controller {
 	/** The settings package full name. */
 	private static final String SETTINGS_PACKAGE = "core.Settings";
 	
+	
 	/** Engine to be used to generate directives. */
     protected DirectiveEngine directiveEngine;
     
     /** If there is just one controller in the simulation it is set to true. 
      * True is the default value.*/
     private boolean isACentralizedController = true;
+    
+    /** A decay function */
+    protected Decay decay;
     
 	/**
 	 * Time in seconds before the control system starts. This time is needed in 
@@ -105,8 +110,7 @@ public class Controller {
 				directiveEngine_str, directiveEngineConstructorArgumentTypes, 
 				new Object[]{eWMAEngineSettings, router});
     }   
-    
-    
+        
     /**
      * Getter of the attribute isACentralizedController.
      * @return True if there is just one controller in the scenario. False if 
