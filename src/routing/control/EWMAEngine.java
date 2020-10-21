@@ -181,7 +181,7 @@ public class EWMAEngine extends DirectiveEngine {
 	
 	@Override
 	public void addMetric(ControlMessage metric) {
-		this.addCtrlMsg(metric, this.ctrlCycleMetricHistory, MetricCode.CONGESTION_CODE.toString());		
+		this.addCtrlMsg(metric, this.ctrlCycleMetricHistory, MetricCode.CONGESTION_CODE);		
 	}
 
 	@Override
@@ -191,7 +191,7 @@ public class EWMAEngine extends DirectiveEngine {
 	 * @param directive the directive to be aggregated.
 	 */
 	public void addDirective(ControlMessage directive) {
-		this.addCtrlMsg(directive, this.ctrlCycleDirectiveHistory, DirectiveCode.NROF_COPIES_CODE.toString());		
+		this.addCtrlMsg(directive, this.ctrlCycleDirectiveHistory, DirectiveCode.NROF_COPIES_CODE);		
 	}
 	
 	/**
@@ -205,9 +205,9 @@ public class EWMAEngine extends DirectiveEngine {
 		
 		for(Message msg : metricHistory) {
 			MetricMessage metric = (MetricMessage)msg;
-			nextCongestionReading = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE.toString());
+			nextCongestionReading = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE);
 			congestionMetricAvg = this.sCongestionAverage.getValue();
-			this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionMetric());
+			this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionValue());
 			this.directiveDetails.addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue());	
 		}		
 	}
@@ -223,7 +223,7 @@ public class EWMAEngine extends DirectiveEngine {
 		
 		for(Message msg : directiveHistory) {
 			DirectiveMessage directive = (DirectiveMessage)msg; 
-			nextNrofCopiesReading = (int) directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
+			nextNrofCopiesReading = (int) directive.getProperty(DirectiveCode.NROF_COPIES_CODE);
 			directiveAvg = this.sNrofMsgCopiesAverage.getValue();
 			this.sNrofMsgCopiesAverage.aggregateValue(nextNrofCopiesReading);
 			this.directiveDetails.addDirectiveUsed(
@@ -292,7 +292,7 @@ public class EWMAEngine extends DirectiveEngine {
 						Math.min((int)newNrofCopies, this.maxCopies) : (int)newNrofCopies;
 									
 				//Adding the 'L' property in the Directive message.
-				((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE.toString(), newNrofCopiesIntValue);
+				((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE, newNrofCopiesIntValue);
 				//modifying, in the routingConfiguration map, the initial number of copies for new messages.
 				this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
 					newNrofCopiesIntValue);
