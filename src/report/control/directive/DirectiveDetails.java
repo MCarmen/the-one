@@ -115,8 +115,8 @@ public class DirectiveDetails {
 		this.directiveID = m.getId();
 		this.generatedByNode = m.getFrom().toString();
 		this.creationTime = (int)m.getCreationTime();
-		if (m.containsProperty​(DirectiveCode.NROF_COPIES_CODE.toString())) {
-			this.newNrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
+		if (m.containsProperty​(DirectiveCode.NROF_COPIES_CODE)) {
+			this.newNrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE);
 		}
 		this.congestionAverage = congestionAverage;
 		this.nrofMsgCopiesAverage = nrofMsgCopiesAverage;
@@ -130,7 +130,7 @@ public class DirectiveDetails {
 		
 		directiveProperties.put("id", directive.getId());
 		directiveProperties.put("from", directive.getFrom());
-		directiveProperties.put("dirS", new DecimalFormat("#0.00").format(directive.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())));
+		directiveProperties.put("dirS", new DecimalFormat("#0.00").format(directive.getProperty(DirectiveCode.NROF_COPIES_CODE)));
 		directiveProperties.put("dirAvg", new DecimalFormat("#0.00").format(currentAggregatedDirectivesAvg));
 		directiveProperties.put("newDirAvg", new DecimalFormat("#0.00").format(newDirecivesAvg));
 		
@@ -149,8 +149,8 @@ public class DirectiveDetails {
 			double currentCongestionAverage, double newCongestionAverage 
 			) {
 		Properties metricProperties = new Properties();
-		CongestionMetricPerWT congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE.toString());
-		double congestionSensed = congestionMetric.getCongestionMetric();
+		CongestionMetricPerWT congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE);
+		double congestionSensed = congestionMetric.getCongestionValue();
 		
 		metricProperties.put("id", metric.getId());
 		metricProperties.put("creationT", new DecimalFormat("#0").format(metric.getCreationTime()));
