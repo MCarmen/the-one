@@ -36,7 +36,7 @@ public class CreatedMetricMessagesReport extends CreatedMessagesReport  {
 				report += String.format("%s ", m.getId()); 
 				report += String.format("%s ", m.getFrom());
 				report += String.format("%s ", m.getTo());
-				report += String.format("%s ", ((CongestionMetricPerWT)m.getProperty(MetricCode.CONGESTION_CODE.toString())) );
+				report += String.format("%s ", ((CongestionMetricPerWT)m.getProperty(MetricCode.CONGESTION_CODE)) );
 				report += String.format("%d ", (Integer)m.getProperty(SprayAndWaitRouter.MSG_COUNT_PROPERTY));
 				write(report);
 			}
