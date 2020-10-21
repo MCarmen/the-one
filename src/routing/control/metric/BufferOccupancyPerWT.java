@@ -15,8 +15,14 @@ public class BufferOccupancyPerWT extends CongestionMetricPerWT {
 		super(bufferOccupancy, time);
 	}
 	
+	
+	public BufferOccupancyPerWT(double congestionValue, double time, int nrofAggregatedMetrics) {
+		super(congestionValue, time, nrofAggregatedMetrics);
+	}
+
+
 	public String toString() {
-		return String.format("%.3f %.1f", this.congestionMetric, this.time);
+		return String.format("%.3f %.1f", this.congestionValue, this.time);
 	}		
 	
 }
