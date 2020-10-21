@@ -65,7 +65,7 @@ public class ReceivedDirectiveReport extends Report implements DirectiveListener
 	public void directiveReceived(Message m, DTNHost to) {
 		// TODO Auto-generated method stub
 		if(m.getType() == MessageType.DIRECTIVE) {
-			int nrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE.toString());
+			int nrofCopies = (int)m.getProperty(DirectiveCode.NROF_COPIES_CODE);
 			ReceivedDirective receivedDirective = 
 					new ReceivedDirective(m.getId(), to.toString(), nrofCopies); 
 			this.receivedDirectives.add(receivedDirective);
