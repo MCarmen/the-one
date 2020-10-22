@@ -86,7 +86,7 @@ public class DoubleWeightedAverageCongestionMetricCalculator {
 						sumOfAllTheMetricsAggregations, metricDecayWeights[i++], sumOfAllDecayWeights);
 				
 				metricDetails.aggregateMetric(new AggregatedMetricDetails(metric.getId(), metric.getFrom().toString(),
-						congestionMetric.congestionValue, congestionMetric.nrofAggregatedMetrics,
+						metric.getCreationTime(), congestionMetric.congestionValue, congestionMetric.nrofAggregatedMetrics,
 						decay.getDecayWeightAt(currentTime - metric.getCreationTime())));
 			}
 		}
