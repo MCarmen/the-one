@@ -25,8 +25,8 @@ public class MetricDetails {
 	/** The final value of the metric after aggregating the metrics rececived. */	
 	private double aggregatedValue;
 	
-	/** The current metric delay*/
-	private double delay;
+	/** The current metric decay*/
+	private double decay;
 	
 	/** The sum of the aggregations made by each one of the aggregated metrics. */
 	private int sumOfMetricsAggregations;
@@ -56,11 +56,11 @@ public class MetricDetails {
 	 * 
 	 */
 	public void init(double originalValue,
-			double aggregatedValue, double delay, int sumOfMetricsAggregations, double sumOfDelays) {
+			double aggregatedValue, double decay, int sumOfMetricsAggregations, double sumOfDelays) {
 
 		this.originalValue = originalValue;
 		this.aggregatedValue = aggregatedValue;
-		this.delay = delay;
+		this.decay = decay;
 		this.sumOfMetricsAggregations = sumOfMetricsAggregations;
 		this.sumOfDelays = sumOfDelays;		
 	}
@@ -86,7 +86,7 @@ public class MetricDetails {
 	
 	public String toString() {
 		String str = String.format(
-				"ID:%s Created:%.2f Node:%s Val:%.2f AggrVal:%.2f nrofAggr:%d decayWeight:%.2f sumAggr:%d sumDelay:%.2f aggregated metrics:\n%s", this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue, this.aggregatedMetrics.size() + 1, this.delay, this.sumOfMetricsAggregations, this.sumOfDelays, this.aggregatedMetrics);
+				"ID:%s Created:%.2f Node:%s Val:%.2f AggrVal:%.2f nrofAggr:%d decayWeight:%.2f sumAggr:%d sumDelay:%.2f aggregated metrics:\n%s", this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue, this.aggregatedMetrics.size() + 1, this.decay, this.sumOfMetricsAggregations, this.sumOfDelays, this.aggregatedMetrics);
 			
 //				this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue,
 //				this.aggregatedMetrics.size() + 1, this.delay, this.sumOfMetricsAggregations, this.sumOfDelays,
@@ -107,6 +107,9 @@ public class MetricDetails {
 		
 		/** Identifier of the node that generated the metric.  */
 		private String generatedByNode;
+		
+		/** When the metric was created */
+		private double creationTime;		
 				
 		/** The value of the metric. */
 		private double value;
@@ -117,18 +120,19 @@ public class MetricDetails {
 		/** The current metric decay*/
 		private double decayWeight;
 
-		public AggregatedMetricDetails(String metricID, String generatedByNode, double value, int nrofAggregations,
+		public AggregatedMetricDetails(String metricID, String generatedByNode, double creationTime, double value, int nrofAggregations,
 				double decayWeight) {
 			this.metricID = metricID;
 			this.generatedByNode = generatedByNode;
+			this.creationTime = creationTime;
 			this.value = value;
 			this.nrofAggregations = nrofAggregations;
 			this.decayWeight = decayWeight;
 		}
 		
 		public String toString() {
-			return String.format("ID:%s Node:%s Val:%.2f nrofAggr:%d delay:%.2f\n", this.metricID, this.generatedByNode,
-					this.value, this.nrofAggregations, this.decayWeight);
+			return String.format("ID:%s Node:%s Created:%.2f Val:%.2f nrofAggr:%d delay:%.2f\n", this.metricID, this.generatedByNode,
+					this.creationTime, this.value, this.nrofAggregations, this.decayWeight);
 		}
 	}
 }
