@@ -175,7 +175,7 @@ public class DirectiveDetails {
 		return String.format("%s %d %s %d %d %.2f %.2f %s %s %s", this.directiveID, this.creationTime, 
 				this.generatedByNode, this.lastCtrlCycleNrofCopies, this.newNrofCopies,  
 				this.congestionAverage, this.nrofMsgCopiesAverage, this.congestionState, 
-				this.directivesUsed, this.toStringAggregatedMetrics());
+				this.directivesUsed, this.metricsUsed);
 	}
 	
 	/**
