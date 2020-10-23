@@ -7,7 +7,6 @@ import core.SimClock;
 import core.control.MetricCode;
 import core.control.MetricMessage;
 import report.control.metric.MetricDetails;
-import report.control.metric.MetricDetails.AggregatedMetricDetails;
 import routing.control.util.Decay;
 import routing.control.util.DecayFactory;
 
@@ -83,11 +82,8 @@ public class DoubleWeightedAverageCongestionMetricCalculator {
 				congestionMetric = (CongestionMetricPerWT) metric.getProperty(MetricCode.CONGESTION_CODE);
 				doubleWeightedAverageForCongestion += getDoubleWeightedAverageForAMeasure(
 						congestionMetric.congestionValue, congestionMetric.nrofAggregatedMetrics,
-						sumOfAllTheMetricsAggregations, metricDecayWeights[i++], sumOfAllDecayWeights);
-				
-				metricDetails.aggregateMetric(new AggregatedMetricDetails(metric.getId(), metric.getFrom().toString(),
-						metric.getCreationTime(), congestionMetric.congestionValue, congestionMetric.nrofAggregatedMetrics,
-						decay.getDecayWeightAt(currentTime - metric.getCreationTime())));
+						sumOfAllTheMetricsAggregations, metricDecayWeights[i++], sumOfAllDecayWeights);				
+				metricDetails.aggregateMetric(metric, decay.getDecayWeightAt(currentTime - metric.getCreationTime()));
 			}
 		}
 
