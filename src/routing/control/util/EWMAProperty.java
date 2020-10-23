@@ -1,15 +1,22 @@
 package routing.control.util;
 
+/**
+ * Support class encapsulating an smoothed property using an EWMA function. 
+ * The EWMA function used is:
+ * sPoperty = (1-alpha) * sPoperty + alpha * property_messured.
+ * @author mc
+ *
+ */
 public class EWMAProperty{
 	
-	private static final double NOT_SET_VALUE = System.currentTimeMillis();
+	protected static final double NOT_SET_VALUE = System.currentTimeMillis();
     
 	/** Average of the property value smoothed by the application of the EWMA 
 	 * function after a call to the method aggregateValue(newValue) */
-	private double sProperty; 
+	protected double sProperty; 
 
 	/** Alfa constant used in the EWMA function. */
-    private double alpha;
+	protected double alpha;
         	
 	/**
 	 * Constructor that sets the initial value of the property to be smoothed 
