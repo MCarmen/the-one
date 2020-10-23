@@ -1,7 +1,13 @@
 package report.control.metric;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+
+import core.control.MetricCode;
+import core.control.MetricMessage;
+import routing.control.metric.CongestionMetricPerWT;
 
 /**
  * Class with the details of the created metric. 
@@ -35,7 +41,7 @@ public class MetricDetails {
 	private double sumOfDelays;
 	
 	/** A list with the aggregated metrics. */
-	private List<AggregatedMetricDetails> aggregatedMetrics = new ArrayList<>();
+	private List<Properties> aggregatedMetrics = new ArrayList<>();
 
 	
 	public MetricDetails(String metricID, String generatedByNode, double creationTime) {
@@ -65,8 +71,19 @@ public class MetricDetails {
 		this.sumOfDelays = sumOfDelays;		
 	}
 
-	public void aggregateMetric(AggregatedMetricDetails metricDetails) {
-		this.aggregatedMetrics.add(metricDetails);
+	public void aggregateMetric(MetricMessage metric, double decayWeight) {
+		Properties metricProperties = new Properties();
+		CongestionMetricPerWT congestionMetric;
+		if (metric.containsProperty​(MetricCode.CONGESTION_CODE)) {
+			congestionMetric = (CongestionMetricPerWT) metric.getProperty(MetricCode.CONGESTION_CODE);
+			metricProperties.put("id", metric.getId());
+			metricProperties.put("from", metric.getFrom());
+			metricProperties.put("creationT", new DecimalFormat("#0").format(metric.getCreationTime()));
+			metricProperties.put("Value", new DecimalFormat("#0.00").format(congestionMetric.getCongestionValue()));
+			metricProperties.put("aggregations",congestionMetric.getNrofAggregatedMetrics());
+			metricProperties.put("decayWeight", decayWeight);
+			this.aggregatedMetrics.add(metricProperties);
+		}
 	}
 
 	/**
@@ -86,7 +103,7 @@ public class MetricDetails {
 	
 	public String toString() {
 		String str = String.format(
-				"ID:%s Created:%.2f Node:%s Val:%.2f AggrVal:%.2f nrofAggr:%d decayWeight:%.2f sumAggr:%d sumDelay:%.2f aggregated metrics:\n%s", this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue, this.aggregatedMetrics.size() + 1, this.decay, this.sumOfMetricsAggregations, this.sumOfDelays, this.aggregatedMetrics);
+				"ID:%s Created:%.2f Node:%s Val:%.2f AggrVal:%.2f nrofAggr:%d decayWeight:%.2f sumAggr:%d sumDelay:%.2f aggregated metrics:\n%s", this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue, this.aggregatedMetrics.size() + 1, this.decay, this.sumOfMetricsAggregations, this.sumOfDelays, this.toStringAggregatedMetrics());
 			
 //				this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue,
 //				this.aggregatedMetrics.size() + 1, this.delay, this.sumOfMetricsAggregations, this.sumOfDelays,
@@ -94,45 +111,15 @@ public class MetricDetails {
 		return str;
 	}
 	
-	
 	/**
-	 * Inner class that encapsulates the basic information of an aggregated 
-	 * metric.
-	 * @author mc
-	 *
+	 * Method to print each one of the aggregatedMetricDetails in a different row 
+	 * @return An string with all the metrics separated by a \n.
 	 */
-	public static class AggregatedMetricDetails{
-		/** Metric Identifier. */
-		private String metricID;
-		
-		/** Identifier of the node that generated the metric.  */
-		private String generatedByNode;
-		
-		/** When the metric was created */
-		private double creationTime;		
-				
-		/** The value of the metric. */
-		private double value;
-		
-		/** The number of metrics aggregated to produce this metric */
-		private int nrofAggregations;
-		
-		/** The current metric decay*/
-		private double decayWeight;
-
-		public AggregatedMetricDetails(String metricID, String generatedByNode, double creationTime, double value, int nrofAggregations,
-				double decayWeight) {
-			this.metricID = metricID;
-			this.generatedByNode = generatedByNode;
-			this.creationTime = creationTime;
-			this.value = value;
-			this.nrofAggregations = nrofAggregations;
-			this.decayWeight = decayWeight;
+	private String toStringAggregatedMetrics() {
+		String str = "";
+		for(Properties aggregatedMetric: this.aggregatedMetrics) {
+			str += String.format("%s\n",aggregatedMetric);
 		}
-		
-		public String toString() {
-			return String.format("ID:%s Node:%s Created:%.2f Val:%.2f nrofAggr:%d delay:%.2f\n", this.metricID, this.generatedByNode,
-					this.creationTime, this.value, this.nrofAggregations, this.decayWeight);
-		}
+		return str;
 	}
 }
