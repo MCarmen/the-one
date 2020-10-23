@@ -150,12 +150,12 @@ public class DirectiveDetails {
 			) {
 		Properties metricProperties = new Properties();
 		CongestionMetricPerWT congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE);
-		double congestionSensed = congestionMetric.getCongestionValue();
 		
 		metricProperties.put("id", metric.getId());
 		metricProperties.put("creationT", new DecimalFormat("#0").format(metric.getCreationTime()));
 		metricProperties.put("from", metric.getFrom());
-		metricProperties.put("CongS", new DecimalFormat("#0.00").format(congestionSensed));
+		metricProperties.put("aggregations",congestionMetric.getNrofAggregatedMetrics());
+		metricProperties.put("CongS", new DecimalFormat("#0.00").format(congestionMetric.getCongestionValue()));
 		metricProperties.put("CongAvg" , new DecimalFormat("#0.00").format(currentCongestionAverage));
 		metricProperties.put("NewCongAvg" , new DecimalFormat("#0.00").format(newCongestionAverage));
 		
@@ -175,7 +175,19 @@ public class DirectiveDetails {
 		return String.format("%s %d %s %d %d %.2f %.2f %s %s %s", this.directiveID, this.creationTime, 
 				this.generatedByNode, this.lastCtrlCycleNrofCopies, this.newNrofCopies,  
 				this.congestionAverage, this.nrofMsgCopiesAverage, this.congestionState, 
-				this.directivesUsed, this.metricsUsed);
+				this.directivesUsed, this.toStringAggregatedMetrics());
+	}
+	
+	/**
+	 * Method to print each one of the aggregatedMetricDetails in a different row 
+	 * @return An string with all the metrics separated by a \n.
+	 */
+	private String toStringAggregatedMetrics() {
+		String str = "";
+		for(Properties aggregatedMetric: this.metricsUsed) {
+			str += String.format("%s\n",aggregatedMetric);
+		}
+		return str;
 	}
 	
 	/**
