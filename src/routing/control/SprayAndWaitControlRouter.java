@@ -174,6 +174,7 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 			boolean isAlive;
 			if (directiveShouldBeApplied(message)) {			
 				this.routingProperties.put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, directiveMsgCountValue);
+
 				BufferedMessageUpdate messagesUpdates = new BufferedMessageUpdate(
 						new ReceivedDirective(message.getId(), this.getHost().toString(), directiveMsgCountValue));
 				int newMsgCountValue;
@@ -212,15 +213,20 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	
 	/**
 	 * A directive should be applied if no directive has been applied before, or
-	 * if the new directive is newer than the last one being applied. If the 
+	 * if the new directive is newer than the last one being applied and if the new 
+	 * directive value is different from the last applied value. If the 
 	 * directive is to be applied, its timestamp is stored.
 	 * @param message The directive message
 	 * @return true if the directive has to be applied or false otherwise.
 	 */
 	private boolean directiveShouldBeApplied(Message message) {
 		boolean hasToBeApplied = false;
+		int directiveMsgCountValue = (Integer) (message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())); // L
+		int currentDirectiveMsgCountValue = this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		
-		if(!this.hasADirectiveBeenApplied() || message.getCreationTime() > this.creationTimeOfTheAppliedDirective) {
+		if(!this.hasADirectiveBeenApplied() || 
+				message.getCreationTime() > this.creationTimeOfTheAppliedDirective && 
+				directiveMsgCountValue != currentDirectiveMsgCountValue) {
 			hasToBeApplied = true;
 			this.creationTimeOfTheAppliedDirective = message.getCreationTime();			
 		}
