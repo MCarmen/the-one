@@ -10,7 +10,9 @@ import core.Connection;
 import core.DTNHost;
 import core.Message;
 import core.Settings;
+import core.SimClock;
 import core.control.DirectiveCode;
+import core.control.DirectiveMessage;
 import report.control.directive.BufferedMessageUpdate;
 import report.control.directive.ReceivedDirective;
 import routing.MessageRouter;
@@ -27,6 +29,10 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 
 	/** SprayAndWaitControl router's settings name space ({@value})*/
 	public static final String SPRAYANDWAITCONTROL_NS = "SprayAndWaitControlRouter";
+	
+	private static final int NO_APPLIED_DIRECTIVES = -1;
+	
+	private double creationTimeOfTheAppliedDirective = NO_APPLIED_DIRECTIVES;
 	
 	public SprayAndWaitControlRouter(Settings s) {
 		super(s);
@@ -145,50 +151,80 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 
 	
 	/**
-	 * See {@link router.MessageRouter.applyDirective}. When a directive arrives the router modifies the
-	 * routingProperties map, changing the entry MSG_COUNT_PROPERTY with the new L encapsulated in the received
-	 * directive. This affects the nrofcopies of the new created data messages. It also affects the buffered 
-	 * data messages. The nrofcopies (L) of all the data messages in the queue will be reviewed following
-	 * this algorithm:
-	 * We take into account the times the message has had an encounter and has decremented the 
-	 * message property nrofCopies by a half.
-	 * We calculate which would be the newL if the initial L would have been L_directive and taking into
-	 * account all the decrease iterations been done over the message:
-	 * newL = L_directive/2^(decrease_iterations).
+	 * See {@link router.MessageRouter.applyDirective}. When a directive arrives, 
+	 * if it is newer than the previous one being applied, the
+	 * router modifies the routingProperties map, changing the entry
+	 * MSG_COUNT_PROPERTY with the new L encapsulated in the received directive.
+	 * This affects the nrofcopies of the new created data messages. It also affects
+	 * the buffered data messages. The nrofcopies (L) of all the data messages in
+	 * the queue will be reviewed following this algorithm: We take into account the
+	 * times the message has had an encounter and has decremented the message
+	 * property nrofCopies by a half. We calculate which would be the newL if the
+	 * initial L would have been L_directive and taking into account all the
+	 * decrease iterations been done over the message: newL =
+	 * L_directive/2^(decrease_iterations).
+	 * 
 	 * @param message The received directive.
 	 */
 	protected void applyDirective(Message message) {
 		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE)) {
-			int directiveMsgCountValue = (Integer)(message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())); //L 
+			int directiveMsgCountValue = (Integer) (message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())); // L
 			int decreaseIterations;
-			int pow; 
+			int pow;
 			boolean isAlive;
-			this.routingProperties.put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, directiveMsgCountValue);
-			
-			BufferedMessageUpdate messagesUpdates = new BufferedMessageUpdate(
-					new ReceivedDirective(message.getId(), this.getHost().toString(), directiveMsgCountValue));
-			int newMsgCountValue;
-			
-			for (Message msg : this.getMessageCollection()) {
-				if (!msg.isControlMsg() && msg.containsProperty​(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY) && msg.containsProperty​(MSG_PROP_DECREASE_ITERATIONS)) {  										
-					int previousMsgCountValue = (int)msg.getProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY);
-					decreaseIterations = (int)msg.getProperty(MSG_PROP_DECREASE_ITERATIONS);
-					pow = (int)Math.pow(2, decreaseIterations);
-					newMsgCountValue = (int)(directiveMsgCountValue / pow);
-					msg.updateProperty(MSG_COUNT_PROPERTY, newMsgCountValue);
-					isAlive = (newMsgCountValue < 1) ? false : true;
-					msg.updateProperty(MessageRouter.MSG_PROP_ALIVE, isAlive);
-							;					
-//					System.out.println(String.format(
-//							"T: %.1f Msg: %s, directive: %d, hist: %s, iter: %d, pow: %d, newL: %d, alive: %b", 
-//							msg.getCreationTime(), msg.getId(), directiveMsgCountValue, msg.getProperty(MSG_PROP_INIT_L_HISTORY), decreaseIterations, pow, newMsgCountValue,
-//							(newMsgCountValue < 1) ? false : true));					
-					
-					messagesUpdates.addUpdate(msg.getId(), previousMsgCountValue, newMsgCountValue, decreaseIterations, isAlive); //DEBUG
+			if (directiveShouldBeApplied(message)) {			
+				this.routingProperties.put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, directiveMsgCountValue);
+				BufferedMessageUpdate messagesUpdates = new BufferedMessageUpdate(
+						new ReceivedDirective(message.getId(), this.getHost().toString(), directiveMsgCountValue));
+				int newMsgCountValue;
+
+				for (Message msg : this.getMessageCollection()) {
+					if (!msg.isControlMsg() && msg.containsProperty​(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY)
+							&& msg.containsProperty​(MSG_PROP_DECREASE_ITERATIONS)) {
+						int previousMsgCountValue = (int) msg.getProperty(SprayAndWaitControlRouter.MSG_COUNT_PROPERTY);
+						decreaseIterations = (int) msg.getProperty(MSG_PROP_DECREASE_ITERATIONS);
+						pow = (int) Math.pow(2, decreaseIterations);
+						newMsgCountValue = (int) (directiveMsgCountValue / pow);
+						msg.updateProperty(MSG_COUNT_PROPERTY, newMsgCountValue);
+						isAlive = (newMsgCountValue < 1) ? false : true;
+						msg.updateProperty(MessageRouter.MSG_PROP_ALIVE, isAlive);
+						;
+						// System.out.println(String.format(
+						// "T: %.1f Msg: %s, directive: %d, hist: %s, iter: %d, pow: %d, newL: %d,
+						// alive: %b",
+						// msg.getCreationTime(), msg.getId(), directiveMsgCountValue,
+						// msg.getProperty(MSG_PROP_INIT_L_HISTORY), decreaseIterations, pow,
+						// newMsgCountValue,
+						// (newMsgCountValue < 1) ? false : true));
+
+						messagesUpdates.addUpdate(msg.getId(), previousMsgCountValue, newMsgCountValue,
+								decreaseIterations, isAlive); // DEBUG
+					}
 				}
+				this.reportAppliedDirectiveToBufferedMessages(messagesUpdates);
 			}
-			this.reportAppliedDirectiveToBufferedMessages(messagesUpdates);				
 		}
+	}
+	
+	private boolean hasADirectiveBeenApplied() {
+		return (this.creationTimeOfTheAppliedDirective != NO_APPLIED_DIRECTIVES);
+	}
+	
+	/**
+	 * A directive should be applied if no directive has been applied before, or
+	 * if the new directive is newer than the last one being applied. If the 
+	 * directive is to be applied, its timestamp is stored.
+	 * @param message The directive message
+	 * @return true if the directive has to be applied or false otherwise.
+	 */
+	private boolean directiveShouldBeApplied(Message message) {
+		boolean hasToBeApplied = false;
+		
+		if(!this.hasADirectiveBeenApplied() || message.getCreationTime() > this.creationTimeOfTheAppliedDirective) {
+			hasToBeApplied = true;
+			this.creationTimeOfTheAppliedDirective = message.getCreationTime();			
+		}
+		return hasToBeApplied;	
 	}
 
 }
