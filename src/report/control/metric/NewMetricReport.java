@@ -7,7 +7,6 @@ import core.DTNHost;
 import core.Message;
 import core.control.listener.MetricListener;
 import report.Report;
-import report.control.directive.DirectiveDetails;
 
 public class NewMetricReport extends Report implements MetricListener {
 	
@@ -54,7 +53,7 @@ public class NewMetricReport extends Report implements MetricListener {
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append("new metric for scenario " + getScenarioName() +
 				"\nsim_time: " + format(getSimTime())+"\n");
-		strBuilder.append(DirectiveDetails.getHeaderString()+"\n");		
+		strBuilder.append(MetricDetails.getHeaderString());	
 		for(MetricDetails metricDetails : this.newMetricDetails) {
 			strBuilder.append(metricDetails + "\n");
 		}
