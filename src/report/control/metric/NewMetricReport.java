@@ -53,7 +53,7 @@ public class NewMetricReport extends Report implements MetricListener {
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append("new metric for scenario " + getScenarioName() +
 				"\nsim_time: " + format(getSimTime())+"\n");
-		strBuilder.append(MetricDetails.getHeaderString());	
+		strBuilder.append(MetricDetails.getHeaderString()+"\n");	
 		for(MetricDetails metricDetails : this.newMetricDetails) {
 			strBuilder.append(metricDetails + "\n");
 		}
