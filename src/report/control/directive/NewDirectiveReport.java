@@ -5,7 +5,6 @@ import java.util.List;
 
 import core.DTNHost;
 import core.Message;
-import core.control.DirectiveCode;
 import core.control.listener.DirectiveListener;
 import report.Report;
 
@@ -67,7 +66,6 @@ public class NewDirectiveReport extends Report implements DirectiveListener {
 
 	@Override
 	public void directiveCreated(DirectiveDetails directiveDetails) {
-		// TODO Auto-generated method stub
 		this.newDirectives.add(directiveDetails);
 	}
 	
@@ -75,8 +73,8 @@ public class NewDirectiveReport extends Report implements DirectiveListener {
 	public void done() {
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append("new directives for scenario " + getScenarioName() +
-				"\nsim_time: " + format(getSimTime())+"\n");
-		strBuilder.append(DirectiveDetails.getHeaderString()+"\n");		
+				"\nsim_time: " + format(getSimTime())+"\n");	
+		strBuilder.append(!this.newDirectives.isEmpty() ? this.newDirectives.get(0).getHeaderString()+"\n" : "");
 		for(DirectiveDetails directiveDetails : this.newDirectives) {
 			strBuilder.append(directiveDetails + "\n");
 		}
