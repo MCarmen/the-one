@@ -1,7 +1,6 @@
 package report.control.directive;
 
 import java.text.DecimalFormat;
-import java.text.Normalizer.Form;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
