@@ -1,18 +1,17 @@
 package routing.control;
 
+import java.util.Properties;
+
 import core.Settings;
-import core.SimClock;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
-import core.control.DirectiveMessage;
 import core.control.MetricCode;
 import report.control.directive.DirectiveDetails;
+import report.control.directive.EWMADirectiveDetails;
 import routing.MessageRouter;
 import routing.control.metric.CongestionMetricPerWT;
 import routing.control.util.EWMAProperty;
-import routing.control.util.EWMAPropertyIterative;;
-
-
+import routing.control.util.EWMAPropertyIterative;
 
 
 /**
@@ -48,6 +47,8 @@ public class EWMAEngine extends DirectiveEngine {
 	 ({@value}) */
 	private static final double DEF_DIRECTIVES_ALPHA = 0.2;
 	
+	/** The property name to index  the congestion mobile average previous to aggregate a new value. */
+	private static final String PROP_PREV_CONGESTION_METRIC_AVG = "previousCongestionMetricAvg";
 			
 	/** Accumulated soften drops average  */
 	private EWMAPropertyIterative sCongestionAverage;
@@ -74,20 +75,14 @@ public class EWMAEngine extends DirectiveEngine {
 	 * aggregated from the received directives.
 	 */	
 	private double nrofCopiesAlpha;	
-		
+	
 
-	
-	/**
-	 * State of congestion of the network.
-	 */
-	private CongestionState congestionState;
-	
 
 	/**
 	 * Controller that reads from the settings, which is set to the value of the
 	 * setting control.engine, all the alphas to be used to smooth, using an EWMA
-	 * function, the drops received in metrics and the number of copies of the 
-	 * message got from directives. It also gets from the settings the drops 
+	 * function, the congestion measure received in metrics and the number of copies of the 
+	 * message got from directives. It also gets from the settings the congestion 
 	 * threshold to be considered to generate a directive or not.
 	 * 
 	 * @param engineSettings the settings object set to the value of the setting
@@ -97,7 +92,6 @@ public class EWMAEngine extends DirectiveEngine {
 	 */
 	public EWMAEngine(Settings engineSettings, MessageRouter router) {
 		super(engineSettings, router);
-		this.congestionState = CongestionState.INITIAL;
 		this.congestionAlpha = (engineSettings.contains(CONGESTION_ALPHA_S)) ? engineSettings.getDouble(CONGESTION_ALPHA_S) : EWMAEngine.DEF_ALPHA;
 		this.nrofCopiesAlpha = (engineSettings.contains(NROFCOPIES_ALPHA_S)) ? engineSettings.getDouble(NROFCOPIES_ALPHA_S)
 				: EWMAEngine.DEF_ALPHA;
@@ -107,14 +101,7 @@ public class EWMAEngine extends DirectiveEngine {
 		this.sCongestionAverage = new EWMAPropertyIterative(this.congestionAlpha);
 		this.sNrofMsgCopiesAverage = new EWMAProperty(this.directivesAlpha);	
 	}
-	
-	@Override
-	protected void resetDirectiveCycleSettings() {		
-		super.resetDirectiveCycleSettings();
-		this.directiveDetails.reset();
-		//this.lastSCongestionAvg = this.sCongestionAverage.getValue();
-	}
-	
+		
 	/**
 	 * Method that checks if the property lastDropsAverage has the same value as the
 	 * current value of the property sDropsAverage. In that case, it means that the
@@ -142,33 +129,20 @@ public class EWMAEngine extends DirectiveEngine {
 //	}
 	
 
-	
+	@Override
 	/**
 	 * Method that aggregates the metric passed as a parameter to the historical
 	 * aggregated value.
 	 * @param metric The metric to be aggregated.
 	 */
-	private void addMetricStraightForward(ControlMessage metric) {
+	protected void addMetricStraightForward(ControlMessage metric) {
 		CongestionMetricPerWT nextCongestionReading = (CongestionMetricPerWT) metric
 				.getProperty(MetricCode.CONGESTION_CODE);
 		double congestionMetricAvg = this.sCongestionAverage.getValue();
 		this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionValue(), nextCongestionReading.getNrofAggregatedMetrics());
-		this.directiveDetails.addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue());		
+		((EWMADirectiveDetails)this.directiveDetails).addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue());		
 	}
-	
-	@Override
-	public void addMetric(ControlMessage metric) {
-		if (this.isASelfGeneratedCtrlMsg(metric)) {
-			this.localMetric = metric;
-		} else {
-			this.receivedCtrlMsgInDirectiveCycle = true;
-			this.addMetricStraightForward(metric);
-		}
-		if((this.receivedCtrlMsgInDirectiveCycle) && (this.localMetric!=null)) {
-			this.addMetricStraightForward(this.localMetric);
-			this.localMetric = null;
-		}
-	}
+		
 
 	@Override
 	/**
@@ -187,104 +161,47 @@ public class EWMAEngine extends DirectiveEngine {
 		nextNrofCopiesReading = (int) directive.getProperty(DirectiveCode.NROF_COPIES_CODE);
 		directiveAvg = this.sNrofMsgCopiesAverage.getValue();
 		this.sNrofMsgCopiesAverage.aggregateValue(nextNrofCopiesReading);
-		this.directiveDetails.addDirectiveUsed(directive, directiveAvg, nextNrofCopiesReading,
+		((EWMADirectiveDetails)this.directiveDetails).addDirectiveUsed(directive, directiveAvg, nextNrofCopiesReading,
 				this.sNrofMsgCopiesAverage.getValue());
 	}
 		
+	
+	@Override
+	protected boolean isSetCongestionMeasure() {
+		return this.sCongestionAverage.isSet();		
+	}
+	
+	@Override
+	protected void initDirectiveDetails(ControlMessage message, int lasCtrlCycleNrofCopies) {		
+		((EWMADirectiveDetails)this.directiveDetails).init(message, lasCtrlCycleNrofCopies, this.sCongestionAverage.getValue(),
+				this.congestionState, this.sNrofMsgCopiesAverage.getValue());	
+	}
+	
+	@Override
+	protected DirectiveDetails copyDirectiveDetails() {
+		return new EWMADirectiveDetails((EWMADirectiveDetails)this.directiveDetails);
+	}
+	
+	@Override
+	protected DirectiveDetails newEmptyDirectiveDetails() {
+		return new EWMADirectiveDetails();
+	}
+	
+	//
 	/**
-	 * Method that updates the controller congestion state depending on the last
-	 * congestionAverage calculated in the last control cycle.
+	 * Method that includes in the directiveDetails object the details of the 
+	 * computed metric.
+	 * @param metric The computed metric. 
+	 * @param details Specific details of the aggregated metric.
 	 */
-
-	private void updateCongestionSate() {
-		this.congestionState = ((this.sCongestionAverage.getValue() >= this.congestionThrMin)
-				&& (this.sCongestionAverage.getValue() < this.congestionThrMax)) ? CongestionState.OPTIMAL
-						: (this.sCongestionAverage.getValue() < this.congestionThrMin) ? CongestionState.UNDER_USE
-								: CongestionState.CONGESTION;
+	protected void addMetricUsedToDirectiveDetails(ControlMessage metric, Properties details) {
+		double previousCongestionMetricAvg = (double)details.get(PROP_PREV_CONGESTION_METRIC_AVG);
+		((EWMADirectiveDetails)this.directiveDetails).addMetricUsed(metric, previousCongestionMetricAvg, this.sCongestionAverage.getValue());
 	}
 
 	@Override
-	/**
-	 * Method that generates a directive message with an 'L' field. The directive is just 
-	 * generated by what happens before, either an event occurs (N no_congestion messages are 
-	 * received, for instance) or the window time expires.
-	 * If the window time expires no directive is generated in case no metric, a part from 
-	 * it's own, is received, otherwise it is generated with the information received. 
-	 * 
-	 * @param message the message directive to be generated.
-	 * @return DirectiveDetails details of the directive: ID, Host ID, Aggregated
-	 *         directives used to infer the directive, or null if no directive has
-	 *         been generated.
-	 * 
-	 */
-	public DirectiveDetails generateDirective(ControlMessage message) {
-		double currentTime = SimClock.getTime(); //DEBUG
-		int lasCtrlCycleNrofCopies = (int)this.router.getRoutingProperties()
-				.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
-		double newNrofCopies = lasCtrlCycleNrofCopies;
-		DirectiveDetails currentDirectiveDetails = null;
-		
-		// if we have received metrics and no silence from other nodes != from ourselves.
-		if (this.receivedCtrlMsgInDirectiveCycle) {
-			if (this.sCongestionAverage.isSet()) {
-				this.updateCongestionSate();
-				if (this.congestionState == CongestionState.UNDER_USE) {
-					// applying additive increase
-					newNrofCopies = Math.ceil(lasCtrlCycleNrofCopies + this.additiveIncrease);					
-				} else if (this.congestionState == CongestionState.CONGESTION) {
-					// multiplicative decrease
-					newNrofCopies = Math.floor(lasCtrlCycleNrofCopies * this.multiplicativeDecrease);
-					if (newNrofCopies < this.minCopies)
-						newNrofCopies = this.minCopies;					
-				}
-				
-				/*
-				//number of copies aggregated from received directives.
-				if (this.sNrofMsgCopiesAverage.isSet()) {
-					//newNrofCopies = Math.floor(EWMAProperty.aggregateValue(newNrofCopies, this.sNrofMsgCopiesAverage.getValue(), this.nrofCopiesAlpha));
-				}
-				*/
-
-				//int newNrofCopiesIntValue = Math.min(((int)newNrofCopies),SimScenario.getNumberOfHostsConfiguredInTheSettings());
-				int newNrofCopiesIntValue = (this.isMaxCopiesSet()) ?
-						Math.min((int)newNrofCopies, this.maxCopies) : (int)newNrofCopies;
-									
-				//Adding the 'L' property in the Directive message.
-				((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE, newNrofCopiesIntValue);
-				//modifying, in the routingConfiguration map, the initial number of copies for new messages.
-				this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
-					newNrofCopiesIntValue);
-					
-				this.directiveDetails.init(message, lasCtrlCycleNrofCopies, this.sCongestionAverage.getValue(),
-						this.sNrofMsgCopiesAverage.getValue(), this.congestionState);
-				currentDirectiveDetails = new DirectiveDetails(this.directiveDetails);				
-			}//end if this.sCongestionAverage.isSet
-		}//end if we have received metrics and no silence from other nodes.
-
-		 				
-		this.resetDirectiveCycleSettings();
-		return currentDirectiveDetails;
+	protected double getCalculatedCongestion() {
+		return this.sCongestionAverage.getValue();
 	}
 
-	public static enum CongestionState{
-		CONGESTION, OPTIMAL, INITIAL, UNDER_USE;
-		
-		public String toString() {
-			String congestionStateStr;
-			switch(this) {
-			case CONGESTION: 
-				congestionStateStr="congestion";
-				break;
-			case OPTIMAL:	
-				congestionStateStr="optimal";
-				break;
-			case UNDER_USE:	
-				congestionStateStr="under_use";
-				break;								
-			default: 
-				congestionStateStr="initial";
-			}
-			return congestionStateStr;
-		}
-	}
 }
