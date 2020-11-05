@@ -292,16 +292,20 @@ public abstract class DirectiveEngine {
 				}
 				*/				
 				
-				//Adding the 'L' property in the Directive message.
-				((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
-				//modifying, in the routingConfiguration map, the initial number of copies for new messages.
-				this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
-					newNrofCopies);
-					
-				this.initDirectiveDetails(message, lasCtrlCycleNrofCopies);
-				currentDirectiveDetails = this.copyDirectiveDetails();				
+				
 			}//end if this.sCongestionAverage.isSet
-		}//end if we have received metrics and no silence from other nodes.
+		} //end if we have received metrics and no silence from other nodes.
+		//if we haven't received metrics we generate a directive
+		//anyway with the previous 'L' value. This is meant to be for 
+		//new elements appearing in the network and as a beacon.
+			
+		//Adding the 'L' property in the Directive message.
+		((DirectiveMessage) message).addProperty(DirectiveCode.NROF_COPIES_CODE, newNrofCopies);
+		//modifying, in the routingConfiguration map, the initial number of copies for new messages.
+		this.router.getRoutingProperties().put(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY, 
+			newNrofCopies);			
+		this.initDirectiveDetails(message, lasCtrlCycleNrofCopies);
+		currentDirectiveDetails = this.copyDirectiveDetails();		
 
 		 				
 		this.resetDirectiveCycleSettings();
