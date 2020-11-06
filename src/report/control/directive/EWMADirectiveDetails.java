@@ -78,8 +78,8 @@ public class EWMADirectiveDetails extends DirectiveDetails {
 	 * Method that registers the metric that has been aggregated in the controller
 	 * affecting the current directive to be generated.
 	 * @param metric The received metric about to be aggregated
-	 * @param currentCongestionAverage The drops measurement aggregated until now.
-	 * @param newCongestionAverage The drops measurement after the metric passed as 
+	 * @param currentCongestionAverage The congestion measurement aggregated until now.
+	 * @param newCongestionAverage The congestion measurement after the metric passed as 
 	 * a parameter is aggregated.  
 	 */
 	public void addMetricUsed(ControlMessage metric,
