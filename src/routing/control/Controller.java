@@ -99,16 +99,16 @@ public class Controller {
 
 	 */
     protected void setDirectiveEngine(Settings s, MessageRouter router) {
-		String eWMAEngineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : EWMA_ENGINE;
-		Settings eWMAEngineSettings = new Settings(eWMAEngineNameSpace);
-		eWMAEngineSettings.setSecondaryNamespace(BASE_DIRECTIVE_ENGINE_NS);
-		String directiveEngine_str = CONTROL_PACKAGE + "." + eWMAEngineNameSpace;
+		String engineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : EWMA_ENGINE;
+		Settings engineSettings = new Settings(engineNameSpace);
+		engineSettings.setSecondaryNamespace(BASE_DIRECTIVE_ENGINE_NS);
+		String directiveEngine_str = CONTROL_PACKAGE + "." + engineNameSpace;
 		String[] directiveEngineConstructorArgumentTypes = {SETTINGS_PACKAGE, 
 				ROUTING_PACKAGE +"."+MESSAGE_ROUTER_CLASS} ;
 		
-		this.directiveEngine= (DirectiveEngine)eWMAEngineSettings.createInitializedObject(
+		this.directiveEngine= (DirectiveEngine)engineSettings.createInitializedObject(
 				directiveEngine_str, directiveEngineConstructorArgumentTypes, 
-				new Object[]{eWMAEngineSettings, router});
+				new Object[]{engineSettings, router});
     }   
         
     /**
