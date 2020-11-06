@@ -51,7 +51,7 @@ public class EWMAProperty{
 	 * Function that applies an EWMA function to a property.
 	 * The new value is smoothed with the already smoothed previous value 
 	 * (sProperty).
-	 * The EWUMA function for smoothing the property is:
+	 * The EWMA function for smoothing the property is:
 	 * sPoperty = (1-alpha) * sPoperty + alpha * property_messured.
 	 * @param newValue new measure to be smoothed.
 	 */
