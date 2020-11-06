@@ -57,8 +57,9 @@ public class EWMAEngine extends DirectiveEngine {
 	private EWMAProperty sNrofMsgCopiesAverage;
 	
 	/** 
-	 * Alpha to be used to calculate sDropsAverage with the EWMA:
-	 * sdropsAverage = (1-dropsAlpha) * sdropsAverage + dropsAlpha * drops_messured.
+	 * Alpha to be used to calculate sCongestionAverage with the EWMA:
+	 * sCongestionAverage = (1-congestionAlpha) * sCongestionAverage + 
+	 * congestionAlpha * CongestionAverage_messured.
 	 */
 	private double congestionAlpha;
 	
