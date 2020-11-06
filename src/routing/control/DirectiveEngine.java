@@ -175,12 +175,14 @@ public abstract class DirectiveEngine {
 		this.congestionState = CongestionState.INITIAL;
 		this.directiveDetails = this.newEmptyDirectiveDetails();
 		
+		this.settings.setSecondaryNamespace(Controller.CONTROL_NS);
 		this.directiveGenerationInterval = (engineSettings.contains(DIRECTIVE_GENERATION_INTERVAL_S)) ? 
 				engineSettings.getInt(DIRECTIVE_GENERATION_INTERVAL_S) : 1; 
 		this.metricGenerationInterval =  
 				(engineSettings.contains(METRICS_GENERATION_INTERVAL_S))
 				? engineSettings.getInt(METRICS_GENERATION_INTERVAL_S)
 				: this.directiveGenerationInterval;
+		this.settings.restoreSecondaryNamespace();		
 		this.additiveIncrease = (engineSettings.contains(ADDITIVE_INCREASE_S)) ? 
 				engineSettings.getDouble(ADDITIVE_INCREASE_S) : DEF_ADDITIVE_INCREASE;
 		this.multiplicativeDecrease = (engineSettings.contains(MULTIPLICATIVE_DECREASE_S)) ? 
