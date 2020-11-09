@@ -85,6 +85,10 @@ public abstract class DirectiveEngine {
 	 ({@value}) */
 	private static final double DEF_CONGESTION_THRMIN = 0.5;	
 	
+	/** Dummy value to indicate that a directive has not been generated after 
+	 * a control cycle. */
+	private static final int NOT_SET_LAST_DIRECTIVE_TIMEOUT = -1;
+	
 	/**
 	 * Interval for the metrics generation. If it is not set, it is assumed 
 	 * the interval for the directives generation and this value is set to -1.
@@ -162,6 +166,12 @@ public abstract class DirectiveEngine {
 	
 	/** Container for the details of the directive */ 
 	protected DirectiveDetails directiveDetails;
+	
+	/** Flag that indicates if a directive has been generated during the control
+	 * cicle. */
+	protected boolean hasDirectiveBeenGeneratedInCtrlCycle = false;
+	
+	protected double lastDirectiveTimeStamp = -1;
 		
 	/**
 	 * Initializes the property settings.
@@ -207,6 +217,7 @@ public abstract class DirectiveEngine {
 	 */
 	protected void resetDirectiveCycleSettings() {
 		this.receivedCtrlMsgInDirectiveCycle = false;
+		this.hasDirectiveBeenGeneratedInCtrlCycle = false;
 		this.localMetric = null;
 		this.directiveDetails.reset();
 	}
