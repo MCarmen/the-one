@@ -78,11 +78,7 @@ public class LREngine extends DirectiveEngine {
 	
 	/** Timestamp of the congestion readings. */
 	private LinkedList<Double> lrTimeInputs = new LinkedList<Double>();
-	 
-	/** Flag that indicates if a directive has been generated during the control
-	 * cicle. */
-	private boolean hasDirectiveBeenGenerated = false;
-	
+	 	
 	/** Accumulated soften congestion per windowTime.  */
 	private EWMAProperty sCongestionAverage;
 	
@@ -139,12 +135,12 @@ public class LREngine extends DirectiveEngine {
 		
 		
 		if(SimClock.getTime() >= this.aggregationIntervalEndTime) {			
-			this.lrCongestionInputs.add(this.sCongestionAverage.getValue());
-			this.lrTimeInputs.add(SimClock.getTime());			
-			if (this.lrCongestionInputs.size() == this.nrofLRCongestionInputs) {
-				double predictionTime = BigDecimal.valueOf(SimClock.getTime() + this.metricGenerationInterval * this.predictionTimeFactor)
-					    .setScale(2, RoundingMode.HALF_UP)
-					    .doubleValue();
+			this.lrCongestionInputs.add(BigDecimal.valueOf(this.sCongestionAverage.getValue())
+					.setScale(2, RoundingMode.HALF_UP).doubleValue());
+			this.lrTimeInputs
+					.add(BigDecimal.valueOf(SimClock.getTime()).setScale(2, RoundingMode.HALF_UP).doubleValue());
+			if (this.lrCongestionInputs.size() >= this.nrofLRCongestionInputs) {
+				double predictionTime = SimClock.getTime() + this.metricGenerationInterval * this.predictionTimeFactor;
 				this.congestionPrediction = this.calculateCongestionPredictionAt(predictionTime); 
 				//TODO generar de forma asíncrona la directiva.
 				//this.router.createNewMessage(new DirectiveMessage(from, to, id, size))
@@ -222,11 +218,15 @@ public class LREngine extends DirectiveEngine {
 	 * to generate the directive.
 	 */
 	private DirectiveDetails generateDirective(ControlMessage message, boolean isTimeOut) {
+		DirectiveDetails directiveDetails = null;
 		if (!this.isSetCongestionMeasure() && (this.sCongestionAverage.isSet())) {
 			this.congestionPrediction = this.sCongestionAverage.getValue();
 		}
-		return (!isTimeOut) || (!this.hasDirectiveBeenGenerated) ? 
-				super.generateDirective(message) : null;
+		if (!isTimeOut || (!this.hasDirectiveBeenGeneratedInCtrlCycle)){
+			directiveDetails = super.generateDirective(message);
+			this.aggrIntervalCounter = 1;
+		}
+		return directiveDetails;
 
 	}
 	
