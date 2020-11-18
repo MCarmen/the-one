@@ -11,7 +11,7 @@ import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.MetricCode;
 import routing.control.CongestionState;
-import routing.control.metric.CongestionMetricPerWT;
+import routing.control.metric.CongestionMetric;
 
 /**
  * Class with all the information used by an EWMADirective engine to generate a directive.
