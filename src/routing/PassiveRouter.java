@@ -42,9 +42,4 @@ public class PassiveRouter extends MessageRouter {
 		return new PassiveRouter(this);
 	}
 
-	@Override
-	protected void applyDirective(Message message) {
-		// TODO Auto-generated method stub
-		
-	}
 }
