@@ -12,6 +12,7 @@ import core.DTNHost;
 import core.Message;
 import core.MessageListener;
 import core.Settings;
+import routing.control.RoutingPropertyMap;
 import routing.control.SprayAndWaitRoutingPropertyMap;
 
 /**
@@ -40,6 +41,9 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	protected int initialNrofCopies;
 	protected boolean isBinary;
 	protected Settings snwSettings;
+	
+	/** Map to be filled by the specific routers with specific routing information*/
+	protected RoutingPropertyMap routingProperties;
 
 	public SprayAndWaitRouter(Settings s) {
 		super(s);
