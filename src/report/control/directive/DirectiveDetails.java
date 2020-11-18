@@ -10,7 +10,7 @@ import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.MetricCode;
 import routing.control.CongestionState;
-import routing.control.metric.CongestionMetricPerWT;
+import routing.control.metric.CongestionMetric;
 
 /**
  * Class with all the information used by a directive engine to generate a directive.
@@ -123,7 +123,7 @@ public abstract class DirectiveDetails {
 	 * with the basic details of the metric.   
 	 */
 	public void addMetricUsed(ControlMessage metric, Properties metricProperties) {
-		CongestionMetricPerWT congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE);
+		CongestionMetric congestionMetric = (CongestionMetric)metric.getProperty(MetricCode.CONGESTION_CODE);
 		this.metricsUsed.add(metricProperties);
 			
 		metricProperties.put("id", metric.getId());
