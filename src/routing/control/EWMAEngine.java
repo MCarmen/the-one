@@ -9,7 +9,7 @@ import core.control.MetricCode;
 import report.control.directive.DirectiveDetails;
 import report.control.directive.EWMADirectiveDetails;
 import routing.MessageRouter;
-import routing.control.metric.CongestionMetricPerWT;
+import routing.control.metric.CongestionMetric;
 import routing.control.util.EWMAProperty;
 import routing.control.util.EWMAPropertyIterative;
 
@@ -129,15 +129,31 @@ public class EWMAEngine extends DirectiveEngine {
 //		return adjusted;
 //	}
 	
+	/**
+	 * Method called when a new metric has to be considered for the 
+	 * directive to be generated.  
+	 * @param metric metric to be considered
+	 */
+	public void addMetric(ControlMessage metric) {
+		if (this.isASelfGeneratedCtrlMsg(metric)) {
+			this.localMetric = metric;
+		} else {
+			this.receivedCtrlMsgInDirectiveCycle = true;
+			this.addMetricStraightForward(metric);
+		}
+		if((this.receivedCtrlMsgInDirectiveCycle) && (this.localMetric!=null)) {
+			this.addMetricStraightForward(this.localMetric);
+			this.localMetric = null;
+		}
+	}
 
-	@Override
 	/**
 	 * Method that aggregates the metric passed as a parameter to the historical
 	 * aggregated value.
 	 * @param metric The metric to be aggregated.
 	 */
 	protected void addMetricStraightForward(ControlMessage metric) {
-		CongestionMetricPerWT nextCongestionReading = (CongestionMetricPerWT) metric
+		CongestionMetric nextCongestionReading = (CongestionMetric) metric
 				.getProperty(MetricCode.CONGESTION_CODE);
 		double congestionMetricAvg = this.sCongestionAverage.getValue();
 		this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionValue(), nextCongestionReading.getNrofAggregatedMetrics());
