@@ -8,7 +8,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -158,10 +157,6 @@ public abstract class MessageRouter {
 	private boolean amIController = false;
 	/**Flag indicating whether the system is a controlled one.*/
 	private boolean controlModeOn = false;
-	/** The Ttl for the metrics in minutes. */
-	protected int metricTtl;	
-	/** The Ttl for the directives in minutes. */
-	protected int directiveTtl;
 
 	/**
 	 * Constructor. Creates a new message router based on the settings in
@@ -243,8 +238,6 @@ public abstract class MessageRouter {
 		}
 		this.amIController = r.amIController;
 		this.controlModeOn = r.controlModeOn;
-		this.metricTtl = r.metricTtl;
-		this.directiveTtl = r.directiveTtl;
 	}
 
 	/**
@@ -364,9 +357,11 @@ public abstract class MessageRouter {
 	 * Returns the host this router is in
 	 * @return The host object
 	 */
-	protected DTNHost getHost() {
+	public DTNHost getHost() {
 		return this.host;
 	}
+	
+	
 	
 	/**
 	 * Method that checks whether this router is associated with the host passed 
@@ -484,6 +479,7 @@ public abstract class MessageRouter {
 					this.addToMessages(aMessage, false);
 				}
 				break;
+/*				
 			case METRIC_DESTINATION_UNREACHED_CODE:
 				if(outgoing != null) {
 					this.metricsSensed.addReceivedMetric((MetricMessage)aMessage);
@@ -525,7 +521,8 @@ public abstract class MessageRouter {
 				this.applyDirective(aMessage);
 				this.reportReceivedDirective(aMessage);
 
-				break;				
+				break;	
+			*/				
 		}
 				
 		if((outgoing == null) && (isFinalRecipient) && (!isFirstDelivery)) {
@@ -582,9 +579,9 @@ public abstract class MessageRouter {
 	 */
 	protected void addToMessages(Message m, boolean newMessage) {
 		boolean addMsg = true;
-		if(m.isControlMsg()) {
-			addMsg = this.purgeOldQueuedMessage((ControlMessage)m);
-		}
+//		if(m.isControlMsg()) {
+//			addMsg = this.purgeOldQueuedMessage((ControlMessage)m);
+//		}
 		
 		if(addMsg) {
 			this.messages.put(m.getId(), m);
@@ -596,38 +593,6 @@ public abstract class MessageRouter {
 		}
 	}
 	
-	
-	/**
-	 * Method that purges from the buffer control messages older from the one 
-	 * passed as a parameter if they are of the same type 
-	 * (metric/directive) and they are from the same origin.
-	 * @param newMsg The control message to to be compared with
-	 * @return false either if there is no ctrl message of the same type from 
-	 * the same origin or if there is, but the one buffered is newer that the 
-	 * one passed as a parameter.  
-	 */
-	protected boolean purgeOldQueuedMessage(ControlMessage newMsg) {
-		Collection<Message> allMessages = this.messages.values();
-		boolean purged = false;
-		boolean msgFound = false;
-		boolean addMsg;
-		Iterator<Message> iterator = allMessages.iterator();
-		while((iterator.hasNext()) && !msgFound) {
-			Message m = iterator.next();
-			if (m.isControlMsg() && (m.getType() == newMsg.getType()) && 
-					m.getFrom().equals(newMsg.getFrom())) {
-				msgFound = true;
-				if (m.getCreationTime() <= newMsg.getCreationTime()) {
-					this.deleteMessage(m.getId(), false);
-					purged = true;
-				}
-			}			
-		}
-		
-		addMsg = (!msgFound) ? true : (!purged) ? false : true;
-		return addMsg;
-	}	
-
 	/**
 	 * Removes and returns a message from the message buffer.
 	 * @param id Identifier of the message to remove
@@ -688,38 +653,24 @@ public abstract class MessageRouter {
 			directiveDetails = this.controller.fillMessageWithDirective(m);
 			msgHasBeenCreated = (directiveDetails != null) ? true : false;
 			if (msgHasBeenCreated) {
-				// We add the directive to the deliveredMessages list so it will
-				// not be considered by the controller that generated it in case
-				// it receives it.
-				this.deliveredMessages.put(m.getId(), m);
 				this.reportDirectiveCreated(directiveDetails);
 			}
 			break;
 		case METRIC:
 			MetricDetails metricDetails = this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
 			if (this.isControlMsgGeneratedByMeAsAController((MetricMessage) m)) {
-				this.setMsgTTL(m);
 				this.controller.addMetric((MetricMessage) m);
-				msgHasBeenCreated = true; // sending the metric. Comment it to not sent it.
-				// We add the metric to the deliveredMessages list so it will 
-				// not be considered by the controller that generated it in case 
-				// it receives it. Remove that line if finally the message is not sent. 
-				this.deliveredMessages.put(m.getId(), m); 
-			} else {
-				msgHasBeenCreated = true;
-			}
+			}	
+			msgHasBeenCreated = (metricDetails != null) ? true : false;
 			if(msgHasBeenCreated) {
 				this.reportNewMetric(metricDetails);
 			}
 			break;
 		default: // Data Message
-			msgHasBeenCreated = true;			
-		}
-		if (msgHasBeenCreated) {
-			this.setMsgTTL(m);
+			msgHasBeenCreated = true;	
+			m.setTtl(this.msgTtl);	
 			addToMessages(m, true);
 		}
-
 		return msgHasBeenCreated;
 	}
 
@@ -739,13 +690,9 @@ public abstract class MessageRouter {
 		for (MessageListener ml : this.mListeners) {
 			ml.messageDeleted(removed, this.host, drop);
 		}
-		
-		//in case the simulation is running in control mode we report the 
-		//drop just if the message dropped is a data one.
-		if((this.metricsSensed != null) && drop && (removed.getType()) == Message.MessageType.MESSAGE) {
-			this.metricsSensed.addDrop(removed);
-		}
+
 	}
+	
 
 	/**
 	 * Sorts/shuffles the given list according to the current sending queue
@@ -922,11 +869,6 @@ public abstract class MessageRouter {
 		Settings scenario_s = new Settings(SCENARIO_NS);
 		this.amIController = ((s.contains(TYPE_S)) && (s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
 		this.controlModeOn = scenario_s.contains(CONTROL_MODE_S) ? scenario_s.getBoolean(CONTROL_MODE_S) : false;
-		if (this.controlModeOn) {
-			Settings control_s = new Settings(CONTROL_NS);
-			this.metricTtl = (control_s.contains(METRIC_TTL_S)) ? control_s.getInt(METRIC_TTL_S) : Message.INFINITE_TTL;
-			this.directiveTtl = (control_s.contains(DIRECTIVE_TTL_S)) ? control_s.getInt(DIRECTIVE_TTL_S) : Message.INFINITE_TTL;		
-		}
 	}
 		
 	public boolean isAController() {
@@ -957,7 +899,7 @@ public abstract class MessageRouter {
      * overwritten by the subclasses.
      * @param message The received directive. 
      */
-    protected void applyDirective(Message message) {    	
+    public void applyDirective(Message message) {    	
     }
 	
 	/**
@@ -983,6 +925,10 @@ public abstract class MessageRouter {
 			case MESSAGE_BROADCAST:
 				receivedMessageCode = TransferredCode.MESSAGE_BROADCAST_DESTINATION_REACHED_CODE;
 				break;
+			default: 
+				//Not possible.
+				break;
+/*				
 			case METRIC:
 				receivedMessageCode = this.isAController() ?
 					TransferredCode.METRIC_DESTINATION_REACHED_CODE :
@@ -993,6 +939,7 @@ public abstract class MessageRouter {
 					TransferredCode.DIRECTIVE_CONTROLLER_REACHED_CODE :
 					TransferredCode.DIRECTIVE_DESTINATION_REACHED_CODE;
 				break;
+*/				
 		}
 						
 		return receivedMessageCode;
@@ -1002,22 +949,6 @@ public abstract class MessageRouter {
 		return this.routingProperties;
 	}
     
-    /**
-     * Method that sets the TTL of the message depending on the msg type
-     * @param m the message whose TTL is about to be set.
-     */
-    private void setMsgTTL(Message m) {
-    	switch(m.getType()) {
-		case DIRECTIVE:
-			m.setTtl(this.directiveTtl);
-			break;
-		case METRIC:
-			m.setTtl(this.metricTtl);
-			break;
-		default:
-			m.setTtl(this.msgTtl);	
-		}				
-    }
 
     /**
      * Method that reports to all the DirectiveListeners about the creation
@@ -1040,7 +971,7 @@ public abstract class MessageRouter {
      * Directive.
      * @param message The message containing the directive.
      */
-    protected void reportReceivedDirective(Message message){
+    public void reportReceivedDirective(Message message){
 		for (MessageListener ml : this.mListeners) {
 			if (ml instanceof DirectiveListener) {
 				((DirectiveListener)ml).directiveReceived(message, this.host);
