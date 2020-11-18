@@ -89,17 +89,6 @@ public abstract class DirectiveEngine {
 	 * a control cycle. */
 	private static final int NOT_SET_LAST_DIRECTIVE_TIMEOUT = -1;
 	
-	/**
-	 * Interval for the metrics generation. If it is not set, it is assumed 
-	 * the interval for the directives generation and this value is set to -1.
-	 */
-	protected int metricGenerationInterval;
-
-	/**
-	 * Interval for the directives generation. If it is not set 
-	 * this value is set to -1.
-	 */
-	protected int directiveGenerationInterval;
 	
 	/**
 	 * Metric time to live. After this time the metric is discarded. 
@@ -170,9 +159,7 @@ public abstract class DirectiveEngine {
 	/** Flag that indicates if a directive has been generated during the control
 	 * cicle. */
 	protected boolean hasDirectiveBeenGeneratedInCtrlCycle = false;
-	
-	protected double lastDirectiveTimeStamp = -1;
-		
+			
 	/**
 	 * Initializes the property settings.
 	 * @param engineSettings settings corresponding to the namespace control.engine.
@@ -186,12 +173,6 @@ public abstract class DirectiveEngine {
 		this.directiveDetails = this.newEmptyDirectiveDetails();
 		
 		this.settings.setSecondaryNamespace(Controller.CONTROL_NS);
-		this.directiveGenerationInterval = (engineSettings.contains(DIRECTIVE_GENERATION_INTERVAL_S)) ? 
-				engineSettings.getInt(DIRECTIVE_GENERATION_INTERVAL_S) : 1; 
-		this.metricGenerationInterval =  
-				(engineSettings.contains(METRICS_GENERATION_INTERVAL_S))
-				? engineSettings.getInt(METRICS_GENERATION_INTERVAL_S)
-				: this.directiveGenerationInterval;
 		this.settings.restoreSecondaryNamespace();		
 		this.additiveIncrease = (engineSettings.contains(ADDITIVE_INCREASE_S)) ? 
 				engineSettings.getDouble(ADDITIVE_INCREASE_S) : DEF_ADDITIVE_INCREASE;
@@ -227,30 +208,13 @@ public abstract class DirectiveEngine {
 	 * @return The congestion inferred by the controller.
 	 */
 	protected abstract double getCalculatedCongestion();
-
-	/**
-	 * Method that considers the metric passed as a parameter. 
-	 * @param metric The metric to be considered.
-	 */
-	protected abstract void addMetricStraightForward(ControlMessage metric);
 		
 	/**
 	 * Method called when a new metric has to be considered for the 
-	 * directive to be generated. The metric is aggregated if it has not expired. 
+	 * directive to be generated.  
 	 * @param metric metric to be considered
 	 */
-	public void addMetric(ControlMessage metric) {
-		if (this.isASelfGeneratedCtrlMsg(metric)) {
-			this.localMetric = metric;
-		} else {
-			this.receivedCtrlMsgInDirectiveCycle = true;
-			this.addMetricStraightForward(metric);
-		}
-		if((this.receivedCtrlMsgInDirectiveCycle) && (this.localMetric!=null)) {
-			this.addMetricStraightForward(this.localMetric);
-			this.localMetric = null;
-		}
-	}
+	public abstract void addMetric(ControlMessage metric); 
 	
 	/**
 	 * Method called when a directive from another controller can be taken
