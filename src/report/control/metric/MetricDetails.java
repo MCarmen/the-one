@@ -7,7 +7,7 @@ import java.util.Properties;
 
 import core.control.MetricCode;
 import core.control.MetricMessage;
-import routing.control.metric.CongestionMetricPerWT;
+import routing.control.metric.CongestionMetric;
 
 /**
  * Class with the details of the created metric. 
@@ -73,9 +73,9 @@ public class MetricDetails {
 
 	public void aggregateMetric(MetricMessage metric, double decayWeight) {
 		Properties metricProperties = new Properties();
-		CongestionMetricPerWT congestionMetric;
+		CongestionMetric congestionMetric;
 		if (metric.containsProperty​(MetricCode.CONGESTION_CODE)) {
-			congestionMetric = (CongestionMetricPerWT) metric.getProperty(MetricCode.CONGESTION_CODE);
+			congestionMetric = (CongestionMetric) metric.getProperty(MetricCode.CONGESTION_CODE);
 			metricProperties.put("id", metric.getId());
 			metricProperties.put("from", metric.getFrom());
 			metricProperties.put("creationT", new DecimalFormat("#0").format(metric.getCreationTime()));
