@@ -10,6 +10,23 @@ import core.Message;
  * A metric message that is created at a node or passed between nodes.
  */
 public class MetricMessage extends ControlMessage {
+
+	/** Counter to generate a unique identifier for each directive msg. */
+	private static int idCounter = 0;
+	
+	/** Prefix to identify a directive message */
+	private static final String PREFIX = "S"; 
+
+	/**
+	 * Constructor used to build control messages. Those messages will not be 
+	 * treated as data messages. These messages cannot be added to the message buffer. 
+	 * @param from The host that created the message.
+	 * @param id The identifier of the message.
+	 */
+	public MetricMessage(DTNHost from) {
+		this(from, null, MetricMessage.nextId(), 0);
+	}	
+	
 	/**
 	 * Creates a new MetricMessage.
 	 * @param from Who the message is (originally) from
@@ -30,6 +47,14 @@ public class MetricMessage extends ControlMessage {
 		MetricMessage m = new MetricMessage(this.getFrom(), this.getTo(), this.getId(), this.getSize());
 		m.copyFrom(this);
 		return m;
-	}	
+	}
+
+	/**
+	 * Generates a new id combining a unique identifier with a prefix.
+	 * @return A new ID combining a unique identifier 
+	 */
+	protected static String nextId() {
+		return String.format("%s%d", MetricMessage.PREFIX, ++MetricMessage.idCounter);		
+	}
 
 }
