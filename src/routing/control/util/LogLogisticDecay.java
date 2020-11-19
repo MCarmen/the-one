@@ -34,15 +34,15 @@ public class LogLogisticDecay implements Decay{
 	private static final double DEF_START_DECAY_AT = 0;
 
 	/** The frequency we apply the decayFactor. */
-	private double reductionFrequency = DEF_DECAY_REDUCTION_FREQ;
+	private double reductionFrequency;
 		
 	/** The reduction applied to the current value of the function parameter. If not specified
 	 * by default is {@link #DEF_DECAY_REDUCTION_FACTOR_S} to indicate that it has not been specified. You cannot operate with 
 	 * this value */
-	private double reductionFactor = DEF_DECAY_REDUCTION_FACTOR_S;
+	private double reductionFactor;
 	
 	/**The coordinate in the x-axys from where to start applying the decay.*/ 
-	private double startDecayAt = DEF_START_DECAY_AT;
+	private double startDecayAt;
 		
 	/**
 	 * In this case the reductionFrequency is set to the default value.
