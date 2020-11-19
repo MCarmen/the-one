@@ -1,6 +1,7 @@
 package routing.control.metric;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import core.Settings;
 import core.SimClock;
@@ -41,9 +42,7 @@ public class DoubleWeightedAverageCongestionMetricCalculator {
 		alpha =  (doubleWeightedSettings.contains(ALPHA_S)) 
 			? doubleWeightedSettings.getDouble(ALPHA_S) : DEF_ALPHA_S; 					
 		}
-	
-		
-		
+			
 	/**
 	 * Method that calculates the congestion weighted metric built out of the
 	 * current bufferOccupancy reading aggregated with metrics received from other
@@ -53,45 +52,69 @@ public class DoubleWeightedAverageCongestionMetricCalculator {
 	 * (1-alpha)*(node_i_decay/sum(l=1,k)node_l_decay)) )
 	 * 
 	 * @param congestionReading The congestion metric reading.
-	 * @param windowTime        Time while the congestion information is being
-	 *                          gathered.
-	 * @param metrics           The list of received metrics during a window Time.
+	 * @param metrics           The map of received metrics during a window Time.
 	 * @param metricDetails     Creation details of the metric. To be filled by this
 	 *                          method.
 	 */
-	public static CongestionMetricPerWT getDoubleWeightedAverageForMetric(double congestionReading, double windowTime,
-			List<MetricMessage> metrics, MetricDetails metricDetails) {
-		/** Current simulation time used to calculate the metric's decay. */
+	public static CongestionMetric getDoubleWeightedAverageForMetric(double congestionReading,
+			Map<String, MetricMessage> metrics, MetricDetails metricDetails) {
+	
+		return DoubleWeightedAverageCongestionMetricCalculator.
+				getDoubleWeightedAverageForMetric(congestionReading, metrics, metricDetails, null);
+	}
+	
+	/**
+	 * Method that calculates the congestion weighted metric built out of the
+	 * current bufferOccupancy reading aggregated with metrics received from other
+	 * nodes during a window time following the formula: sum(i=1,k)(
+	 * node_i_congestion *
+	 * (alpha*(node_i_aggregations/sum(j=1,k)node_j_aggregations) +
+	 * (1-alpha)*(node_i_decay/sum(l=1,k)node_l_decay)) )
+	 * 
+	 * @param congestionReading The congestion metric reading.
+	 * @param metrics           The map of received metrics during a window Time.
+	 * @param metricDetails     Creation details of the metric. To be filled by this
+	 *                          method.
+	 * @param exclude			HostId to be excluded from the aggregation. 
+	 */
+	public static CongestionMetric getDoubleWeightedAverageForMetric(double congestionReading,
+			Map<String, MetricMessage> metrics, MetricDetails metricDetails, String exclude) {
+		//Current simulation time used to calculate the metric's decay. 
 		double currentTime = SimClock.getTime();
-		/**
-		 * Array of the decay weight for each one of the metric in the metrics property.
-		 * In the first position we place the node's decay weight which is 1 (no decay)
-		 */
-		double[] metricDecayWeights = new double[metrics.size() + 1];
-		CongestionMetricPerWT congestionMetric;
-		int sumOfAllTheMetricsAggregations = getSumOfAllAggregations(metrics);
-		double sumOfAllDecayWeights = getSumOfAllDecayWeights(currentTime, metrics, metricDecayWeights);
-		double doubleWeightedAverageForCongestion = 0;
-		int i = 0;
+		//Array of the decay weight for each one of the metric in the metrics property.
+		//In the first position we place the node's decay weight which is 1 (no decay)
+		
+		Map<String, Double> metricDecayWeights = new HashMap<String, Double>();
+		CongestionMetric congestionMetric;
+		double doubleWeightedAverageForCongestion = 0;		
+		int sumOfAllTheMetricsAggregations = getSumOfAllAggregations(metrics, exclude);
+		
+		//We include our reading.		
+		sumOfAllTheMetricsAggregations++;		
+		double sumOfAllDecayWeights = getSumOfAllDecayWeights(currentTime, metrics, metricDecayWeights, exclude);
+		//We include the current node's congestion reading decay weight which is 1 (no decay).
+		sumOfAllDecayWeights++;
 
 		// aggregating the current's node congestion reading
 		doubleWeightedAverageForCongestion += getDoubleWeightedAverageForAMeasure(congestionReading, 1,
-				sumOfAllTheMetricsAggregations, metricDecayWeights[i++], sumOfAllDecayWeights);
-		for (MetricMessage metric : metrics) {
-			if (metric.containsProperty​(MetricCode.CONGESTION_CODE)) {
-				congestionMetric = (CongestionMetricPerWT) metric.getProperty(MetricCode.CONGESTION_CODE);
+				sumOfAllTheMetricsAggregations, 1.0, sumOfAllDecayWeights);
+		for (Map.Entry<String, MetricMessage> entry : metrics.entrySet()) {
+			if(exclude == null || !entry.getKey().equals(exclude)) {
+				MetricMessage metric = entry.getValue();
+				double metricDecayWeight = metricDecayWeights.get(metric.getFrom().toString()); 
+				congestionMetric = (CongestionMetric) metric.getProperty(MetricCode.CONGESTION_CODE);
 				doubleWeightedAverageForCongestion += getDoubleWeightedAverageForAMeasure(
 						congestionMetric.congestionValue, congestionMetric.nrofAggregatedMetrics,
-						sumOfAllTheMetricsAggregations, metricDecayWeights[i++], sumOfAllDecayWeights);				
-				metricDetails.aggregateMetric(metric, decay.getDecayWeightAt(currentTime - metric.getCreationTime()));
+						sumOfAllTheMetricsAggregations, metricDecayWeight, sumOfAllDecayWeights);				
+				metricDetails.aggregateMetric(metric, metricDecayWeight);
 			}
 		}
 
-		metricDetails.init(congestionReading, doubleWeightedAverageForCongestion, metricDecayWeights[0],
+		metricDetails.init(congestionReading, doubleWeightedAverageForCongestion, 1.0,
 				sumOfAllTheMetricsAggregations, sumOfAllDecayWeights);
 
-		CongestionMetricPerWT doubleWeightedCongestionMetric = new BufferOccupancyPerWT(
-				doubleWeightedAverageForCongestion, windowTime, metricDecayWeights.length);
+		CongestionMetric doubleWeightedCongestionMetric = new BufferOccupancy(
+				doubleWeightedAverageForCongestion, metrics.size());
 
 		return doubleWeightedCongestionMetric;
 	}
@@ -111,7 +134,7 @@ public class DoubleWeightedAverageCongestionMetricCalculator {
 	 * @return
 	 */
 	private static double getDoubleWeightedAverageForAMeasure(double congestionReading, 
-			int readingAggregations, double sumOfAggregations, double readingDecay, 
+			int readingAggregations, int sumOfAggregations, double readingDecay, 
 			double sumOfDecays) {
 		return (congestionReading 
 				* (alpha*(readingAggregations/sumOfAggregations)
@@ -119,50 +142,81 @@ public class DoubleWeightedAverageCongestionMetricCalculator {
 	}
 	
 	/**
-	 * Returns the sum of all decay weights of the metrics in the metrics list. It stores
-	 * in an array all the decay weights. In the first position of the array is the 
-	 * current node's congestion reading decay weight which is 1 (no decay).
+	 * Method that calculates the congestion weighted metric built out of the
+	 * aggregation of the metrics in the metrics table: sum(i=1,k)(
+	 * node_i_congestion *
+	 * (alpha*(node_i_aggregations/sum(j=1,k)node_j_aggregations) +
+	 * (1-alpha)*(node_i_decay/sum(l=1,k)node_l_decay)) )
+	 * 
+	 * 
+	 * @param metrics       The map of received metrics during a window Time.
+	 * @param metricDetails Creation details of the metric. To be filled by this
+	 *                      method.
+	 */
+	public static double getDoubleWeightedAverage(Map<String, MetricMessage> metrics) {
+		//Current simulation time used to calculate the metric's decay. 
+		double currentTime = SimClock.getTime();
+		//Array of the decay weight for each one of the metric in the metrics property.
+		Map<String, Double> metricDecayWeights = new HashMap<String, Double>();
+		CongestionMetric congestionMetric;
+		double doubleWeightedAverageForCongestion = 0;
+		int sumOfAllTheMetricsAggregations = getSumOfAllAggregations(metrics, null);
+		double sumOfAllDecayWeights = getSumOfAllDecayWeights(currentTime, metrics, metricDecayWeights, null);
+		for (Map.Entry<String, MetricMessage> entry : metrics.entrySet()) {
+			MetricMessage metric = entry.getValue();
+			double metricDecayWeight = metricDecayWeights.get(metric.getFrom().toString()); 
+			congestionMetric = (CongestionMetric) metric.getProperty(MetricCode.CONGESTION_CODE);
+			doubleWeightedAverageForCongestion += getDoubleWeightedAverageForAMeasure(
+					congestionMetric.congestionValue, congestionMetric.nrofAggregatedMetrics,
+					sumOfAllTheMetricsAggregations, metricDecayWeight, sumOfAllDecayWeights);				
+		}
+
+		return doubleWeightedAverageForCongestion;				
+	}
+	
+	/**
+	 * Returns the sum of all decay weights of the metrics in the metrics map. It stores
+	 * in a map indexed by the host id all the decay weights. 
 	 * @param currentTime the current simulation time.
 	 * @param metrics The list of received metrics during a window Time.
-	 * @param metricDecayWeights Array of the decay weight for each one of the 
-	 * metric in the metrics list. In the first position we place the node's 
-	 * decay weight which is 1 (no decay).
+	 * @param metricDecayWeights Map of the decay weight for each one of the 
+	 * metric in the metrics list. 
+	 * @param exclude HostId to be excluded from the aggregation.      
 	 * @return The sum of the decays.
 	 */
-	private static double getSumOfAllDecayWeights(double currentTime, List<MetricMessage> metrics, double[] metricDecayWeights) {		
-		int i = 0;
+	private static double getSumOfAllDecayWeights(double currentTime, Map<String, MetricMessage> metrics, Map<String, Double> metricDecayWeights, String exclude) {		
 		double decayWeight;
+		double sumOfAllDecays = 0;
 		
-		metricDecayWeights[i] = 1;
-		double sumOfAllDecays = metricDecayWeights[i++];
-		for(MetricMessage metric : metrics) {
-			if(metric.containsProperty​(MetricCode.CONGESTION_CODE)) {
-				decayWeight = decay.getDecayWeightAt(currentTime - metric.getCreationTime());
-				metricDecayWeights[i++] = decayWeight;
-				sumOfAllDecays += decayWeight;  
+		for (Map.Entry<String, MetricMessage> entry : metrics.entrySet()) {
+			if(exclude == null || !entry.getKey().equals(exclude)) {
+				decayWeight = decay.getDecayWeightAt(currentTime - entry.getValue().getCreationTime());
+				metricDecayWeights.put(entry.getValue().getFrom().toString(), decayWeight);
+				sumOfAllDecays += decayWeight; 
 			}
-		}		
+		}
+		
 		return sumOfAllDecays;
 	}
 	
 	/**
 	 * Method that sums the number of aggregations used to generate each one of 
 	 * the metrics passed as a parameter. 
-	 * We include our reading, which has been produced by the current node.
-	 * @param metrics The list of received metrics during a window Time.   
-	 * @return the sum of the number of aggregations of each of the metrics including 
-	 * the aggregations performed by the current node. 
+	 * @param metrics The map of received metrics.
+	 * @param exclude HostId to be excluded from the aggregation.     
+	 * @return the sum of the number of aggregations of each one of the metrics. 
 	 */
-	private static int getSumOfAllAggregations(List<MetricMessage> metrics) {
-		int sumOfAllAggregations = 1;  
-		CongestionMetricPerWT congestionMetric;
+	private static int getSumOfAllAggregations(Map<String, MetricMessage> metrics, String exclude) {
+		int sumOfAllAggregations = 0;
+		CongestionMetric congestionMetric;
 		
-		for(MetricMessage metric : metrics) {
-			if(metric.containsProperty​(MetricCode.CONGESTION_CODE)) {
-				congestionMetric = (CongestionMetricPerWT)metric.getProperty(MetricCode.CONGESTION_CODE);
-				sumOfAllAggregations += congestionMetric.getNrofAggregatedMetrics();  
-			}
+		for (Map.Entry<String, MetricMessage> entry : metrics.entrySet()) {
+			if(exclude == null || !entry.getKey().equals(exclude)) {
+				congestionMetric = (CongestionMetric)entry.getValue().getProperty(MetricCode.CONGESTION_CODE);
+				sumOfAllAggregations += congestionMetric.getNrofAggregatedMetrics();
+			}				
 		}
+			
 		return sumOfAllAggregations;
 	}
 }
