@@ -4,15 +4,16 @@
 package routing.control;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import core.Message;
-import core.SimClock;
 import core.control.MetricCode;
 import core.control.MetricMessage;
 import report.control.metric.MetricDetails;
-import routing.control.metric.BufferOccupancyPerWT;
-import routing.control.metric.CongestionMetricPerWT;
+import routing.control.metric.BufferOccupancy;
+import routing.control.metric.CongestionMetric;
 import routing.control.metric.DoubleWeightedAverageCongestionMetricCalculator;
 
 /*
@@ -25,29 +26,22 @@ import routing.control.metric.DoubleWeightedAverageCongestionMetricCalculator;
 
 /**
  * Class that encapsulates the metrics sensed by the router. At the moment
- * just the drops are sensed.
+ * just the buffer occupancy is sensed.
  */
-public class MetricsSensed {
-		/** Counter of the drops sensed during an amount of time. */
-	private int dropsPerWT;	
-	
-	/** Number of bytes dropped during an amount of time. */
-	private int bytesDroppedPerWT;
-	
-	/** Congestion metric calculated for a windowTime */
-	private CongestionMetricPerWT congestionMetricPerWT;
-			
-	/** Amount of time while the sensing has been done. */
-	private double sensingWindowTime;
-	
+public class MetricsSensed {	
 	/** The size of the buffer */
 	private double bufferSize;
 	
-	/** A list with the metrics received for a window time */
-	private List<MetricMessage> rececivedMetricsPerWT;	
+	/** 
+	 * A map with the metrics received. The map is refreshed before being used
+	 * so that the old metrics are removed.*/
+	private Map<String, MetricMessage> receivedMetrics;	
 	
 	/** History of the metrics sensed for a windowTime  */
-	private List<CongestionMetricPerWT> history;
+	private List<CongestionMetric> history;
+	
+	/** Number of bytes dropped during an amount of time. */
+	private int bytesDroppedPerWT;
 	
 	/**
 	 * The constructor initializes the drops to 0, the sensing time to the 
@@ -61,8 +55,8 @@ public class MetricsSensed {
 	
 	public String getHistoryAsString() {
 		String historyStr = "";
-		for(CongestionMetricPerWT congestionMetricPerWT : this.history) {
-			historyStr += String.format("%d, ", congestionMetricPerWT.getCongestionValue());
+		for(CongestionMetric congestionMetric : this.history) {
+			historyStr += String.format("%.2f, ", congestionMetric.getCongestionValue());
 		}
 		
 		return historyStr;
@@ -73,34 +67,34 @@ public class MetricsSensed {
 	 * and the sensing time to the current simulation time.
 	 */
 	private void reset() {
-		this.dropsPerWT = 0;	
+		this.receivedMetrics = new HashMap<String, MetricMessage>();
 		this.bytesDroppedPerWT = 0;
-		this.sensingWindowTime = SimClock.getTime();
-		this.rececivedMetricsPerWT = new ArrayList<MetricMessage>();		
 	}
+
+//	/**
+//	 * Method that increments in one unit the drops counter and increments the number 
+//	 * of bytes dropped.
+//	 * @param the dropped message
+//	 */
+//	public void addDrop(Message message) {
+//		this.bytesDroppedPerWT += message.getSize();
+//	}
 	
 	/**
-	 * Method that increments in one unit the drops counter and increments the number 
-	 * of bytes dropped.
-	 * @param the dropped message
-	 */
-	public void addDrop(Message message) {
-		this.dropsPerWT++;
-		this.bytesDroppedPerWT += message.getSize();
-	}
-	
-	/**
-	 * Method that adds in the list of the receivedMetrics the received one.
+	 * Method that adds in the map of the receivedMetrics the received one.
+	 * 
 	 * @param metric The received metric.
 	 */
 	public void addReceivedMetric(MetricMessage metric) {
-		this.rececivedMetricsPerWT.add(metric);
+		this.receivedMetrics.put(metric.getFrom().toString(), metric);
 	}
 	
 	/**
 	 * Method that fills the message with the percentage of the (buffer occupancy
 	 * including the bytes that have been dropped) at the point of calling this
-	 * method. The window sensing time is reset to the current simulation time.
+	 * method. To calculate the buffer occupancy this method aggregates all the metrics 
+	 * received up to this moment to the buffer occupancy reading. The received
+	 * metrics expire based on their creation time. 
 	 * 
 	 * @param message         the message to be filled with the fraction of the
 	 *                        occupancy of the buffer + drops in bytes
@@ -108,30 +102,66 @@ public class MetricsSensed {
 	 *                        value if there are more messages in the buffer than
 	 *                        should fit there (because of creating new
 	 *                        messages) @see routing.ActiveRouter#makeRoomForMessage
+	 *                        
 	 * 
 	 * @return true if the message has been modified with the fraction of the
 	 *         occupancy of the buffer + drops in bytes
 	 */
 	public MetricDetails fillMessageWithMetric(Message message, double bufferFreeSpace) {
-		double occupancy = ((this.bufferSize - bufferFreeSpace) + this.bytesDroppedPerWT) / this.bufferSize;
+		return this.fillMessageWithMetric(message, bufferFreeSpace, null);
+	}
+	
+
+	/**
+	 * Method that fills the message with the percentage of the (buffer occupancy
+	 * including the bytes that have been dropped) at the point of calling this
+	 * method. To calculate the buffer occupancy this method aggregates all the metrics 
+	 * received up to this moment to the buffer occupancy reading. The received
+	 * metrics expire based on their creation time. 
+	 * 
+	 * @param message         the message to be filled with the fraction of the
+	 *                        occupancy of the buffer + drops in bytes
+	 * @param bufferFreeSpace The free buffer space in bytes. May return a negative
+	 *                        value if there are more messages in the buffer than
+	 *                        should fit there (because of creating new
+	 *                        messages) @see routing.ActiveRouter#makeRoomForMessage
+	 * @param exclude 		  Identifier of the node its metric we do not want to 
+	 * aggregate in the process of the calculation of the buffer occupancy.                        
+	 * 
+	 * @return true if the message has been modified with the fraction of the
+	 *         occupancy of the buffer + drops in bytes
+	 */
+	public MetricDetails fillMessageWithMetric(Message message, double bufferFreeSpace, String exclude) {
+		double occupancy = this.getBufferOccupancy(bufferFreeSpace);
 		MetricDetails metricDetails = new MetricDetails(message.getId(), message.getFrom().toString(), message.getCreationTime());
-		this.congestionMetricPerWT = DoubleWeightedAverageCongestionMetricCalculator.getDoubleWeightedAverageForMetric(
-				occupancy, SimClock.getTime() - this.sensingWindowTime, this.rececivedMetricsPerWT, metricDetails);
-		message.addProperty(MetricCode.CONGESTION_CODE, this.congestionMetricPerWT);
-		this.history.add(this.congestionMetricPerWT);
+		//TODO: removed the old stored metrics (decay < threshold)
+		CongestionMetric congestionMetric = DoubleWeightedAverageCongestionMetricCalculator.getDoubleWeightedAverageForMetric(
+				occupancy, this.receivedMetrics, metricDetails, exclude);
+		message.addProperty(MetricCode.CONGESTION_CODE, congestionMetric);
+		this.history.add(congestionMetric);
 
 		this.reset();
 		return metricDetails;
 	}
-	
 
-		
 	/**
-	 * Returns an string representation
+	 * Fills a Message with the occupancy of the buffer. 
+	 * @param bufferFreeSpace The current buffer free space.
 	 */
-	public String toString() {
-		return String.format("%.3f %.1f", this.congestionMetricPerWT.getCongestionValue(),  
-					(SimClock.getTime() - this.sensingWindowTime));		
+	public void fillMessageWithLocalCongestion(Message message, double bufferFreeSpace) {
+		double occupancy = this.getBufferOccupancy(bufferFreeSpace);
+		CongestionMetric congestion = new BufferOccupancy(occupancy, 1);
+		message.addProperty(MetricCode.CONGESTION_CODE, congestion);		
+	}
+	
+	/**
+	 * Support method that calculates the buffer occupancy.  
+	 * 
+	 * @return The buffer occupancy.
+	 */
+	private double getBufferOccupancy(double bufferFreeSpace) {
+		//return ((this.bufferSize - bufferFreeSpace) + this.bytesDroppedPerWT) / this.bufferSize;	
+		return (this.bufferSize - bufferFreeSpace) / this.bufferSize;
 	}
 		
 }
