@@ -10,11 +10,14 @@ import core.Connection;
 import core.DTNHost;
 import core.Message;
 import core.Settings;
-import core.SimClock;
+import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
+import core.control.MetricMessage;
 import report.control.directive.BufferedMessageUpdate;
+import report.control.directive.DirectiveDetails;
 import report.control.directive.ReceivedDirective;
+import report.control.metric.MetricDetails;
 import routing.MessageRouter;
 import routing.SprayAndWaitRouter;
 
@@ -30,9 +33,7 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	/** SprayAndWaitControl router's settings name space ({@value})*/
 	public static final String SPRAYANDWAITCONTROL_NS = "SprayAndWaitControlRouter";
 	
-	private static final int NO_APPLIED_DIRECTIVES = -1;
-	
-	private double creationTimeOfTheAppliedDirective = NO_APPLIED_DIRECTIVES;
+	private DirectiveMessage lastAppliedDirective = null;
 	
 	public SprayAndWaitControlRouter(Settings s) {
 		super(s);
@@ -98,7 +99,7 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 
 		return list;
 	}
-	
+		
 	@Override
 	/**
 	 * After a control msg is transfered it keeps always a copy of the msg.
@@ -118,37 +119,6 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		}
 	}
 	
-	@Override
-	/**
-	 * If the message is of type message, it is direct delivery if the 
-	 * m.to == connectionHostPeer.
-	 * If the message is of type directive, it has always to be direct delivered.
-	 * If the message is of type metric, if the connectionHostPeer is a controller, 
-	 * it has always to be delivered.
-	 * 
-	 * m.getTo = con.getOtherNode
-	 * @param m The message to be direct delivered.
-	 * @param connectionHostPeer the connection host peer.
-	 * @return true if the message can be delivered directly of false otherwise.
-	 */
-	protected boolean isADirectDeliveryMessageForConnection(Message m, DTNHost connectionHostPeer) {
-		boolean isADirectDelivery = false;
-		
-		switch(m.getType()) {
-		case DIRECTIVE:
-			isADirectDelivery = true;
-			break;
-		case METRIC:
-			if (connectionHostPeer.getRouter().isAController()) {
-				isADirectDelivery = true;
-			}
-			break;
-		default:
-			isADirectDelivery = super.isADirectDeliveryMessageForConnection(m, connectionHostPeer);						
-		}
-		return isADirectDelivery;
-	}
-
 	
 	/**
 	 * See {@link router.MessageRouter.applyDirective}. When a directive arrives, 
@@ -166,7 +136,7 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * 
 	 * @param message The received directive.
 	 */
-	protected void applyDirective(Message message) {
+	public void applyDirective(Message message) {
 		if (message.containsProperty​(DirectiveCode.NROF_COPIES_CODE)) {
 			int directiveMsgCountValue = (Integer) (message.getProperty(DirectiveCode.NROF_COPIES_CODE.toString())); // L
 			int decreaseIterations;
@@ -207,8 +177,24 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		}
 	}
 	
+	/**
+	 * Method that checks whether the router has applied any directive during the 
+	 * simulation.
+	 * @return <code>True</code> if a directive has been aplied during the simulation.
+	 * <code>false</code> otherwise.
+	 */
 	private boolean hasADirectiveBeenApplied() {
-		return (this.creationTimeOfTheAppliedDirective != NO_APPLIED_DIRECTIVES);
+		return (this.lastAppliedDirective != null);
+	}
+	
+	/**
+	 * Public method that checks if a directive has been applied, which means 
+	 * that the router is carrying a directive. 
+	 * @return <code>True</code> if the router is carrying a directive.
+	 * <code>false</code> otherwise.
+	 */
+	public boolean doesCarryADirective(){
+		return this.hasADirectiveBeenApplied();
 	}
 	
 	/**
@@ -225,12 +211,143 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		int currentDirectiveMsgCountValue = this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		
 		if(!this.hasADirectiveBeenApplied() || 
-				message.getCreationTime() > this.creationTimeOfTheAppliedDirective && 
-				directiveMsgCountValue != currentDirectiveMsgCountValue) {
+				(message.getCreationTime() > this.lastAppliedDirective.getCreationTime() && 
+				directiveMsgCountValue != currentDirectiveMsgCountValue) ){
 			hasToBeApplied = true;
-			this.creationTimeOfTheAppliedDirective = message.getCreationTime();			
+			this.lastAppliedDirective = (DirectiveMessage)message;			
 		}
 		return hasToBeApplied;	
 	}
+	
+	
+	@Override
+	/**
+	 * This method is called synchronously through an event.
+	 * @param the message to be fulfilled. 
+	 */
+	public boolean createNewMessage(Message m) {
+		boolean msgHasBeenCreated = false;
+		
+		msgHasBeenCreated = (m.getType() == Message.MessageType.DIRECTIVE)?
+				this.createNewDirectiveMessage((DirectiveMessage)m) : (m.getType() == Message.MessageType.METRIC) ?
+						this.createNewMetricMessage((MetricMessage)m) :
+							super.createNewMessage(m);
+				
+		return msgHasBeenCreated;
+	}
+	
+	/**
+	 * The router delegates the the fulfillment of the message with the
+	 * directive to {@link Controller#fillMessageWithDirective(ControlMessage)}.
+	 * 
+	 * @param msg The directive message to be fulfilled
+	 * @return if the controller has a directive to be used to fulfill the 
+	 * message being created.
+	 */
+	public boolean createNewDirectiveMessage(DirectiveMessage msg) {
+		DirectiveDetails directiveDetails;
+		directiveDetails = this.controller.fillMessageWithDirective(msg);
+		boolean msgHasBeenCreated = (directiveDetails != null) ? true : false;
+		if (msgHasBeenCreated) {
+			this.lastAppliedDirective = msg;
+			this.reportDirectiveCreated(directiveDetails);
+		}
+
+		return msgHasBeenCreated;
+	}
+
+	
+	/**
+	 * The router delegates the fulfillment of the message, with the metric information, to 
+	 * {@link MetricsSensed#fillMessageWithMetric(Message)}. If there is no 
+	 * metric available this method returns false.	 
+	 * @param msg The message to be filled in.	 
+	 * @return A boolean indicating whether the the message has been created or not. 
+	 */
+	public boolean createNewMetricMessage(MetricMessage msg) {
+		return this.createNewMetricMessage(msg, null);
+	}
+	
+	
+	/**
+	 * The router delegates the fulfillment of the message, with the metric information, to 
+	 * {@link MetricsSensed#fillMessageWithMetric(Message)}. If there is no 
+	 * metric available this method returns false. 	 
+	 * @param msg The message to be filled in.
+	 * @param exclude HostId to be excluded from the aggregation.      	
+	 * @return A boolean indicating whether the the message has been created or not.
+	 */
+	public boolean createNewMetricMessage(MetricMessage msg, String exclude) {
+		MetricDetails metricDetails = this.metricsSensed.fillMessageWithMetric(msg, this.getFreeBufferSize(), exclude);
+		if (this.isControlMsgGeneratedByMeAsAController(msg)) {
+			this.controller.addMetric(msg);
+		}	
+		boolean msgHasBeenCreated = (metricDetails != null) ? true : false;
+		if(msgHasBeenCreated) {
+			this.reportNewMetric(metricDetails);
+		}
+		
+		return msgHasBeenCreated;
+	}
+	
+	/**
+	 * The router creates a MetricMessage with the local congestion reading at this
+	 * moment. 
+	 * @param msg The message to be fulfilled.
+	 */
+	public MetricMessage createLocalCongestionMessage(){
+		MetricMessage metric = new MetricMessage(this.getHost());
+		this.metricsSensed.fillMessageWithLocalCongestion(metric, this.getFreeBufferSize());
+		return metric;
+	}
+	
+	
+	/**
+	 * This method should be called (on the receiving host) after a metric message
+	 * was successfully transferred. 
+	 * @param The message that the from host receives.
+	 */
+	public void metricMessageTransferred(MetricMessage metric) {
+		if(this.isAController()) {
+			this.controller.addMetric(metric);
+		}else {
+			this.metricsSensed.addReceivedMetric(metric);
+		}
+	}
+	
+	/**
+	 * This method should be called (on the receiving host) after a directive message
+	 * was successfully transferred. 
+	 * @param The message that the from host receives.
+	 */
+	public void directiveMessageTransferred(DirectiveMessage directive) {
+		this.reportReceivedDirective(directive);
+		if(!this.isAController()) {
+			this.applyDirective(directive);	
+		}else {
+			this.controller.addDirective(directive);
+		}
+	}
+	
+	@Override
+	public void changedConnection(Connection con) {
+		super.changedConnection(con);		
+
+		if (con.isUp()) {
+			DTNHost otherHost = con.getOtherNode(getHost());
+						
+			if (this.doesCarryADirective()) {				
+				((SprayAndWaitControlRouter)otherHost.getRouter()).directiveMessageTransferred(this.lastAppliedDirective);
+			}
+			MetricMessage metric = new MetricMessage(this.getHost()); 
+			boolean metricCreated = this.createNewMetricMessage(metric, otherHost.toString());
+			if(metricCreated) {
+				((SprayAndWaitControlRouter)otherHost.getRouter()).metricMessageTransferred(metric);				
+			}
+			
+		}
+	}
+	
+
 
 }
