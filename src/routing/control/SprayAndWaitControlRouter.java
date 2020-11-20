@@ -229,7 +229,7 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		boolean msgHasBeenCreated = false;
 		
 		msgHasBeenCreated = (m.getType() == Message.MessageType.DIRECTIVE)?
-				this.createNewDirectiveMessage((DirectiveMessage)m) : (m.getType() == Message.MessageType.METRIC) ?
+				this.createNewDirectiveMessage((DirectiveMessage)m, true) : (m.getType() == Message.MessageType.METRIC) ?
 						this.createNewMetricMessage((MetricMessage)m) :
 							super.createNewMessage(m);
 				
@@ -241,12 +241,14 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * directive to {@link Controller#fillMessageWithDirective(ControlMessage)}.
 	 * 
 	 * @param msg The directive message to be fulfilled
+	 * @param sync Flag indicating whether the message is created synchronously
+	 * through a generator or asynchronously (without generator)
 	 * @return if the controller has a directive to be used to fulfill the 
 	 * message being created.
 	 */
-	public boolean createNewDirectiveMessage(DirectiveMessage msg) {
+	public boolean createNewDirectiveMessage(DirectiveMessage msg, boolean sync) {
 		DirectiveDetails directiveDetails;
-		directiveDetails = this.controller.fillMessageWithDirective(msg);
+		directiveDetails = this.controller.fillMessageWithDirective(msg, sync);
 		boolean msgHasBeenCreated = (directiveDetails != null) ? true : false;
 		if (msgHasBeenCreated) {
 			this.lastAppliedDirective = msg;
@@ -328,6 +330,18 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 			this.controller.addDirective(directive);
 		}
 	}
+	
+    /**
+     * Method that checks if this node is a controller and if it has generated 
+     * the control msg passed as a parameter. 
+     * @param m the control message
+     * @return True if the current host is a controller and has generated the 
+     * message. False otherwise.
+     */
+    protected boolean isControlMsgGeneratedByMeAsAController(ControlMessage m) {
+    	return ((m.getFrom().getAddress() == this.getHost().getAddress()) &&
+    			this.amIController) ? true : false;    	
+    }
 	
 	@Override
 	public void changedConnection(Connection con) {
