@@ -6,6 +6,7 @@ import core.Settings;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.MetricCode;
+import core.control.MetricMessage;
 import report.control.directive.DirectiveDetails;
 import report.control.directive.EWMADirectiveDetails;
 import routing.MessageRouter;
@@ -134,7 +135,7 @@ public class EWMAEngine extends DirectiveEngine {
 	 * directive to be generated.  
 	 * @param metric metric to be considered
 	 */
-	public void addMetric(ControlMessage metric) {
+	public void addMetric(MetricMessage metric) {
 		if (this.isASelfGeneratedCtrlMsg(metric)) {
 			this.localMetric = metric;
 		} else {
@@ -152,7 +153,7 @@ public class EWMAEngine extends DirectiveEngine {
 	 * aggregated value.
 	 * @param metric The metric to be aggregated.
 	 */
-	protected void addMetricStraightForward(ControlMessage metric) {
+	protected void addMetricStraightForward(MetricMessage metric) {
 		CongestionMetric nextCongestionReading = (CongestionMetric) metric
 				.getProperty(MetricCode.CONGESTION_CODE);
 		double congestionMetricAvg = this.sCongestionAverage.getValue();
