@@ -16,6 +16,7 @@ import report.control.directive.DirectiveDetails;
 import report.control.directive.LRDirectiveDetails;
 import routing.MessageRouter;
 import routing.control.metric.CongestionMetric;
+import routing.control.metric.DoubleWeightedAverageCongestionMetricAggregator;
 import routing.control.util.EWMAProperty;
 import routing.control.util.EWMAPropertyIterative;
 import routing.control.util.LinearRegression;
@@ -59,6 +60,14 @@ public class LREngine extends DirectiveEngine {
 	/** Default value for the property {@link #aggregationInterval}*/
 	private static final int AGGREGATION_INTERVAL_DEF = 90;
 	
+	/**
+	 * ({@value}) setting indicating the name space used to aggregate metrics.
+	 */
+	public static final String METRIC_AGGR_NS_S = "metricAggregationNS";
+	
+	/** Default namespace for the metrics aggregation. */
+	public static final String METRIC_AGGR_NS_DEF = "metricDoubleWeightedAvg";
+	
 	/** The number of congestion readings needed to calculate 
 	 * the linear regression. If this number is not achieved the congestion 
 	 * estimation is performed using the acumulated mobile average.*/
@@ -87,11 +96,8 @@ public class LREngine extends DirectiveEngine {
 	/** Accumulated soften congestion per windowTime.  */
 	//private EWMAProperty sCongestionAverage;
 	
-	/** 
-	 * Alpha to be used to calculate sCongestionAvg with the EWMA:
-	 * sCongestionAvg = (1-alpha) * sPoperty + alpha * property_messured.
-	 */
-	private double congestionAlpha;
+	/** Double weighted aggregator used to aggregate the received metrics.*/
+	private DoubleWeightedAverageCongestionMetricAggregator metricAggregator;
 	
 	/** 
 	 * Window time while the received congestion readings are aggregated using 
@@ -124,48 +130,70 @@ public class LREngine extends DirectiveEngine {
 		
 		this.predictionTimeFactor = (engineSettings.contains(PREDICTIONTIME_FACTOR_S)) ? engineSettings.getInt(PREDICTIONTIME_FACTOR_S) : LREngine.PREDICTIONTIME_FACTOR_DEF; 
 		this.nrofLRCongestionInputs = (engineSettings.contains(NROF_LRCONGESTION_INPUTS_S)) ? engineSettings.getInt(NROF_LRCONGESTION_INPUTS_S) : LREngine.NROF_LRCONGESTION_INPUTS_DEF;
-		this.congestionAlpha = (engineSettings.contains(CONGESTION_ALPHA_S)) ? engineSettings.getDouble(CONGESTION_ALPHA_S) : LREngine.DEF_ALPHA;
 		this.aggregationInterval = (engineSettings.contains(AGGREGATION_INTERVAL_S)) ? engineSettings.getInt(AGGREGATION_INTERVAL_S) : AGGREGATION_INTERVAL_DEF;
+		String aggregationNs = engineSettings.contains(METRIC_AGGR_NS_S) ? engineSettings.getSetting(METRIC_AGGR_NS_S) : METRIC_AGGR_NS_DEF;
+		Settings aggregationSettings = new Settings(aggregationNs);
+		this.metricAggregator = 
+			new DoubleWeightedAverageCongestionMetricAggregator(aggregationSettings);
 		
 		this.nextAggregationInterval();		
 	}
 
 	/**
-	 * The metric is added using an Iterative EWMA. After intervalTime, the value
+	 * The metric is added using a double weighted average. After intervalTime, 
+	 * we get the the value
 	 * of the aggregation is considered as a point of the linear regression.
 	 * @param metric The metric to be aggregated.
 	 */
-	public void addMetric(ControlMessage metric) {
+	public void addMetric(MetricMessage metric) {
 		double congestionReading = ((CongestionMetric) metric
 				.getProperty(MetricCode.CONGESTION_CODE)).getCongestionValue();
-		double lastCongestionAverage = this.sCongestionAverage.getValue(); 
-		this.sCongestionAverage.aggregateValue(congestionReading);
-		((LRDirectiveDetails)this.directiveDetails).addMetricUsed(metric, lastCongestionAverage, this.sCongestionAverage.getValue(), this.aggrIntervalCounter);
-		
-		
-		if(SimClock.getTime() >= this.aggregationIntervalEndTime) {		
-			MetricMessage localMetric = ((SprayAndWaitControlRouter)this.router).createLocalCongestionMessage();
-			
-			this.lrCongestionInputs.add(BigDecimal.valueOf(this.sCongestionAverage.getValue())
+		this.addMetricAndDetails(metric);
+				
+		if(SimClock.getTime() >= this.aggregationIntervalEndTime) {
+			this.addMetricAndDetails(this.getLocalCongestionReading());
+			double congestionAvg = this.metricAggregator.getDoubleWeightedAverage();
+			this.lrCongestionInputs.add(BigDecimal.valueOf(congestionAvg)
 					.setScale(2, RoundingMode.HALF_UP).doubleValue());
 			this.lrTimeInputs
 					.add(BigDecimal.valueOf(SimClock.getTime()).setScale(2, RoundingMode.HALF_UP).doubleValue());
 			if (this.lrCongestionInputs.size() >= this.nrofLRCongestionInputs) {
 				double predictionTime = SimClock.getTime() + this.aggregationInterval * this.predictionTimeFactor;
-				this.congestionPrediction = this.calculateCongestionPredictionAt(predictionTime); 
-				//TODO: If the prediction means a change of state -> then create a new 
-				//directive, if not do nothing.
-				// The createNewDirective method calls the engine.generateDirective.
-				this.hasDirectiveBeenGeneratedInCtrlCycle = ((SprayAndWaitControlRouter) this.router)
-						.createNewDirectiveMessage(new DirectiveMessage(this.router.getHost()));				
+				this.congestionPrediction = this.calculateCongestionPredictionAt(predictionTime);
 				//sliding the window.
 				this.lrCongestionInputs.pop();
 				this.lrTimeInputs.pop();
+				// The createNewDirective method calls the engine.generateDirective.
+				this.hasDirectiveBeenGeneratedInCtrlCycle = ((SprayAndWaitControlRouter) this.router)
+						.createNewDirectiveMessage(new DirectiveMessage(this.router.getHost()), false);				
+
 			}
 			this.nextAggregationInterval();			
 		}
 	}
 	
+	/**
+	 * Method that aggregates a metric and generates the details of the aggregation.
+	 * @param metric The metric to be aggregated.
+	 */
+	private void addMetricAndDetails(MetricMessage metric) {
+		double lastCongestionAverage = this.metricAggregator.getDoubleWeightedAverage();
+		this.metricAggregator.addMetric(metric);
+		((LRDirectiveDetails)this.directiveDetails).addMetricUsed(metric, lastCongestionAverage, this.metricAggregator.getDoubleWeightedAverage(), this.aggrIntervalCounter);
+		if(!this.isASelfGeneratedCtrlMsg(metric)) {
+			this.receivedCtrlMsgInDirectiveCycle = true;
+		}	
+
+	}
+	
+	/**
+	 * Method that builds a message with the local congestion reading.
+	 *   
+	 * @return A metric with the local congestion reading.
+	 */
+	private MetricMessage getLocalCongestionReading() {
+		return ((SprayAndWaitControlRouter)this.router).createLocalCongestionMessage();
+	}
 
 	
 	/**
@@ -203,43 +231,38 @@ public class LREngine extends DirectiveEngine {
 	public void addDirective(ControlMessage directive) {		
 		this.directiveDetails.addDirectiveUsed(directive, new Properties());
 	}
-
-	@Override
-	/**
-	 * This method is called after a timeout. @see DirectiveEngine.generateDirective
-	 * for the full documentation of the method.
-	 */
-	public DirectiveDetails generateDirective(ControlMessage message) {		
-		return this.generateDirective(message, true);
-	}
 	
 	/**
 	 * Method that generates a directive (@see DirectiveEngine.generateDirective) 
 	 * just if no directive has been generated during this windowTime. 
 	 * In case we get to the point to generate a directive by a timeout and 
 	 * we haven't received enough data to predict the congestion, the prediction
-	 * is the average of the congestion readings received.
+	 * is the double weighted average of the congestion readings received including
+	 * our own reading.
 	 * @param message The message the message to be filled with the fields of the 
 	 * directive.
-	 * @param isTimeOut Flag indicating if the method is called after finishing the 
-	 * control cycle.
+	 * @param isTimeOut Flag indicating if the directive has to be generated by
+	 * timeout or synchronously.
 	 * @return In case the are no metrics or directives to be considered to 
 	 * generate a new directive, the message is not fulfilled and the method 
 	 * returns null, otherwise, the message is fulfilled with the directive 
 	 * fields and the method returns the detailed information about the data used
 	 * to generate the directive.
 	 */
-	private DirectiveDetails generateDirective(ControlMessage message, boolean isTimeOut) {
+	public DirectiveDetails generateDirective(ControlMessage message, boolean isTimeOut) {
 		DirectiveDetails directiveDetails = null;
-		if (!this.isSetCongestionMeasure() && (this.sCongestionAverage.isSet())) {
-			this.congestionPrediction = this.sCongestionAverage.getValue();
+
+		if (isTimeOut && !this.hasDirectiveBeenGeneratedInCtrlCycle && this.receivedCtrlMsgInDirectiveCycle && !this.isSetCongestionMeasure()) {
+			this.addMetricAndDetails(this.getLocalCongestionReading());
+			this.congestionPrediction = this.metricAggregator.getDoubleWeightedAverage();
 		}
+		//if !isTimeOut generate always
+		// if isTimeOut just generate if it has not been generated before in the cycle.
 		if (!isTimeOut || (!this.hasDirectiveBeenGeneratedInCtrlCycle)){
-			directiveDetails = super.generateDirective(message);
+			directiveDetails = super.generateDirective(message, isTimeOut);
 			this.aggrIntervalCounter = 1;
 		}
 		return directiveDetails;
-
 	}
 	
 	@Override
@@ -279,7 +302,18 @@ public class LREngine extends DirectiveEngine {
 		this.aggregationIntervalEndTime = SimClock.getTime() + 
 				this.aggregationInterval;
 		this.aggrIntervalCounter++;
-		this.sCongestionAverage = new EWMAPropertyIterative(this.congestionAlpha);	
+		this.metricAggregator.reset();
 	}
 
+	@Override
+	/**
+	 * See {@link routing.control.DirectiveEngine#resetDirectiveCycleSettings} for
+	 * full documentation.
+	 * This method also resets the metrics map used to calculate the double weighted 
+	 * average.
+	 */
+	protected void resetDirectiveCycleSettings() {
+		super.resetDirectiveCycleSettings();
+		this.metricAggregator.reset();
+	}
 }
