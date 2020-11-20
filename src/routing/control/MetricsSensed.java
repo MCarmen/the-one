@@ -4,9 +4,7 @@
 package routing.control;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import core.Message;
 import core.control.MetricCode;
@@ -14,7 +12,7 @@ import core.control.MetricMessage;
 import report.control.metric.MetricDetails;
 import routing.control.metric.BufferOccupancy;
 import routing.control.metric.CongestionMetric;
-import routing.control.metric.DoubleWeightedAverageCongestionMetricCalculator;
+import routing.control.metric.DoubleWeightedAverageCongestionMetricAggregator;
 
 /*
   class MetricsSensed{
@@ -31,25 +29,24 @@ import routing.control.metric.DoubleWeightedAverageCongestionMetricCalculator;
 public class MetricsSensed {	
 	/** The size of the buffer */
 	private double bufferSize;
-	
-	/** 
-	 * A map with the metrics received. The map is refreshed before being used
-	 * so that the old metrics are removed.*/
-	private Map<String, MetricMessage> receivedMetrics;	
-	
+		
 	/** History of the metrics sensed for a windowTime  */
 	private List<CongestionMetric> history;
 	
 	/** Number of bytes dropped during an amount of time. */
 	private int bytesDroppedPerWT;
 	
+	/** Aggregator for the received metrics. */
+	private DoubleWeightedAverageCongestionMetricAggregator metricAggregator;
+	
 	/**
 	 * The constructor initializes the drops to 0, the sensing time to the 
 	 * current simulation time. It initializes the size of the buffer.
 	 */	
-	public MetricsSensed(long bufferSize) {
+	public MetricsSensed(long bufferSize, DoubleWeightedAverageCongestionMetricAggregator aggregator){
 		this.history = new ArrayList<>();
 		this.bufferSize = bufferSize;
+		this.metricAggregator = aggregator;
 		this.reset();
 	}
 	
@@ -67,7 +64,7 @@ public class MetricsSensed {
 	 * and the sensing time to the current simulation time.
 	 */
 	private void reset() {
-		this.receivedMetrics = new HashMap<String, MetricMessage>();
+		this.metricAggregator.reset();
 		this.bytesDroppedPerWT = 0;
 	}
 
@@ -86,7 +83,7 @@ public class MetricsSensed {
 	 * @param metric The received metric.
 	 */
 	public void addReceivedMetric(MetricMessage metric) {
-		this.receivedMetrics.put(metric.getFrom().toString(), metric);
+		this.metricAggregator.addMetric(metric);
 	}
 	
 	/**
@@ -135,8 +132,8 @@ public class MetricsSensed {
 		double occupancy = this.getBufferOccupancy(bufferFreeSpace);
 		MetricDetails metricDetails = new MetricDetails(message.getId(), message.getFrom().toString(), message.getCreationTime());
 		//TODO: removed the old stored metrics (decay < threshold)
-		CongestionMetric congestionMetric = DoubleWeightedAverageCongestionMetricCalculator.getDoubleWeightedAverageForMetric(
-				occupancy, this.receivedMetrics, metricDetails, exclude);
+		CongestionMetric congestionMetric = this.metricAggregator.getDoubleWeightedAverageForMetric(
+				occupancy, metricDetails, exclude);
 		message.addProperty(MetricCode.CONGESTION_CODE, congestionMetric);
 		this.history.add(congestionMetric);
 
