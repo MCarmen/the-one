@@ -9,17 +9,21 @@ import java.util.List;
 import core.Connection;
 import core.DTNHost;
 import core.Message;
+import core.MessageListener;
 import core.Settings;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
 import core.control.MetricMessage;
+import core.control.listener.DirectiveListener;
+import core.control.listener.MetricListener;
 import report.control.directive.BufferedMessageUpdate;
 import report.control.directive.DirectiveDetails;
 import report.control.directive.ReceivedDirective;
 import report.control.metric.MetricDetails;
 import routing.MessageRouter;
 import routing.SprayAndWaitRouter;
+import routing.control.metric.DoubleWeightedAverageCongestionMetricAggregator;
 
 /**
  * Implementation of a routing algorithm that for data messages acts as the 
@@ -32,11 +36,43 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 
 	/** SprayAndWaitControl router's settings name space ({@value})*/
 	public static final String SPRAYANDWAITCONTROL_NS = "SprayAndWaitControlRouter";
+	/** host type -setting id ({@value}) in the Group name space */
+	public static final String TYPE_S = "type";
+	/** Default setting value for type specifying the type of a group 
+	 * (controller or host) */
+	public static final String CONTROLLER_TYPE = "controller";	
+	/** namespace of the Scenario settings ({@value}) */
+	public static final String SCENARIO_NS = "Scenario";
+	/** controlMode -setting id ({@value}) in the scenario name space */ 
+	public static final String CONTROL_MODE_S = "controlMode";	
+	/** namespace of the control settings ({@value}) */
+	public static final String CONTROL_NS = "control";	
+	/**
+	 * ({@value}) setting indicating the name space used to aggregate metrics.
+	 */
+	public static final String METRIC_AGGR_NS_S = "metricAggregationNS";
+	
+	/** Default namespace for the metrics aggregation. */
+	public static final String METRIC_AGGR_NS_DEF = "metricDoubleWeightedAvg";
+	
+	/** the controller instance in case this router is configured to be a 
+	 * controller */	
+	protected Controller controller;
+	/** Metrics  handler. */
+	protected MetricsSensed metricsSensed;
+	/**Flag indicating whether the router is a controller*/
+	private boolean amIController = false;
+	/**Flag indicating whether the system is a controlled one.*/
+	private boolean controlModeOn = false;
 	
 	private DirectiveMessage lastAppliedDirective = null;
 	
 	public SprayAndWaitControlRouter(Settings s) {
 		super(s);
+		this.setUpControl(s);
+		if(this.amIController) {
+			this.controller = new Controller(this);
+		}
 	}
 	
 	/**
@@ -44,7 +80,9 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * @param r The router prototype where setting values are copied from
 	 */
 	protected SprayAndWaitControlRouter(SprayAndWaitControlRouter r) {
-		super(r);		
+		super(r);
+		this.amIController = r.amIController;
+		this.controlModeOn = r.controlModeOn;
 	}	
 	
 	@Override
@@ -99,27 +137,8 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 
 		return list;
 	}
+	
 		
-	@Override
-	/**
-	 * After a control msg is transfered it keeps always a copy of the msg.
-	 */
-	protected void transferDone(Connection con) {
-		String msgId = con.getMessage().getId();
-		/* get this router's copy of the message */
-		Message msg = getMessage(msgId);
-
-		if (msg == null) { // message has been dropped from the buffer after..
-			return; // ..start of transfer -> no need to reduce amount of copies
-		}
-
-		/* reduce the amount of copies left if the msg is not a control one */
-		if (!msg.isControlMsg()) {
-			super.transferDone(con);
-		}
-	}
-	
-	
 	/**
 	 * See {@link router.MessageRouter.applyDirective}. When a directive arrives, 
 	 * if it is newer than the previous one being applied, the
@@ -362,6 +381,93 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		}
 	}
 	
+	
+	/**
+	 * Method that sets up all the control settings.
+	 * 
+	 * @param s The settings object of the router which is the Group.
+	 */
+	private void setUpControl(Settings s) {
+		Settings scenario_s = new Settings(SCENARIO_NS);
+		this.amIController = ((s.contains(TYPE_S)) && (s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
+		this.controlModeOn = scenario_s.contains(CONTROL_MODE_S) ? scenario_s.getBoolean(CONTROL_MODE_S) : false;
+		if (this.controlModeOn) {
+			Settings control_s = new Settings(CONTROL_NS);
+			String aggregationNs = control_s.contains(METRIC_AGGR_NS_S) ? control_s.getSetting(METRIC_AGGR_NS_S) : METRIC_AGGR_NS_DEF;
+			Settings aggregationSettings = new Settings(aggregationNs);
+			DoubleWeightedAverageCongestionMetricAggregator metricAggregator = 
+				new DoubleWeightedAverageCongestionMetricAggregator(aggregationSettings);
+			this.metricsSensed = new MetricsSensed(this.getBufferSize(), metricAggregator);
+		}
+	}
+		
+	public boolean isAController() {
+		return (this.controller != null);
+	}
+		 
+    
+    public MetricsSensed getMetricsSensed() {
+		return this.metricsSensed;
+	}
+    
+    /**
+     * Method that reports to all the DirectiveListeners about the creation
+     * of a directive.
+     * @param directiveDetails the details of the created directive or null
+     * if no directive has been created.
+     */
+    protected void reportDirectiveCreated(DirectiveDetails directiveDetails) {
+    	if(directiveDetails != null) {
+    		for (MessageListener ml : this.getmListeners()) {
+    			if (ml instanceof DirectiveListener) {
+    				((DirectiveListener)ml).directiveCreated(directiveDetails);
+    			}
+    		}
+    	}
+    }
+        
+    /**
+     * Method that reports to all the DirectiveListeners about the reception of a 
+     * Directive.
+     * @param message The message containing the directive.
+     */
+    public void reportReceivedDirective(Message message){
+		for (MessageListener ml : this.getmListeners()) {
+			if (ml instanceof DirectiveListener) {
+				((DirectiveListener)ml).directiveReceived(message, this.getHost());
+			}
+		}
+    }
+    
+    /**
+     * Method that reports to all the DirectiveListeners the node's buffered messages that have been 
+     * updated with a new nrofCopies value.
+     * @param messagesUpdates the node's buffered messages updated with a new nrofCopies value.
+     */
+    protected void reportAppliedDirectiveToBufferedMessages(BufferedMessageUpdate messagesUpdates) {
+    	for (MessageListener ml : this.getmListeners()) {
+			if (ml instanceof DirectiveListener) {
+				((DirectiveListener)ml).directiveAppliedToBufferedMessages(messagesUpdates);
+			}
+		}    	
+    }
+    
+    /**
+     * Method that reports to all the MetricListeners about the creation
+     * of a metric.
+     * @param metricDetails the details of the created metric or null
+     * if no metric has been created.
+     */
+    protected void reportNewMetric(MetricDetails metricDetails) {
+    	if(metricDetails != null) {
+    		for (MessageListener ml : this.getmListeners()) {
+    			if (ml instanceof MetricListener) {
+    				((MetricListener)ml).newMetric(metricDetails);
+    			}
+    		}
+    	}
+    }
+
 
 
 }
