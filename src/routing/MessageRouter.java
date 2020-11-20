@@ -31,6 +31,7 @@ import report.control.metric.MetricDetails;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
 import routing.control.RoutingPropertyMap;
+import routing.control.metric.DoubleWeightedAverageCongestionMetricAggregator;
 import routing.util.RoutingInfo;
 import util.Tuple;
 
@@ -129,15 +130,12 @@ public abstract class MessageRouter {
 	/** namespace of the control settings ({@value}) */
 	public static final String CONTROL_NS = "control";	
 	/**
-	 * Metric TTL -setting id ({@value}). Value is in minutes and must be
-	 * an integer.
+	 * ({@value}) setting indicating the name space used to aggregate metrics.
 	 */
-	public static final String METRIC_TTL_S = "metricTtl";
-	/**
-	 * Directive TTL -setting id ({@value}). Value is in minutes and must be
-	 * an integer.
-	 */
-	public static final String DIRECTIVE_TTL_S = "directiveTtl";
+	public static final String METRIC_AGGR_NS_S = "metricAggregationNS";
+	
+	/** Default namespace for the metrics aggregation. */
+	public static final String METRIC_AGGR_NS_DEF = "metricDoubleWeightedAvg";
 	
 	/** 
 	 * Msg property set to true if the msg can be removed from the buffer.
@@ -215,9 +213,6 @@ public abstract class MessageRouter {
 		this.host = host;
 		if(this.amIController) {
 			this.controller = new Controller(this);
-		}
-		if(this.controlModeOn) {
-			this.metricsSensed = new MetricsSensed(this.bufferSize);
 		}
 	}
 
@@ -624,53 +619,30 @@ public abstract class MessageRouter {
 	}
 
 	/**
-	 * In case the message to be created is a data one it is created straight 
-	 * away.
-	 * If the message to be created is a new metric, the router delegates
-	 * the fulfillment of the message, with the metric information, to 
-	 * {@link MetricsSensed#fillMessageWithMetric(Message)}. If there is no 
-	 * metric available this method returns false.
-	 * If a metric is created and the node is a controller, the metric msg is 
-	 * aggregated to the node's metrics internally and it is sent to the 
-	 * network. 	 
-	 * If the message to be created is a new directive, the router delegates the
-	 * the fulfillment of the message with the directive to 
-	 * {@link Controller#fillMessageWithDirective(ControlMessage)}.
-	 * If a data message, or metric or directive is finally created, it is 
-	 * added to the list of messages of the router. 
-	 * No message is created in case the simulation time exceeds a percentage 
-	 * defined in the settings.
+	 * In case the message to be created is a data one it is created straight away.
+	 * If the message to be created is a new metric, the router delegates the
+	 * fulfillment of the message, with the metric information, to
+	 * {@link MetricsSensed#fillMessageWithMetric(Message)}. If there is no metric
+	 * available this method returns false. If a metric is created and the node is a
+	 * controller, the metric msg is aggregated to the node's metrics internally and
+	 * it is sent to the network. If the message to be created is a new directive,
+	 * the router delegates the the fulfillment of the message with the directive to
+	 * {@link Controller#fillMessageWithDirective(ControlMessage)}. If a data
+	 * message, or metric or directive is finally created, it is added to the list
+	 * of messages of the router. No message is created in case the simulation time
+	 * exceeds a percentage defined in the settings.
+	 * 
 	 * @param m The message to create.
-	 * @return True if the creation succeeded, false if not (e.g.
-	 * the message was too big for the buffer)
+	 * @return True if the creation succeeded, false if not (e.g. the message was
+	 *         too big for the buffer)
 	 */
 	public boolean createNewMessage(Message m) {
 		boolean msgHasBeenCreated = false;
 
-		switch (m.getType()) {
-		case DIRECTIVE:
-			DirectiveDetails directiveDetails;
-			directiveDetails = this.controller.fillMessageWithDirective(m);
-			msgHasBeenCreated = (directiveDetails != null) ? true : false;
-			if (msgHasBeenCreated) {
-				this.reportDirectiveCreated(directiveDetails);
-			}
-			break;
-		case METRIC:
-			MetricDetails metricDetails = this.metricsSensed.fillMessageWithMetric(m, this.getFreeBufferSize());
-			if (this.isControlMsgGeneratedByMeAsAController((MetricMessage) m)) {
-				this.controller.addMetric((MetricMessage) m);
-			}	
-			msgHasBeenCreated = (metricDetails != null) ? true : false;
-			if(msgHasBeenCreated) {
-				this.reportNewMetric(metricDetails);
-			}
-			break;
-		default: // Data Message
-			msgHasBeenCreated = true;	
-			m.setTtl(this.msgTtl);	
-			addToMessages(m, true);
-		}
+		msgHasBeenCreated = true;
+		m.setTtl(this.msgTtl);
+		addToMessages(m, true);
+
 		return msgHasBeenCreated;
 	}
 
@@ -869,6 +841,14 @@ public abstract class MessageRouter {
 		Settings scenario_s = new Settings(SCENARIO_NS);
 		this.amIController = ((s.contains(TYPE_S)) && (s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
 		this.controlModeOn = scenario_s.contains(CONTROL_MODE_S) ? scenario_s.getBoolean(CONTROL_MODE_S) : false;
+		if (this.controlModeOn) {
+			Settings control_s = new Settings(CONTROL_NS);
+			String aggregationNs = control_s.contains(METRIC_AGGR_NS_S) ? control_s.getSetting(METRIC_AGGR_NS_S) : METRIC_AGGR_NS_DEF;
+			Settings aggregationSettings = new Settings(aggregationNs);
+			DoubleWeightedAverageCongestionMetricAggregator metricAggregator = 
+				new DoubleWeightedAverageCongestionMetricAggregator(aggregationSettings);
+			this.metricsSensed = new MetricsSensed(this.bufferSize, metricAggregator);
+		}
 	}
 		
 	public boolean isAController() {
@@ -880,18 +860,6 @@ public abstract class MessageRouter {
 		return this.metricsSensed;
 	}
  
-
-    /**
-     * Method that checks if this node is a controller and if it has generated 
-     * the control msg passed as a parameter. 
-     * @param m the control message
-     * @return True if the current host is a controller and has generated the 
-     * message. False otherwise.
-     */
-    protected boolean isControlMsgGeneratedByMeAsAController(ControlMessage m) {
-    	return ((m.getFrom().getAddress() == this.getHost().getAddress()) &&
-    			this.amIController) ? true : false;    	
-    }
     
     /**
      * Method that applies the directive encapsulated in the message
