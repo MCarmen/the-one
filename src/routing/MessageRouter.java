@@ -22,16 +22,9 @@ import core.SettingsError;
 import core.SimClock;
 import core.SimError;
 import core.control.ControlMessage;
-import core.control.MetricMessage;
-import core.control.listener.DirectiveListener;
-import core.control.listener.MetricListener;
-import report.control.directive.BufferedMessageUpdate;
-import report.control.directive.DirectiveDetails;
-import report.control.metric.MetricDetails;
 import routing.control.Controller;
 import routing.control.MetricsSensed;
 import routing.control.RoutingPropertyMap;
-import routing.control.metric.DoubleWeightedAverageCongestionMetricAggregator;
 import routing.util.RoutingInfo;
 import util.Tuple;
 
@@ -111,51 +104,22 @@ public abstract class MessageRouter {
 	/** size of the buffer */
 	private long bufferSize;
 	/** TTL for all messages */
-	protected int msgTtl;
+	private int msgTtl;
 	/** Queue mode for sending messages */
 	private int sendQueueMode;
 
 	/** applications attached to the host */
 	private HashMap<String, Collection<Application>> applications = null;
-		
-	/** host type -setting id ({@value}) in the Group name space */
-	public static final String TYPE_S = "type";
-	/** Default setting value for type specifying the type of a group 
-	 * (controller or host) */
-	public static final String CONTROLLER_TYPE = "controller";	
-	/** namespace of the Scenario settings ({@value}) */
-	public static final String SCENARIO_NS = "Scenario";
-	/** controlMode -setting id ({@value}) in the scenario name space */ 
-	public static final String CONTROL_MODE_S = "controlMode";	
-	/** namespace of the control settings ({@value}) */
-	public static final String CONTROL_NS = "control";	
-	/**
-	 * ({@value}) setting indicating the name space used to aggregate metrics.
-	 */
-	public static final String METRIC_AGGR_NS_S = "metricAggregationNS";
-	
-	/** Default namespace for the metrics aggregation. */
-	public static final String METRIC_AGGR_NS_DEF = "metricDoubleWeightedAvg";
-	
+			
 	/** 
 	 * Msg property set to true if the msg can be removed from the buffer.
 	 * It just applies to the data messages.
 	 */
 	public static final String MSG_PROP_ALIVE = "alive";
 	
-		
-	/** the controller instance in case this router is configured to be a 
-	 * controller */	
-	protected Controller controller;
-	/** Metrics  handler. */
-	protected MetricsSensed metricsSensed;
 	/** Map to be filled by the specific routers with specific routing information*/
 	protected RoutingPropertyMap routingProperties;
-	/**Flag indicating whether the router is a controller*/
-	private boolean amIController = false;
-	/**Flag indicating whether the system is a controlled one.*/
-	private boolean controlModeOn = false;
-
+	
 	/**
 	 * Constructor. Creates a new message router based on the settings in
 	 * the given Settings object. Size of the message buffer is read from
@@ -194,7 +158,6 @@ public abstract class MessageRouter {
 		else {
 			sendQueueMode = Q_MODE_RANDOM;
 		}
-		this.setUpControl(s);
 	}
 
 	/**
@@ -211,9 +174,6 @@ public abstract class MessageRouter {
 		this.blacklistedMessages = new HashMap<String, Object>();
 		this.mListeners = mListeners;
 		this.host = host;
-		if(this.amIController) {
-			this.controller = new Controller(this);
-		}
 	}
 
 	/**
@@ -231,8 +191,6 @@ public abstract class MessageRouter {
 				addApplication(app.replicate());
 			}
 		}
-		this.amIController = r.amIController;
-		this.controlModeOn = r.controlModeOn;
 	}
 
 	/**
@@ -246,6 +204,12 @@ public abstract class MessageRouter {
 				app.update(this.host);
 			}
 		}
+	}
+
+	
+	
+	public List<MessageListener> getmListeners() {
+		return mListeners;
 	}
 
 	/**
@@ -474,50 +438,6 @@ public abstract class MessageRouter {
 					this.addToMessages(aMessage, false);
 				}
 				break;
-/*				
-			case METRIC_DESTINATION_UNREACHED_CODE:
-				if(outgoing != null) {
-					this.metricsSensed.addReceivedMetric((MetricMessage)aMessage);
-					if(!isDeliveredMessage(aMessage)) {
-						this.deliveredMessages.put(id, aMessage);
-						isFirstDelivery = true;
-					}	
-				}				
-				break;
-			case METRIC_DESTINATION_REACHED_CODE:
-// the commented code is not necessary if we do aggregate the metrics.				
-//				if(!this.controller.isACentralizedController() && (outgoing != null)) {
-//					this.addToMessages(aMessage, false);
-//				}
-				if(!isDeliveredMessage(aMessage)) {
-					this.deliveredMessages.put(id, aMessage);
-					this.controller.addMetric((ControlMessage)aMessage);
-					isFirstDelivery = true;
-				}
-				break;
-			case DIRECTIVE_CONTROLLER_REACHED_CODE:
-				if(outgoing != null) {
-					this.addToMessages(aMessage, false);
-				}
-				if(!isDeliveredMessage(aMessage)) {
-					this.deliveredMessages.put(id, aMessage);
-					this.controller.addDirective((ControlMessage)aMessage);
-					isFirstDelivery = true;
-				}
-				break;
-			case DIRECTIVE_DESTINATION_REACHED_CODE:
-				if(outgoing != null) {
-					this.addToMessages(aMessage, false);
-				}
-				if(!isDeliveredMessage(aMessage)) {
-					this.deliveredMessages.put(id, aMessage);
-					isFirstDelivery = true;
-				}
-				this.applyDirective(aMessage);
-				this.reportReceivedDirective(aMessage);
-
-				break;	
-			*/				
 		}
 				
 		if((outgoing == null) && (isFinalRecipient) && (!isFirstDelivery)) {
@@ -574,9 +494,6 @@ public abstract class MessageRouter {
 	 */
 	protected void addToMessages(Message m, boolean newMessage) {
 		boolean addMsg = true;
-//		if(m.isControlMsg()) {
-//			addMsg = this.purgeOldQueuedMessage((ControlMessage)m);
-//		}
 		
 		if(addMsg) {
 			this.messages.put(m.getId(), m);
@@ -832,34 +749,6 @@ public abstract class MessageRouter {
 			+ " messages";
 	}
 	
-	/**
-	 * Method that sets up all the control settings.
-	 * 
-	 * @param s The settings object of the router which is the Group.
-	 */
-	private void setUpControl(Settings s) {
-		Settings scenario_s = new Settings(SCENARIO_NS);
-		this.amIController = ((s.contains(TYPE_S)) && (s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
-		this.controlModeOn = scenario_s.contains(CONTROL_MODE_S) ? scenario_s.getBoolean(CONTROL_MODE_S) : false;
-		if (this.controlModeOn) {
-			Settings control_s = new Settings(CONTROL_NS);
-			String aggregationNs = control_s.contains(METRIC_AGGR_NS_S) ? control_s.getSetting(METRIC_AGGR_NS_S) : METRIC_AGGR_NS_DEF;
-			Settings aggregationSettings = new Settings(aggregationNs);
-			DoubleWeightedAverageCongestionMetricAggregator metricAggregator = 
-				new DoubleWeightedAverageCongestionMetricAggregator(aggregationSettings);
-			this.metricsSensed = new MetricsSensed(this.bufferSize, metricAggregator);
-		}
-	}
-		
-	public boolean isAController() {
-		return (this.controller != null);
-	}
-		 
-    
-    public MetricsSensed getMetricsSensed() {
-		return this.metricsSensed;
-	}
- 
     
     /**
      * Method that applies the directive encapsulated in the message
@@ -918,73 +807,10 @@ public abstract class MessageRouter {
 	}
     
 
-    /**
-     * Method that reports to all the DirectiveListeners about the creation
-     * of a directive.
-     * @param directiveDetails the details of the created directive or null
-     * if no directive has been created.
-     */
-    protected void reportDirectiveCreated(DirectiveDetails directiveDetails) {
-    	if(directiveDetails != null) {
-    		for (MessageListener ml : this.mListeners) {
-    			if (ml instanceof DirectiveListener) {
-    				((DirectiveListener)ml).directiveCreated(directiveDetails);
-    			}
-    		}
-    	}
-    }
-        
-    /**
-     * Method that reports to all the DirectiveListeners about the reception of a 
-     * Directive.
-     * @param message The message containing the directive.
-     */
-    public void reportReceivedDirective(Message message){
-		for (MessageListener ml : this.mListeners) {
-			if (ml instanceof DirectiveListener) {
-				((DirectiveListener)ml).directiveReceived(message, this.host);
-			}
-		}
-    }
-    
-    /**
-     * Method that reports to all the DirectiveListeners the node's buffered messages that have been 
-     * updated with a new nrofCopies value.
-     * @param messagesUpdates the node's buffered messages updated with a new nrofCopies value.
-     */
-    protected void reportAppliedDirectiveToBufferedMessages(BufferedMessageUpdate messagesUpdates) {
-    	for (MessageListener ml : this.mListeners) {
-			if (ml instanceof DirectiveListener) {
-				((DirectiveListener)ml).directiveAppliedToBufferedMessages(messagesUpdates);
-			}
-		}    	
-    }
-    
-    /**
-     * Method that reports to all the MetricListeners about the creation
-     * of a metric.
-     * @param metricDetails the details of the created metric or null
-     * if no metric has been created.
-     */
-    protected void reportNewMetric(MetricDetails metricDetails) {
-    	if(metricDetails != null) {
-    		for (MessageListener ml : this.mListeners) {
-    			if (ml instanceof MetricListener) {
-    				((MetricListener)ml).newMetric(metricDetails);
-    			}
-    		}
-    	}
-    }
-        
- 
-    
+           
 	private static enum TransferredCode {
 		MESSAGE_DESTINATION_REACHED_CODE, 
 		MESSAGE_DESTINATION_UNREACHED_CODE,
-		MESSAGE_BROADCAST_DESTINATION_REACHED_CODE,
-		METRIC_DESTINATION_REACHED_CODE,
-		METRIC_DESTINATION_UNREACHED_CODE, 
-		DIRECTIVE_CONTROLLER_REACHED_CODE, 
-		DIRECTIVE_DESTINATION_REACHED_CODE
+		MESSAGE_BROADCAST_DESTINATION_REACHED_CODE,		
 	}
 }
