@@ -2,6 +2,7 @@ package routing.control.metric;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import core.Settings;
 import core.SimClock;
@@ -43,6 +44,13 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	 */
 	private static final String DECAY_NS_S = "decay";
 	
+	/** {@value} setting indicating the maximum number of metrics that can be stored in the metrics table. */
+	private static final String METRICS_TABLE_MAX_SIZE_S = "metricsTableMaxSizeValue";
+	
+	/** Value to indicate no limit for the metrics table.  */
+	private static final int NO_METRICS_TABLE_MAX_SIZE_LIMIT = (int)System.currentTimeMillis();
+		
+	private int metricsTableMaxSizeValue;
 	
 	public DoubleWeightedAverageCongestionMetricAggregator() {
 		this(new Settings(METRIC_DOUBLE_WEIGHTED_NS));
@@ -52,7 +60,10 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 		this.alpha = (doubleWeightedSettings.contains(ALPHA_S)) 
 				? doubleWeightedSettings.getDouble(ALPHA_S) : DEF_ALPHA_S;
 		String decayNS = doubleWeightedSettings.getSetting(DECAY_NS_S);		
-		this.decay = DecayFactory.getDecay(decayNS);					
+		this.decay = DecayFactory.getDecay(decayNS);
+		this.metricsTableMaxSizeValue = (doubleWeightedSettings.contains(METRICS_TABLE_MAX_SIZE_S)) 
+				? doubleWeightedSettings.getInt(METRICS_TABLE_MAX_SIZE_S) : NO_METRICS_TABLE_MAX_SIZE_LIMIT;
+		this.metrics = new HashMap<>();		
 	}
 	
 	/**
@@ -66,12 +77,34 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	}
 
 	/**
-	 * Method that adds a metric to the map of metrics.
+	 * Method that adds a metric to the map of metrics. If the metrics table is 
+	 * full it makes room for the received metric.
 	 * 
 	 * @param metric The received metric.
 	 */
 	public void addMetric(MetricMessage metric) {
+		this.makeRoomForMetricIfNecessary();
 		this.metrics.put(metric.getFrom().toString(), metric);
+	}
+	
+	/**
+	 * Method that checks if there is enough room to store the new metric in the 
+	 * metrics table. If not, we find the eldest entry.  
+	 */
+	private void makeRoomForMetricIfNecessary() {
+		MetricMessage eldestMetric = null;
+		if (this.metrics.size() >= this.metricsTableMaxSizeValue) {
+			for(Entry<String, MetricMessage> entry : this.metrics.entrySet()) {
+				if(eldestMetric == null) {
+					eldestMetric = entry.getValue();
+				}else {
+					if (entry.getValue().getCreationTime() < eldestMetric.getCreationTime()) {
+						eldestMetric = entry.getValue();
+					}
+				}		
+			}
+			this.metrics.remove(eldestMetric.getFrom().toString());
+		}		
 	}
 	
 	/**
