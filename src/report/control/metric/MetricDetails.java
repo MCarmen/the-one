@@ -22,6 +22,9 @@ public class MetricDetails {
 	/** Identifier of the node that generated the metric.  */
 	private String generatedByNode;
 	
+	/** To destination of the metric. */
+	private String to;
+	
 	/** When the metric was created */
 	private double creationTime;
 	
@@ -42,17 +45,28 @@ public class MetricDetails {
 	
 	/** A list with the aggregated metrics. */
 	private List<Properties> aggregatedMetrics = new ArrayList<>();
-
 	
-	public MetricDetails(String metricID, String generatedByNode, double creationTime) {
+	public MetricDetails() {
+		
+	}
+
+	/**
+	 * 
+	 * @param metricID The identifier of the metric.
+	 * @param generatedByNode The node that generated the metric.
+	 * @param to The node destination of the metric. 
+	 * @param creationTime The creation time of the metric.
+	 */
+	public MetricDetails(String metricID, String generatedByNode, String to, double creationTime) {
 		this.metricID = metricID;
 		this.generatedByNode = generatedByNode;
+		this.to = to;
 		this.creationTime = creationTime;
 	}
 
-	public MetricDetails(String metricID, String generatedByNode, int creationTime, double originalValue,
+	public MetricDetails(String metricID, String generatedByNode, String to, int creationTime, double originalValue,
 			double aggregatedValue, double delay, int sumOfMetricsAggregations, double sumOfDelays) {
-		this(metricID, generatedByNode, creationTime);
+		this(metricID, generatedByNode, to, creationTime);
 		this.init(originalValue, aggregatedValue, delay, sumOfMetricsAggregations, sumOfDelays);
 	}
 	
@@ -71,13 +85,20 @@ public class MetricDetails {
 		this.sumOfDelays = sumOfDelays;		
 	}
 
-	public void aggregateMetric(MetricMessage metric, double decayWeight) {
+	/**
+	 * Method that adds to the list of aggregated metrics the metric passed as 
+	 * a parameter. 
+	 * @param metric The aggregated metric.
+	 * @param decayWeight The decay weight of the aggregated metric.
+	 */
+	public void registerAggregatedMetric(MetricMessage metric, double decayWeight) {
 		Properties metricProperties = new Properties();
 		CongestionMetric congestionMetric;
 		if (metric.containsProperty​(MetricCode.CONGESTION_CODE)) {
 			congestionMetric = (CongestionMetric) metric.getProperty(MetricCode.CONGESTION_CODE);
 			metricProperties.put("id", metric.getId());
 			metricProperties.put("from", metric.getFrom());
+			metricProperties.put("to", metric.getTo());
 			metricProperties.put("creationT", new DecimalFormat("#0").format(metric.getCreationTime()));
 			metricProperties.put("Value", new DecimalFormat("#0.00").format(congestionMetric.getCongestionValue()));
 			metricProperties.put("aggregations",congestionMetric.getNrofAggregatedMetrics());
@@ -94,7 +115,7 @@ public class MetricDetails {
 	 */
 	public static String getHeaderString() {
 		StringBuilder strBuilder = new StringBuilder();
-		strBuilder.append("id | CreationT | Gen By | ");
+		strBuilder.append("id | CreationT | Gen By | To | ");
 		strBuilder.append("originalVal | aggregatedVal | numAggr | delay | sumAggr | sumDelay");
 		strBuilder.append("Foreach metric: ID | Node | val | aggregations | decayWeight ");
 		
@@ -102,9 +123,22 @@ public class MetricDetails {
 	}
 	
 	public String toString() {
+		return this.toString(" ");
+	}
+	
+	/**
+	 * Creates a string representation of the metric. It uses a separator between
+	 * the metric details and the aggregated metrics.  
+	 * @param separator string separator.
+	 * @return The string representation of the metric.
+	 */
+	public String toString(String separator) {
 		String str = String.format(
-				"ID:%s Created:%.2f Node:%s Val:%.2f AggrVal:%.2f nrofAggr:%d decayWeight:%.2f sumAggr:%d sumDelay:%.2f aggregated metrics:\n%s", this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue, this.aggregatedMetrics.size() + 1, this.decay, this.sumOfMetricsAggregations, this.sumOfDelays, this.toStringAggregatedMetrics());
-			
+				"ID:%s Created:%.2f Node:%s To:%s Val:%.2f AggrVal:%.2f nrofAggr:%d decayWeight:%.2f sumAggr:%d sumDelay:%.2f aggregated metrics:\n%s",
+				this.metricID, this.creationTime, this.generatedByNode, this.to, this.originalValue, this.aggregatedValue,
+				this.aggregatedMetrics.size() + 1, this.decay, this.sumOfMetricsAggregations, this.sumOfDelays,
+				this.toStringAggregatedMetrics(separator));
+
 //				this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue,
 //				this.aggregatedMetrics.size() + 1, this.delay, this.sumOfMetricsAggregations, this.sumOfDelays,
 //				this.aggregatedMetrics);
@@ -115,7 +149,7 @@ public class MetricDetails {
 	 * Method to print each one of the aggregatedMetricDetails in a different row 
 	 * @return An string with all the metrics separated by a \n.
 	 */
-	private String toStringAggregatedMetrics() {
+	private String toStringAggregatedMetrics(String separator) {
 		String str = "";
 		for(Properties aggregatedMetric: this.aggregatedMetrics) {
 			str += String.format("%s\n",aggregatedMetric);
