@@ -3,12 +3,13 @@
  */
 package report.control.directive;
 
-import java.text.DecimalFormat;
 import java.util.Arrays;
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import core.Message;
-import core.control.ControlMessage;
+import report.control.metric.MetricDetails;
 import routing.control.CongestionState;
 
 /**
@@ -20,7 +21,7 @@ import routing.control.CongestionState;
 public class LRDirectiveDetails extends DirectiveDetails {
 
 	private static final String HEADER_STR = DirectiveDetails.HEADER_STR + 
-			"| R2 | slope | CongestionInputs | timeInputs | Using Metrics | Directived received";
+			"predictedFor | R2 | slope | CongestionInputs | timeInputs | Using Metrics | Directived received";
 
 	/** List with the congestion inputs (y values) for the regression.  */
 	private double[] lrCongestionInputs;
@@ -32,9 +33,15 @@ public class LRDirectiveDetails extends DirectiveDetails {
 	private double coeficientOfDetermination;
 	/** The slope of the calculated line: line <em>y</em> = &alpha; + &beta; <em>x</em>. */
     private double slope;
+    
+    /** The calculated congestion is the one predicted for this time */
+    private double predictedFor;
+    
+    /** Map indexed by the interval id having as value the metric generated in this interval*/
+    private Map<Integer, MetricDetails> metricDetailPerInterval = new HashMap<>();
 
 	public LRDirectiveDetails() {
-		super();
+		super();		
 	}
     
 	public LRDirectiveDetails(LRDirectiveDetails directiveDetails) {
@@ -43,7 +50,8 @@ public class LRDirectiveDetails extends DirectiveDetails {
 		this.slope = directiveDetails.slope;
 		this.lrCongestionInputs = directiveDetails.lrCongestionInputs;
 		this.lrTimeInputs = directiveDetails.lrTimeInputs;
-		
+		this.predictedFor = directiveDetails.predictedFor;		
+		this.metricDetailPerInterval = new HashMap<>(directiveDetails.metricDetailPerInterval);
 	}
 	
 	/** 
@@ -69,18 +77,20 @@ public class LRDirectiveDetails extends DirectiveDetails {
 	public void init(Message m, int lastCtrlCycleNrofCopies, 
 			double calculatedCongestion, CongestionState congestionState, 
 			double[] lrCongestionInputs, double[] lrTimeInputs,
-			double coeficientOfDetermination, double slope) {
+			double coeficientOfDetermination, double slope, double predictedFor) {
 		super.init(m, lastCtrlCycleNrofCopies, calculatedCongestion, congestionState);
 		this.coeficientOfDetermination = coeficientOfDetermination;
 		this.slope = slope;
 		this.lrCongestionInputs = lrCongestionInputs;
 		this.lrTimeInputs = lrTimeInputs;
+		this.predictedFor = predictedFor;
 	}
 	
 	/**
-	 * Method that registers the metric that has been aggregated in the controller
+	 * Method that registers the metric that has been generated in the controller
+	 * in a time interval out of the received metrics during this time interval.
 	 * 
-	 * @param metric                   The received metric about to be aggregated
+	 * @param metric                   The generated metric after a time interval.
 	 * @param currentCongestionAverage The congestion measurement aggregated until
 	 *                                 now.
 	 * @param newCongestionAverage     The congestion measurement after the metric
@@ -89,27 +99,24 @@ public class LRDirectiveDetails extends DirectiveDetails {
 	 * has been aggregated.
 	 * 
 	 */
-	public void addMetricUsed(ControlMessage metric, double currentCongestionAverage, double newCongestionAverage,
-			int aggregationIntervalCounter) {
-		Properties metricProperties = new Properties();
-		super.addMetricUsed(metric, metricProperties);
-
-		metricProperties.put("CongAvg", new DecimalFormat("#0.00").format(currentCongestionAverage));
-		metricProperties.put("NewCongAvg", new DecimalFormat("#0.00").format(newCongestionAverage));
-		metricProperties.put("intervalCount", aggregationIntervalCounter);
+	public void addMetricUsed(MetricDetails metricDetails, int aggregationIntervalCounter) {		
+		this.metricDetailPerInterval.put(aggregationIntervalCounter, metricDetails);
 	}
+	
+
 	
 	/* (non-Javadoc)
 	 * @see report.control.directive.DirectiveDetails#toString()
 	 */
 	@Override
 	public String toString() {
-		return String.format("%s %.2f %.2f %s %s %s %s", this.basicFieldsToString(),				
+		return String.format("%s %.2f %.2f %.2f %s %s %s %s", this.basicFieldsToString(),
+				this.predictedFor,
 				this.coeficientOfDetermination, this.slope,	
 				Arrays.toString(this.lrCongestionInputs), Arrays.toString(this.lrTimeInputs),
 				this.metricsUsedToString(), this.directivesUsed);
 	}
-
+	
 	/* (non-Javadoc)
 	 * @see report.control.directive.DirectiveDetails#getHeaderString()
 	 */
@@ -117,6 +124,23 @@ public class LRDirectiveDetails extends DirectiveDetails {
 	public String getHeaderString() {
 		// TODO Auto-generated method stub
 		return LRDirectiveDetails.HEADER_STR;
+	}
+	
+	@Override
+	protected String metricsUsedToString() {
+		String metricsDetailsStr = "";
+		
+		for(Entry<Integer, MetricDetails> entry: this.metricDetailPerInterval.entrySet()) {
+			metricsDetailsStr += String.format(" %d: %s", entry.getKey(), entry.getValue());
+		}
+		
+		return metricsDetailsStr;
+	}
+	
+	@Override
+	public void reset() {
+		super.reset();
+		this.metricDetailPerInterval.clear();
 	}
 
 }
