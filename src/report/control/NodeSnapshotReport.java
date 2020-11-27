@@ -4,6 +4,7 @@ import core.DTNHost;
 import core.Message;
 import core.MessageListener;
 import report.SnapshotReport;
+import routing.control.SprayAndWaitControlRouter;
 
 public class NodeSnapshotReport extends SnapshotReport{
 
@@ -16,7 +17,7 @@ public class NodeSnapshotReport extends SnapshotReport{
 			this.isFirstWrite = false;
 		}
 		// TODO Auto-generated method stub
-		write(String.format("%s %s\n\n", host, host.getRouter().getMetricsSensed().getHistoryAsString()));
+		write(String.format("%s %s\n\n", host, ((SprayAndWaitControlRouter)host.getRouter()).getMetricsSensed().getHistoryAsString()));
 
 	}
 	
