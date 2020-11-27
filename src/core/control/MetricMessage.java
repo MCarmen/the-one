@@ -16,15 +16,15 @@ public class MetricMessage extends ControlMessage {
 	
 	/** Prefix to identify a directive message */
 	private static final String PREFIX = "S"; 
-
+	
 	/**
-	 * Constructor used to build control messages. Those messages will not be 
+	 * Constructor used to build metric messages. These messages will not be 
 	 * treated as data messages. These messages cannot be added to the message buffer. 
 	 * @param from The host that created the message.
-	 * @param id The identifier of the message.
+	 * @param to Who the message is (originally) to
 	 */
-	public MetricMessage(DTNHost from) {
-		this(from, null, MetricMessage.nextId(), 0);
+	public MetricMessage(DTNHost from, DTNHost to) {
+		this(from, to, MetricMessage.nextId(), 0);
 	}	
 	
 	/**
