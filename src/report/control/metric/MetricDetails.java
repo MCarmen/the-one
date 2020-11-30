@@ -134,9 +134,8 @@ public class MetricDetails {
 	 */
 	public String toString(String separator) {
 		String str = String.format(
-				"ID:%s Created:%.2f Node:%s To:%s Val:%.2f AggrVal:%.2f nrofAggr:%d decayWeight:%.2f sumAggr:%d sumDelay:%.2f aggregated metrics:\n%s",
-				this.metricID, this.creationTime, this.generatedByNode, this.to, this.originalValue, this.aggregatedValue,
-				this.aggregatedMetrics.size() + 1, this.decay, this.sumOfMetricsAggregations, this.sumOfDelays,
+				"ID:%s Created:%.2f Node:%s To:%s Val:%.2f AggrVal:%.2f nrofAggr:%d decayWeight:%.2f sumAggr:%d sumDelay:%.2f aggregated metrics:%s%s",
+				this.metricID, this.creationTime, this.generatedByNode, this.to, this.originalValue, this.aggregatedValue,				this.aggregatedMetrics.size() + 1, this.decay, this.sumOfMetricsAggregations, this.sumOfDelays, separator,
 				this.toStringAggregatedMetrics(separator));
 
 //				this.metricID, this.creationTime, this.generatedByNode, this.originalValue, this.aggregatedValue,
@@ -152,7 +151,7 @@ public class MetricDetails {
 	private String toStringAggregatedMetrics(String separator) {
 		String str = "";
 		for(Properties aggregatedMetric: this.aggregatedMetrics) {
-			str += String.format("%s\n",aggregatedMetric);
+			str += String.format("%s%s",aggregatedMetric,separator);
 		}
 		return str;
 	}
