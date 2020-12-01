@@ -6,7 +6,6 @@ import core.SimClock;
 import core.control.ControlMessage;
 import core.control.MetricMessage;
 import report.control.directive.DirectiveDetails;
-import routing.MessageRouter;
 import routing.control.util.Decay;
 
 
@@ -22,9 +21,9 @@ public class Controller {
 	public static final String CONTROL_NS = "control";
 	/** package where to look for the routing classes*/
 	private static final String ROUTING_PACKAGE = "routing";
-	private static final String MESSAGE_ROUTER_CLASS = "MessageRouter";
+	private static final String MESSAGE_ROUTER_CLASS = "SprayAndWaitControlRouter";
 	
-	/** package where to look for controller engines */
+	/** package where to look for controller engines and specific control routers.*/
 	private static final String CONTROL_PACKAGE = ROUTING_PACKAGE + "."+ CONTROL_NS;
 
 	/** Base namespace for the directives engine settings ({@value})*/
@@ -74,7 +73,7 @@ public class Controller {
 	 * fed by the routers themselves.  
 	 * @param router the router that has created this controller.
 	 */
-	public Controller(MessageRouter router) {
+	public Controller(SprayAndWaitControlRouter router) {
 		// TODO Auto-generated constructor stub
 		Settings s = new Settings(CONTROL_NS);
 		int nrofControllers;
@@ -99,13 +98,13 @@ public class Controller {
 	 * @param router the router that has created this controller.
 
 	 */
-    protected void setDirectiveEngine(Settings s, MessageRouter router) {
+    protected void setDirectiveEngine(Settings s, SprayAndWaitControlRouter router) {
 		String engineNameSpace = (s.contains(ENGINE_S)) ? s.getSetting(ENGINE_S) : EWMA_ENGINE;
 		Settings engineSettings = new Settings(engineNameSpace);
 		engineSettings.setSecondaryNamespace(BASE_DIRECTIVE_ENGINE_NS);
 		String directiveEngine_str = CONTROL_PACKAGE + "." + engineNameSpace;
 		String[] directiveEngineConstructorArgumentTypes = {SETTINGS_PACKAGE, 
-				ROUTING_PACKAGE +"."+MESSAGE_ROUTER_CLASS} ;
+				CONTROL_PACKAGE +"."+MESSAGE_ROUTER_CLASS} ;
 		
 		this.directiveEngine= (DirectiveEngine)engineSettings.createInitializedObject(
 				directiveEngine_str, directiveEngineConstructorArgumentTypes, 
