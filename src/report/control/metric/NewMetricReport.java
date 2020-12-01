@@ -55,7 +55,7 @@ public class NewMetricReport extends Report implements MetricListener {
 				"\nsim_time: " + format(getSimTime())+"\n");
 		strBuilder.append(MetricDetails.getHeaderString()+"\n");	
 		for(MetricDetails metricDetails : this.newMetricDetails) {
-			strBuilder.append(metricDetails + "\n");
+			strBuilder.append(metricDetails.toString("\n") + "\n");
 		}
 		this.write(strBuilder.toString());
 		super.done();
