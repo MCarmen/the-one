@@ -11,6 +11,7 @@ import core.DTNHost;
 import core.Message;
 import core.MessageListener;
 import core.Settings;
+import core.SimClock;
 import core.control.ControlMessage;
 import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
@@ -47,6 +48,9 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	public static final String CONTROL_MODE_S = "controlMode";	
 	/** namespace of the control settings ({@value}) */
 	public static final String CONTROL_NS = "control";	
+	/** {@value} setting indicating the rang of time when the control messages are 
+	 * created. No message is created before or after the rang. */
+	public static final String CONTROL_TIME_S = "time";
 	/**
 	 * ({@value}) setting indicating the name space used to aggregate metrics.
 	 */
@@ -62,17 +66,14 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	protected MetricsSensed metricsSensed;
 	/**Flag indicating whether the router is a controller*/
 	private boolean amIController = false;
-	/**Flag indicating whether the system is a controlled one.*/
-	private boolean controlModeOn = false;
 	
-	private DirectiveMessage lastAppliedDirective = null;
+	private DirectiveMessage lastAppliedDirective = null;	
+	/** Time range for control message creation (min, max) */
+	private double[] time;
 	
 	public SprayAndWaitControlRouter(Settings s) {
 		super(s);
-		this.setUpControl(s);
-		if(this.amIController) {
-			this.controller = new Controller(this);
-		}
+		this.amIController = ((s.contains(TYPE_S)) && (s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
 	}
 	
 	/**
@@ -82,18 +83,43 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	protected SprayAndWaitControlRouter(SprayAndWaitControlRouter r) {
 		super(r);
 		this.amIController = r.amIController;
-		this.controlModeOn = r.controlModeOn;
-	}	
+		this.metricsSensed = r.metricsSensed;
+		this.time = r.time;
+	}
 	
-	@Override
-	protected void setSettings() {
-		this.snwSettings = new Settings(SPRAYANDWAITCONTROL_NS);
+	/**
+	 * Initializes the router; i.e. sets the host this router is in and
+	 * message listeners that need to be informed about message related
+	 * events etc.
+	 * @param host The host this router is in
+	 * @param mListeners The message listeners
+	 */
+	public void init(DTNHost host, List<MessageListener> mListeners) {
+		super.init(host, mListeners);
+		if(this.amIController) {
+			this.controller = new Controller(this);
+		}
+		Settings control_s = new Settings(CONTROL_NS);
+		String aggregationNs = control_s.contains(METRIC_AGGR_NS_S) ? control_s.getSetting(METRIC_AGGR_NS_S) : METRIC_AGGR_NS_DEF;
+		Settings aggregationSettings = new Settings(aggregationNs);
+		DoubleWeightedAverageCongestionMetricAggregator metricAggregator = 
+			new DoubleWeightedAverageCongestionMetricAggregator(aggregationSettings);
+		this.metricsSensed = new MetricsSensed(this.getBufferSize(), metricAggregator);
+		this.time = (control_s.contains(CONTROL_TIME_S)) ? control_s.getCsvDoubles(CONTROL_TIME_S, 2) : null;
 	}
 	
 	@Override
 	public SprayAndWaitControlRouter replicate() {
 		return new SprayAndWaitControlRouter(this);
 	}
+
+	
+	@Override
+	protected void setSettings() {
+		this.snwSettings = new Settings(SPRAYANDWAITCONTROL_NS);
+	}
+	
+	
 	
 	/**
 	 * If the msg transferred is a control one it is transferred configured with 
@@ -230,9 +256,11 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		int currentDirectiveMsgCountValue = this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
 		
 		if(!this.hasADirectiveBeenApplied() || 
-				(message.getCreationTime() > this.lastAppliedDirective.getCreationTime() && 
-				directiveMsgCountValue != currentDirectiveMsgCountValue) ){
-			hasToBeApplied = true;
+				message.getCreationTime() > this.lastAppliedDirective.getCreationTime() 
+				){
+			if(directiveMsgCountValue != currentDirectiveMsgCountValue) {
+				hasToBeApplied = true;
+			}
 			this.lastAppliedDirective = (DirectiveMessage)message;			
 		}
 		return hasToBeApplied;	
@@ -299,10 +327,7 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * @return A boolean indicating whether the the message has been created or not.
 	 */
 	public boolean createNewMetricMessage(MetricMessage msg, String exclude) {
-		MetricDetails metricDetails = this.metricsSensed.fillMessageWithMetric(msg, this.getFreeBufferSize(), exclude);
-		if (this.isControlMsgGeneratedByMeAsAController(msg)) {
-			this.controller.addMetric(msg);
-		}	
+		MetricDetails metricDetails = this.metricsSensed.fillMessageWithMetric(msg, this.getBufferOccupancy(), exclude);	
 		boolean msgHasBeenCreated = (metricDetails != null) ? true : false;
 		if(msgHasBeenCreated) {
 			this.reportNewMetric(metricDetails);
@@ -316,11 +341,11 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * moment. 
 	 * @param msg The message to be fulfilled.
 	 */
-	public MetricMessage createLocalCongestionMessage(){
-		MetricMessage metric = new MetricMessage(this.getHost());
-		this.metricsSensed.fillMessageWithLocalCongestion(metric, this.getFreeBufferSize());
-		return metric;
-	}
+//	public MetricMessage createLocalCongestionMessage(){
+//		MetricMessage metric = new MetricMessage(this.getHost());
+//		this.metricsSensed.fillMessageWithLocalCongestion(metric, this.getFreeBufferSize());
+//		return metric;
+//	}
 	
 	
 	/**
@@ -364,43 +389,25 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	
 	@Override
 	public void changedConnection(Connection con) {
-		super.changedConnection(con);		
+		super.changedConnection(con);
+		double currentTime = SimClock.getTime();
 
-		if (con.isUp()) {
-			DTNHost otherHost = con.getOtherNode(getHost());
-						
-			if (this.doesCarryADirective()) {				
-				((SprayAndWaitControlRouter)otherHost.getRouter()).directiveMessageTransferred(this.lastAppliedDirective);
-			}
-			MetricMessage metric = new MetricMessage(this.getHost()); 
-			boolean metricCreated = this.createNewMetricMessage(metric, otherHost.toString());
-			if(metricCreated) {
-				((SprayAndWaitControlRouter)otherHost.getRouter()).metricMessageTransferred(metric);				
-			}
+		if((con.isUp()) && 
+				((this.time == null) || 
+				((currentTime >= this.time[0]) && (currentTime <=this.time[1])))) {
+				DTNHost otherHost = con.getOtherNode(getHost());
+							
+				if (this.doesCarryADirective()) {				
+					((SprayAndWaitControlRouter)otherHost.getRouter()).directiveMessageTransferred(this.lastAppliedDirective);
+				}
+				MetricMessage metric = new MetricMessage(this.getHost(), otherHost); 
+				boolean metricCreated = this.createNewMetricMessage(metric, otherHost.toString());
+				if(metricCreated) {
+					((SprayAndWaitControlRouter)otherHost.getRouter()).metricMessageTransferred(metric);				
+				}			
+		}
+	}
 			
-		}
-	}
-	
-	
-	/**
-	 * Method that sets up all the control settings.
-	 * 
-	 * @param s The settings object of the router which is the Group.
-	 */
-	private void setUpControl(Settings s) {
-		Settings scenario_s = new Settings(SCENARIO_NS);
-		this.amIController = ((s.contains(TYPE_S)) && (s.getSetting(TYPE_S).equalsIgnoreCase(CONTROLLER_TYPE)));
-		this.controlModeOn = scenario_s.contains(CONTROL_MODE_S) ? scenario_s.getBoolean(CONTROL_MODE_S) : false;
-		if (this.controlModeOn) {
-			Settings control_s = new Settings(CONTROL_NS);
-			String aggregationNs = control_s.contains(METRIC_AGGR_NS_S) ? control_s.getSetting(METRIC_AGGR_NS_S) : METRIC_AGGR_NS_DEF;
-			Settings aggregationSettings = new Settings(aggregationNs);
-			DoubleWeightedAverageCongestionMetricAggregator metricAggregator = 
-				new DoubleWeightedAverageCongestionMetricAggregator(aggregationSettings);
-			this.metricsSensed = new MetricsSensed(this.getBufferSize(), metricAggregator);
-		}
-	}
-		
 	public boolean isAController() {
 		return (this.controller != null);
 	}
@@ -468,6 +475,15 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
     	}
     }
 
-
+	/**
+	 * Support method that calculates the buffer occupancy.  
+	 * 
+	 * @return The buffer occupancy.
+	 */
+	public double getBufferOccupancy() {
+		//return ((this.bufferSize - bufferFreeSpace) + this.bytesDroppedPerWT) / this.bufferSize;
+		double occupancy = ((double)this.getBufferSize() - this.getFreeBufferSize()) / getBufferSize(); //debug 
+		return occupancy; 
+	}
 
 }
