@@ -10,7 +10,6 @@ import core.Message;
 import core.control.MetricCode;
 import core.control.MetricMessage;
 import report.control.metric.MetricDetails;
-import routing.control.metric.BufferOccupancy;
 import routing.control.metric.CongestionMetric;
 import routing.control.metric.DoubleWeightedAverageCongestionMetricAggregator;
 
@@ -26,15 +25,9 @@ import routing.control.metric.DoubleWeightedAverageCongestionMetricAggregator;
  * Class that encapsulates the metrics sensed by the router. At the moment
  * just the buffer occupancy is sensed.
  */
-public class MetricsSensed {	
-	/** The size of the buffer */
-	private double bufferSize;
-		
+public class MetricsSensed {			
 	/** History of the metrics sensed for a windowTime  */
 	private List<CongestionMetric> history;
-	
-	/** Number of bytes dropped during an amount of time. */
-	private int bytesDroppedPerWT;
 	
 	/** Aggregator for the received metrics. */
 	private DoubleWeightedAverageCongestionMetricAggregator metricAggregator;
@@ -45,7 +38,6 @@ public class MetricsSensed {
 	 */	
 	public MetricsSensed(long bufferSize, DoubleWeightedAverageCongestionMetricAggregator aggregator){
 		this.history = new ArrayList<>();
-		this.bufferSize = bufferSize;
 		this.metricAggregator = aggregator;
 		this.reset();
 	}
@@ -65,7 +57,6 @@ public class MetricsSensed {
 	 */
 	private void reset() {
 		this.metricAggregator.reset();
-		this.bytesDroppedPerWT = 0;
 	}
 
 //	/**
@@ -104,8 +95,8 @@ public class MetricsSensed {
 	 * @return true if the message has been modified with the fraction of the
 	 *         occupancy of the buffer + drops in bytes
 	 */
-	public MetricDetails fillMessageWithMetric(Message message, double bufferFreeSpace) {
-		return this.fillMessageWithMetric(message, bufferFreeSpace, null);
+	public MetricDetails fillMessageWithMetric(Message message, double bufferOccupancy) {
+		return this.fillMessageWithMetric(message, bufferOccupancy, null);
 	}
 	
 
@@ -114,7 +105,8 @@ public class MetricsSensed {
 	 * including the bytes that have been dropped) at the point of calling this
 	 * method. To calculate the buffer occupancy this method aggregates all the metrics 
 	 * received up to this moment to the buffer occupancy reading. The received
-	 * metrics expire based on their creation time. 
+	 * metrics influence fade out by its decay. When the received metrics table is
+	 * full the eldest metrics are removed. 
 	 * 
 	 * @param message         the message to be filled with the fraction of the
 	 *                        occupancy of the buffer + drops in bytes
@@ -128,16 +120,14 @@ public class MetricsSensed {
 	 * @return true if the message has been modified with the fraction of the
 	 *         occupancy of the buffer + drops in bytes
 	 */
-	public MetricDetails fillMessageWithMetric(Message message, double bufferFreeSpace, String exclude) {
-		double occupancy = this.getBufferOccupancy(bufferFreeSpace);
-		MetricDetails metricDetails = new MetricDetails(message.getId(), message.getFrom().toString(), message.getCreationTime());
+	public MetricDetails fillMessageWithMetric(Message message, double bufferOccupancy, String exclude) {
+		MetricDetails metricDetails = new MetricDetails(message.getId(), message.getFrom().toString(), message.getTo().toString(), message.getCreationTime());
 		//TODO: removed the old stored metrics (decay < threshold)
 		CongestionMetric congestionMetric = this.metricAggregator.getDoubleWeightedAverageForMetric(
-				occupancy, metricDetails, exclude);
+				bufferOccupancy, metricDetails, exclude);
 		message.addProperty(MetricCode.CONGESTION_CODE, congestionMetric);
 		this.history.add(congestionMetric);
 
-		this.reset();
 		return metricDetails;
 	}
 
@@ -145,20 +135,11 @@ public class MetricsSensed {
 	 * Fills a Message with the occupancy of the buffer. 
 	 * @param bufferFreeSpace The current buffer free space.
 	 */
-	public void fillMessageWithLocalCongestion(Message message, double bufferFreeSpace) {
-		double occupancy = this.getBufferOccupancy(bufferFreeSpace);
-		CongestionMetric congestion = new BufferOccupancy(occupancy, 1);
-		message.addProperty(MetricCode.CONGESTION_CODE, congestion);		
-	}
-	
-	/**
-	 * Support method that calculates the buffer occupancy.  
-	 * 
-	 * @return The buffer occupancy.
-	 */
-	private double getBufferOccupancy(double bufferFreeSpace) {
-		//return ((this.bufferSize - bufferFreeSpace) + this.bytesDroppedPerWT) / this.bufferSize;	
-		return (this.bufferSize - bufferFreeSpace) / this.bufferSize;
-	}
+//	public void fillMessageWithLocalCongestion(Message message, double bufferFreeSpace) {
+//		double occupancy = this.getBufferOccupancy(bufferFreeSpace);
+//		CongestionMetric congestion = new BufferOccupancy(occupancy, 1);
+//		message.addProperty(MetricCode.CONGESTION_CODE, congestion);		
+//	}
+
 		
 }
