@@ -7,7 +7,6 @@ import core.control.DirectiveCode;
 import core.control.DirectiveMessage;
 import core.control.MetricMessage;
 import report.control.directive.DirectiveDetails;
-import routing.MessageRouter;
 
 /**
  * Abstract class for the Engines that generate directives
@@ -86,11 +85,6 @@ public abstract class DirectiveEngine {
 	 ({@value}) */
 	private static final double DEF_CONGESTION_THRMIN = 0.5;	
 	
-	/** Dummy value to indicate that a directive has not been generated after 
-	 * a control cycle. */
-	private static final int NOT_SET_LAST_DIRECTIVE_TIMEOUT = -1;
-	
-	
 	/**
 	 * Metric time to live. After this time the metric is discarded. 
 	 */
@@ -123,7 +117,7 @@ public abstract class DirectiveEngine {
 	protected double congestionThrMin;	
 	
 	
-	protected MessageRouter router;
+	protected SprayAndWaitControlRouter router;
 		
 	/** 
 	 * Settings of the namespace: control.engine or null if the engine to 
@@ -154,9 +148,6 @@ public abstract class DirectiveEngine {
 	 */
 	protected CongestionState congestionState;
 	
-	/** Container for the details of the directive */ 
-	protected DirectiveDetails directiveDetails;
-	
 	/** Flag that indicates if a directive has been generated during the control
 	 * cicle. */
 	protected boolean hasDirectiveBeenGeneratedInCtrlCycle = false;
@@ -167,11 +158,10 @@ public abstract class DirectiveEngine {
 	 * which has as a subnamespace the 'DirectiveEngine' namespace.
 	 * @param router, the router who has initialized this directiveEngine.
 	 */
-	public DirectiveEngine(Settings engineSettings, MessageRouter router) {
+	public DirectiveEngine(Settings engineSettings, SprayAndWaitControlRouter router) {
 		this.settings = engineSettings;
 		this.router = router;
 		this.congestionState = CongestionState.INITIAL;
-		this.directiveDetails = this.newEmptyDirectiveDetails();
 		
 		this.settings.setSecondaryNamespace(Controller.CONTROL_NS);
 		this.settings.restoreSecondaryNamespace();		
@@ -201,7 +191,7 @@ public abstract class DirectiveEngine {
 		this.receivedCtrlMsgInDirectiveCycle = false;
 		this.hasDirectiveBeenGeneratedInCtrlCycle = false;
 		this.localMetric = null;
-		this.directiveDetails.reset();
+		this.getDirectiveDetails().reset();
 	}
 	
 	
@@ -382,4 +372,11 @@ public abstract class DirectiveEngine {
 	 * @return
 	 */
 	protected abstract DirectiveDetails newEmptyDirectiveDetails();
+	
+	/**
+	 * Method that returns the directiveDetails attribute the subclasses need to 
+	 * define. 
+	 * @return the directiveDetails attribute initialized in the subclasses. 
+	 */
+	protected abstract DirectiveDetails getDirectiveDetails();
 }
