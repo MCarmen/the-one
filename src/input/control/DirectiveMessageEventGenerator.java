@@ -1,6 +1,7 @@
 package input.control;
 
 import core.Settings;
+import core.control.DirectiveMessage;
 import input.ExternalEvent;
 
 /**
@@ -20,6 +21,11 @@ public class DirectiveMessageEventGenerator extends ControlMessageEventGenerator
 		// TODO Auto-generated method stub
 		return new DirectiveMessageCreateEvent(from, to, id, size, time);
 	}	
+	
+	@Override
+	protected String getID() {
+		return DirectiveMessage.nextId();
+	}
 	
 }
 
