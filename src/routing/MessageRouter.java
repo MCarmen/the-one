@@ -116,10 +116,7 @@ public abstract class MessageRouter {
 	 * It just applies to the data messages.
 	 */
 	public static final String MSG_PROP_ALIVE = "alive";
-	
-	/** Map to be filled by the specific routers with specific routing information*/
-	protected RoutingPropertyMap routingProperties;
-	
+		
 	/**
 	 * Constructor. Creates a new message router based on the settings in
 	 * the given Settings object. Size of the message buffer is read from
@@ -298,8 +295,11 @@ public abstract class MessageRouter {
 	 */
 	public long getFreeBufferSize() {
 		long occupancy = 0;
+		long freeBufferSize;
+		long bufferSize = this.getBufferSize();
+		
 
-		if (this.getBufferSize() == Integer.MAX_VALUE) {
+		if (bufferSize == Integer.MAX_VALUE) {
 			return Integer.MAX_VALUE;
 		}
 
@@ -308,8 +308,10 @@ public abstract class MessageRouter {
 				occupancy += m.getSize();
 			}			
 		}
+		
+		freeBufferSize = bufferSize - occupancy;
 
-		return this.getBufferSize() - occupancy;
+		return freeBufferSize;
 	}
 
 	/**
@@ -802,11 +804,6 @@ public abstract class MessageRouter {
 		return receivedMessageCode;
 	}
 	    
-    public RoutingPropertyMap getRoutingProperties() {
-		return this.routingProperties;
-	}
-    
-
            
 	private static enum TransferredCode {
 		MESSAGE_DESTINATION_REACHED_CODE, 
