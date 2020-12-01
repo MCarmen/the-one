@@ -1,6 +1,7 @@
 package input.control;
 
 import core.Settings;
+import core.control.MetricMessage;
 import input.ExternalEvent;
 
 /**
@@ -20,5 +21,10 @@ public class MetricMessageEventGenerator extends ControlMessageEventGenerator {
 		// TODO Auto-generated method stub
 		return new MetricMessageCreateEvent(from, to, id, size, time);
 	}	
+	
+	@Override
+	protected String getID() {
+		return MetricMessage.nextId();
+	}
 	
 }
