@@ -9,7 +9,7 @@ import core.control.MetricCode;
 import core.control.MetricMessage;
 import report.control.directive.DirectiveDetails;
 import report.control.directive.EWMADirectiveDetails;
-import routing.MessageRouter;
+import report.control.directive.LRDirectiveDetails;
 import routing.control.metric.CongestionMetric;
 import routing.control.util.EWMAProperty;
 import routing.control.util.EWMAPropertyIterative;
@@ -78,8 +78,8 @@ public class EWMAEngine extends DirectiveEngine {
 	 */	
 	private double nrofCopiesAlpha;	
 	
-
-
+	protected EWMADirectiveDetails directiveDetails;
+	
 	/**
 	 * Controller that reads from the settings, which is set to the value of the
 	 * setting control.engine, all the alphas to be used to smooth, using an EWMA
@@ -92,8 +92,9 @@ public class EWMAEngine extends DirectiveEngine {
 	 *                 'DirectiveEngine' namespace.
 	 * @param router, the router who has initialized this directiveEngine.                 
 	 */
-	public EWMAEngine(Settings engineSettings, MessageRouter router) {
+	public EWMAEngine(Settings engineSettings, SprayAndWaitControlRouter router) {
 		super(engineSettings, router);
+		this.directiveDetails = (EWMADirectiveDetails)this.newEmptyDirectiveDetails();
 		this.congestionAlpha = (engineSettings.contains(CONGESTION_ALPHA_S)) ? engineSettings.getDouble(CONGESTION_ALPHA_S) : EWMAEngine.DEF_ALPHA;
 		this.nrofCopiesAlpha = (engineSettings.contains(NROFCOPIES_ALPHA_S)) ? engineSettings.getDouble(NROFCOPIES_ALPHA_S)
 				: EWMAEngine.DEF_ALPHA;
@@ -158,7 +159,7 @@ public class EWMAEngine extends DirectiveEngine {
 				.getProperty(MetricCode.CONGESTION_CODE);
 		double congestionMetricAvg = this.sCongestionAverage.getValue();
 		this.sCongestionAverage.aggregateValue(nextCongestionReading.getCongestionValue(), nextCongestionReading.getNrofAggregatedMetrics());
-		((EWMADirectiveDetails)this.directiveDetails).addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue());		
+		this.directiveDetails.addMetricUsed(metric, congestionMetricAvg, this.sCongestionAverage.getValue());		
 	}
 		
 
@@ -179,7 +180,7 @@ public class EWMAEngine extends DirectiveEngine {
 		nextNrofCopiesReading = (int) directive.getProperty(DirectiveCode.NROF_COPIES_CODE);
 		directiveAvg = this.sNrofMsgCopiesAverage.getValue();
 		this.sNrofMsgCopiesAverage.aggregateValue(nextNrofCopiesReading);
-		((EWMADirectiveDetails)this.directiveDetails).addDirectiveUsed(directive, directiveAvg, nextNrofCopiesReading,
+		this.directiveDetails.addDirectiveUsed(directive, directiveAvg, nextNrofCopiesReading,
 				this.sNrofMsgCopiesAverage.getValue());
 	}
 		
@@ -191,13 +192,13 @@ public class EWMAEngine extends DirectiveEngine {
 	
 	@Override
 	protected void initDirectiveDetails(ControlMessage message, int lasCtrlCycleNrofCopies) {		
-		((EWMADirectiveDetails)this.directiveDetails).init(message, lasCtrlCycleNrofCopies, this.sCongestionAverage.getValue(),
+		this.directiveDetails.init(message, lasCtrlCycleNrofCopies, this.sCongestionAverage.getValue(),
 				this.congestionState, this.sNrofMsgCopiesAverage.getValue());	
 	}
 	
 	@Override
 	protected DirectiveDetails copyDirectiveDetails() {
-		return new EWMADirectiveDetails((EWMADirectiveDetails)this.directiveDetails);
+		return new EWMADirectiveDetails(this.directiveDetails);
 	}
 	
 	@Override
@@ -220,6 +221,11 @@ public class EWMAEngine extends DirectiveEngine {
 	@Override
 	protected double getCalculatedCongestion() {
 		return this.sCongestionAverage.getValue();
+	}
+	
+	@Override
+	protected DirectiveDetails getDirectiveDetails() {
+		return this.directiveDetails;
 	}
 
 }
