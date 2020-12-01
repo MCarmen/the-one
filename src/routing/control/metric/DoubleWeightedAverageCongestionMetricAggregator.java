@@ -42,13 +42,13 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	 * {@value} setting used to specify the name space of the decay function
 	 * to be used to calculat the double weighted average. 
 	 */
-	private static final String DECAY_NS_S = "decay";
+	private static final String DECAY_NS_S = "decayNS";
 	
 	/** {@value} setting indicating the maximum number of metrics that can be stored in the metrics table. */
 	private static final String METRICS_TABLE_MAX_SIZE_S = "metricsTableMaxSizeValue";
 	
 	/** Value to indicate no limit for the metrics table.  */
-	private static final int NO_METRICS_TABLE_MAX_SIZE_LIMIT = (int)System.currentTimeMillis();
+	private static final int NO_METRICS_TABLE_MAX_SIZE_LIMIT = Integer.MAX_VALUE;
 		
 	private int metricsTableMaxSizeValue;
 	
@@ -103,7 +103,7 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 					}
 				}		
 			}
-			this.metrics.remove(eldestMetric.getFrom().toString());
+			this.metrics.remove(eldestMetric.getFrom().toString());			
 		}		
 	}
 	
@@ -152,6 +152,7 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 		CongestionMetric congestionMetric;
 		double doubleWeightedAverageForCongestion = 0;		
 		int sumOfAllTheMetricsAggregations = this.getSumOfAllAggregations(exclude);
+		int nrofAggregatedMetrics = 1; //our own metric.
 		
 		//We include our reading.		
 		sumOfAllTheMetricsAggregations++;		
@@ -162,7 +163,7 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 		// aggregating the current's node congestion reading
 		doubleWeightedAverageForCongestion += this.getDoubleWeightedAverageForAMeasure(congestionReading, 1,
 				sumOfAllTheMetricsAggregations, 1.0, sumOfAllDecayWeights);
-		for (Map.Entry<String, MetricMessage> entry : metrics.entrySet()) {
+		for (Map.Entry<String, MetricMessage> entry : this.metrics.entrySet()) {
 			if(exclude == null || !entry.getKey().equals(exclude)) {
 				MetricMessage metric = entry.getValue();
 				double metricDecayWeight = metricDecayWeights.get(metric.getFrom().toString()); 
@@ -170,7 +171,8 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 				doubleWeightedAverageForCongestion += getDoubleWeightedAverageForAMeasure(
 						congestionMetric.congestionValue, congestionMetric.nrofAggregatedMetrics,
 						sumOfAllTheMetricsAggregations, metricDecayWeight, sumOfAllDecayWeights);				
-				metricDetails.aggregateMetric(metric, metricDecayWeight);
+				metricDetails.registerAggregatedMetric(metric, metricDecayWeight);
+				nrofAggregatedMetrics++;
 			}
 		}
 
@@ -178,7 +180,7 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 				sumOfAllTheMetricsAggregations, sumOfAllDecayWeights);
 
 		CongestionMetric doubleWeightedCongestionMetric = new BufferOccupancy(
-				doubleWeightedAverageForCongestion, metrics.size());
+				doubleWeightedAverageForCongestion, nrofAggregatedMetrics);
 
 		return doubleWeightedCongestionMetric;
 	}	
@@ -206,7 +208,7 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	
 	/**
 	 * Method that calculates the congestion weighted metric built out of the
-	 * aggregted metrics up to now.: sum(i=1,k)(
+	 * aggregated metrics up to now: sum(i=1,k)(
 	 * node_i_congestion *
 	 * (alpha*(node_i_aggregations/sum(j=1,k)node_j_aggregations) +
 	 * (1-alpha)*(node_i_decay/sum(l=1,k)node_l_decay)) )
@@ -260,7 +262,7 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	
 	/**
 	 * Method that sums the number of aggregations used to generate each one of 
-	 * the metrics passed as a parameter. 
+	 * the metrics in the metrics map. 
 	 * @param exclude HostId to be excluded from the aggregation.     
 	 * @return the sum of the number of aggregations of each one of the metrics. 
 	 */
