@@ -71,6 +71,12 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		this.snwSettings = new Settings(SPRAYANDWAIT_NS);
 	}
 	
+	
+	
+	public RoutingPropertyMap getRoutingProperties() {
+		return routingProperties;
+	}
+
 	@Override
 	public void init(DTNHost host, List<MessageListener> mListeners) {
 		super.init(host, mListeners);
