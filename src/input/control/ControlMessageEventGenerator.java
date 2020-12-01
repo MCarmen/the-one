@@ -101,4 +101,7 @@ public abstract class ControlMessageEventGenerator extends MessageEventGenerator
 		}
 		return to;
 	}
+	
+	@Override
+	protected abstract String getID();
 }
