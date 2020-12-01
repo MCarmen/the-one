@@ -12,7 +12,7 @@ import core.Message;
 public class MetricMessage extends ControlMessage {
 
 	/** Counter to generate a unique identifier for each directive msg. */
-	private static int idCounter = 0;
+	private static long idCounter = 0;
 	
 	/** Prefix to identify a directive message */
 	private static final String PREFIX = "S"; 
@@ -53,7 +53,7 @@ public class MetricMessage extends ControlMessage {
 	 * Generates a new id combining a unique identifier with a prefix.
 	 * @return A new ID combining a unique identifier 
 	 */
-	protected static String nextId() {
+	public static String nextId() {
 		return String.format("%s%d", MetricMessage.PREFIX, ++MetricMessage.idCounter);		
 	}
 
