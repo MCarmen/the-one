@@ -288,6 +288,15 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 		this.metrics.clear();
 	}
 	
+	/**
+	 * Method that checks whether the map of metrics is empty.
+	 * @return <code>True</code> if the map of metrics is empty, 
+	 * <code>false</code> otherwise.
+	 */
+	public boolean isEmpty() {
+		return this.metrics.isEmpty();
+	}
+	
 }
 
 
