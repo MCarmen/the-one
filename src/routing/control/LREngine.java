@@ -3,7 +3,6 @@ package routing.control;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -30,7 +29,7 @@ import routing.control.util.LinearRegression;
 public class LREngine extends DirectiveEngine {
 	
 	/** {@value} -setting id in the LinearRegressionEngine name space. {@see #nrofPredictors} */
-	private static final String NROF_LRCONGESTION_INPUTS_S = "nrofCongestionReadings"; 
+	private static final String NROF_LRCONGESTION_INPUTS_S = "nrofLRCongestionInputs"; 
 	
 	/** Default value for the property {@link #nrofLRCongestionInputs}. */
 	private static final int NROF_LRCONGESTION_INPUTS_DEF = 20;
@@ -45,7 +44,7 @@ public class LREngine extends DirectiveEngine {
 	private static final int PREDICTIONTIME_FACTOR_DEF = 3;
 
 	/** An impossible value for any property. */
-	protected static final double NOT_SET_VALUE = System.currentTimeMillis();
+	protected static final double NOT_SET_VALUE = -1;
 	
 	/** {@value} -setting id in the LREngine name space. {@see #aggregationInterval} */
 	private static final String AGGREGATION_INTERVAL_S = "aggregationInterval";
@@ -116,10 +115,15 @@ public class LREngine extends DirectiveEngine {
 	private double aggregationIntervalEndTime;
 	
 	/** Index indicating which is the current aggregationInterval */
-	private int aggrIntervalCounter = 0;
+	private int aggrIntervalCounter;
 	
-	protected LRDirectiveDetails directiveDetails;
-			
+	/** Property that encapsulates the data used to generate a directive */
+	private LRDirectiveDetails directiveDetails;
+	
+	/** Flag that indicates if a directive has been ever generated through 
+	 * a prediction using a LR. */
+	private boolean hasDirectiveBeenPredicted;
+	
 	/**
 	 * Controller that reads from the settings, which is set to the value of the
 	 * setting control.engine, all the engine specific parameters.
@@ -141,6 +145,8 @@ public class LREngine extends DirectiveEngine {
 		Settings aggregationSettings = new Settings(aggregationNs);
 		this.metricAggregator = 
 			new DoubleWeightedAverageCongestionMetricAggregator(aggregationSettings);
+		this.hasDirectiveBeenPredicted = false;
+		this.aggrIntervalCounter = 0;
 		
 		this.nextAggregationInterval();		
 	}
@@ -152,27 +158,29 @@ public class LREngine extends DirectiveEngine {
 	 * @param metric The metric to be aggregated.
 	 */
 	public void addMetric(MetricMessage metric) {
+		double currentTime = SimClock.getTime();//DEBUG
 		this.metricAggregator.addMetric(metric);
 		this.receivedCtrlMsgInDirectiveCycle = true;
 				
-		if(SimClock.getTime() >= this.aggregationIntervalEndTime) {
+		if(currentTime >= this.aggregationIntervalEndTime) {
 			MetricDetails aggrMetricDetails = new MetricDetails();
 			double congestionAvg = this.metricAggregator.getDoubleWeightedAverageForMetric(this.router.getBufferOccupancy(), aggrMetricDetails).getCongestionValue();
 			this.directiveDetails.addMetricUsed(aggrMetricDetails, this.aggrIntervalCounter);
 			this.lrCongestionInputs.add(BigDecimal.valueOf(congestionAvg)
 					.setScale(2, RoundingMode.HALF_UP).doubleValue());
 			this.lrTimeInputs
-					.add(BigDecimal.valueOf(SimClock.getTime()).setScale(2, RoundingMode.HALF_UP).doubleValue());
+					.add(BigDecimal.valueOf(currentTime).setScale(2, RoundingMode.HALF_UP).doubleValue());
 			if (this.lrCongestionInputs.size() >= this.nrofLRCongestionInputs) {
 				// this.predictionTimeFactor times the cicle of generating a prediction.
-				this.predictedFor = SimClock.getTime() + this.aggregationInterval * this.predictionTimeFactor * this.nrofLRCongestionInputs;
-				this.congestionPrediction = this.calculateCongestionPredictionAt(this.predictedFor);
+				this.predictedFor = currentTime + this.aggregationInterval * this.predictionTimeFactor * this.nrofLRCongestionInputs;
+				this.calculateCongestionPredictionAt(this.predictedFor);
 				//sliding the window.
 				LREngine.popNIfNecessary(this.lrCongestionInputs, this.maxNrofLRCongestionInputs);
 				LREngine.popNIfNecessary(this.lrTimeInputs, this.maxNrofLRCongestionInputs);
 				// The createNewDirective method calls the engine.generateDirective.
-				this.hasDirectiveBeenGeneratedInCtrlCycle = ((SprayAndWaitControlRouter) this.router)
-						.createNewDirectiveMessage(new DirectiveMessage(this.router.getHost()), false);				
+				this.hasDirectiveBeenPredicted = ((SprayAndWaitControlRouter) this.router)
+						.createNewDirectiveMessage(new DirectiveMessage(this.router.getHost()), false);
+				this.resetPredictedDirectiveSettings();
 
 			}
 			this.nextAggregationInterval();			
@@ -203,7 +211,7 @@ public class LREngine extends DirectiveEngine {
 	 * @param time We want to calculate the congestion prediction at that time.
   	 *	
 	 */
-	private double calculateCongestionPredictionAt(double time) {		
+	private void calculateCongestionPredictionAt(double time) {		
 		double[] congestionReadingsArr = listToPrimitiveTypeArray(this.lrCongestionInputs);
 		double[] timesArr = listToPrimitiveTypeArray(this.lrTimeInputs);
 		
@@ -212,7 +220,7 @@ public class LREngine extends DirectiveEngine {
 		this.slope = lr.slope();
 		this.coeficientOfDetermination = lr.R2();
 		
-		return (congestionPrediction < 0 ? 0 : congestionPrediction);
+		this.congestionPrediction = (congestionPrediction < 0 ? 0 : congestionPrediction);
 	}
 	
 	/**
@@ -231,12 +239,12 @@ public class LREngine extends DirectiveEngine {
 		this.directiveDetails.addDirectiveUsed(directive, new Properties());
 	}
 	
+	@Override
 	/**
-	 * Method that generates a directive (@see DirectiveEngine.generateDirective) 
-	 * just if no directive has been generated during this windowTime. 
-	 * In case we get to the point to generate a directive by a timeout and 
-	 * we haven't received enough data to predict the congestion, the prediction
-	 * is the double weighted average of the congestion readings received including
+	 * Method that generates a directive (@see DirectiveEngine.generateDirective). 
+	 * In case we generate a directive by timeout and we have never predicted one, 
+	 * if we have received congestion metrics, the calculated congestion is the 
+	 * double weighted average of the congestion readings received including
 	 * our own reading.
 	 * @param message The message the message to be filled with the fields of the 
 	 * directive.
@@ -249,18 +257,11 @@ public class LREngine extends DirectiveEngine {
 	 * to generate the directive.
 	 */
 	public DirectiveDetails generateDirective(ControlMessage message, boolean isTimeOut) {
-		DirectiveDetails directiveDetails = null;
-
-		if (isTimeOut && !this.hasDirectiveBeenGeneratedInCtrlCycle && !this.isSetCongestionMeasure()) {
+		double currentTime = SimClock.getTime();//DEBUG
+		if(isTimeOut && !this.hasDirectiveBeenPredicted && this.receivedCtrlMsgInDirectiveCycle){
 			this.congestionPrediction = this.metricAggregator.getDoubleWeightedAverageForMetric(this.router.getBufferOccupancy(), new MetricDetails()).getCongestionValue();
 		}
-		//if !isTimeOut generate always
-		// if isTimeOut just generate if it has not been generated before in the cycle.
-		if (!isTimeOut || (!this.hasDirectiveBeenGeneratedInCtrlCycle)){
-			directiveDetails = super.generateDirective(message, isTimeOut);
-			this.aggrIntervalCounter = 1;
-		}
-		return directiveDetails;
+		return super.generateDirective(message, isTimeOut);
 	}
 	
 	@Override
@@ -302,24 +303,25 @@ public class LREngine extends DirectiveEngine {
 		this.aggrIntervalCounter++;
 		this.metricAggregator.reset();
 	}
-
-	@Override
-	/**
-	 * See {@link routing.control.DirectiveEngine#resetDirectiveCycleSettings} for
-	 * full documentation.
-	 * This method also resets the metrics map used to calculate the double weighted 
-	 * average.
-	 */
-	protected void resetDirectiveCycleSettings() {
-		super.resetDirectiveCycleSettings();
-		this.metricAggregator.reset();
+	
+	private void resetPredictedDirectiveSettings() {
+		this.congestionPrediction = NOT_SET_VALUE;
 		this.slope = 0;
 		this.coeficientOfDetermination = 0;
 		this.predictedFor = 0;
+		this.aggrIntervalCounter = 1;
 	}
 
 	@Override
-	protected DirectiveDetails getDirectiveDetails() {
-		return this.directiveDetails;
+	protected void resetDirectiveCycleSettings() {
+		this.receivedCtrlMsgInDirectiveCycle = false;
+		this.directiveDetails.reset();
 	}
+
+	@Override
+	protected boolean shouldUpdateCongestionState(boolean sync) {
+		return ((!sync) || (!this.hasDirectiveBeenPredicted && this.receivedCtrlMsgInDirectiveCycle)) 
+				? true : false;
+	}
+	
 }
