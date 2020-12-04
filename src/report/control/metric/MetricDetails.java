@@ -102,7 +102,7 @@ public class MetricDetails {
 			metricProperties.put("creationT", new DecimalFormat("#0").format(metric.getCreationTime()));
 			metricProperties.put("Value", new DecimalFormat("#0.00").format(congestionMetric.getCongestionValue()));
 			metricProperties.put("aggregations",congestionMetric.getNrofAggregatedMetrics());
-			metricProperties.put("decayWeight", new DecimalFormat("#0").format(decayWeight));
+			metricProperties.put("decayWeight", new DecimalFormat("#0.00").format(decayWeight));
 			this.aggregatedMetrics.add(metricProperties);
 		}
 	}
