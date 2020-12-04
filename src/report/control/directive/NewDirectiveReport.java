@@ -71,14 +71,13 @@ public class NewDirectiveReport extends Report implements DirectiveListener {
 	
 	@Override
 	public void done() {
-		StringBuilder strBuilder = new StringBuilder();
-		strBuilder.append("new directives for scenario " + getScenarioName() +
-				"\nsim_time: " + format(getSimTime())+"\n");	
-		strBuilder.append(!this.newDirectives.isEmpty() ? this.newDirectives.get(0).getHeaderString()+"\n" : "");
+		this.write("new directives for scenario " + getScenarioName() +
+				"\nsim_time: " + format(getSimTime()));	
+		this.write(!this.newDirectives.isEmpty() ? this.newDirectives.get(0).getHeaderString() : "");
 		for(DirectiveDetails directiveDetails : this.newDirectives) {
-			strBuilder.append(directiveDetails + "\n");
+			this.write(directiveDetails+"");
 		}
-		this.write(strBuilder.toString());
+		
 		super.done();
 	}
 
