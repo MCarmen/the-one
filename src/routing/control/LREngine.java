@@ -47,7 +47,7 @@ public class LREngine extends DirectiveEngine {
 	protected static final double NOT_SET_VALUE = -1;
 	
 	/** {@value} -setting id in the LREngine name space. {@see #aggregationInterval} */
-	private static final String AGGREGATION_INTERVAL_S = "aggregationInterval";
+	private static final String AGGREGATION_INTERVAL_S = "interval";
 	
 	/** Default value for the property {@link #aggregationInterval}*/
 	private static final int AGGREGATION_INTERVAL_DEF = 90;
