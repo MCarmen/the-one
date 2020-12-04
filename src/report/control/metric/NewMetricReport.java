@@ -50,14 +50,12 @@ public class NewMetricReport extends Report implements MetricListener {
 	
 	@Override
 	public void done() {
-		StringBuilder strBuilder = new StringBuilder();
-		strBuilder.append("new metric for scenario " + getScenarioName() +
-				"\nsim_time: " + format(getSimTime())+"\n");
-		strBuilder.append(MetricDetails.getHeaderString()+"\n");	
+		this.write("new metric for scenario " + getScenarioName() +
+				"\nsim_time: " + format(getSimTime()));
+		this.write(MetricDetails.getHeaderString());	
 		for(MetricDetails metricDetails : this.newMetricDetails) {
-			strBuilder.append(metricDetails.toString("\n") + "\n");
+			this.write(metricDetails.toString("\n"));
 		}
-		this.write(strBuilder.toString());
 		super.done();
 	}
 
