@@ -46,8 +46,8 @@ public class MetricDetails {
 	/** A list with the aggregated metrics. */
 	private List<Properties> aggregatedMetrics = new ArrayList<>();
 	
-	public MetricDetails() {
-		
+	public MetricDetails(double creationTime) {
+		this.creationTime = creationTime;
 	}
 
 	/**
@@ -123,7 +123,8 @@ public class MetricDetails {
 	}
 	
 	public String toString() {
-		return this.toString(" ");
+		//return this.toString(" ");
+		return this.toString("\n");
 	}
 	
 	/**
