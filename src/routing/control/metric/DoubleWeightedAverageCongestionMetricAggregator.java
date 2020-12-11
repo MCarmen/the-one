@@ -1,6 +1,9 @@
 package routing.control.metric;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -45,12 +48,21 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	private static final String DECAY_NS_S = "decayNS";
 	
 	/** {@value} setting indicating the maximum number of metrics that can be stored in the metrics table. */
-	private static final String METRICS_TABLE_MAX_SIZE_S = "metricsTableMaxSizeValue";
+	private static final String METRICS_TABLE_MAX_SIZE_S = "metricsTableMaxSize";
 	
 	/** Value to indicate no limit for the metrics table.  */
 	private static final int NO_METRICS_TABLE_MAX_SIZE_LIMIT = Integer.MAX_VALUE;
+	
+	/** {@value} setting indicating the decay threshold. Metrics with decay <
+	 * than the threshold are not used in the average. */
+	private static final String DECAY_THRESHOLD_S = "decayThreshold";
+	
+	/** Default value to indicate no decay is discarded. */
+	private static final double NO_DECAY_THRESHOLD = 0;
 		
-	private int metricsTableMaxSizeValue;
+	private int metricsTableMaxSize;
+	
+	private double decayTheshold;
 	
 	public DoubleWeightedAverageCongestionMetricAggregator() {
 		this(new Settings(METRIC_DOUBLE_WEIGHTED_NS));
@@ -61,8 +73,11 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 				? doubleWeightedSettings.getDouble(ALPHA_S) : DEF_ALPHA_S;
 		String decayNS = doubleWeightedSettings.getSetting(DECAY_NS_S);		
 		this.decay = DecayFactory.getDecay(decayNS);
-		this.metricsTableMaxSizeValue = (doubleWeightedSettings.contains(METRICS_TABLE_MAX_SIZE_S)) 
+		this.metricsTableMaxSize = (doubleWeightedSettings.contains(METRICS_TABLE_MAX_SIZE_S)) 
 				? doubleWeightedSettings.getInt(METRICS_TABLE_MAX_SIZE_S) : NO_METRICS_TABLE_MAX_SIZE_LIMIT;
+		this.decayTheshold = doubleWeightedSettings.contains(DECAY_THRESHOLD_S) 
+				? doubleWeightedSettings.getDouble(DECAY_THRESHOLD_S) : NO_DECAY_THRESHOLD;
+				
 		this.metrics = new HashMap<>();		
 	}
 	
@@ -89,11 +104,11 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	
 	/**
 	 * Method that checks if there is enough room to store the new metric in the 
-	 * metrics table. If not, we find the eldest entry.  
+	 * metrics table. If not, we remove the eldest entry.  
 	 */
 	private void makeRoomForMetricIfNecessary() {
 		MetricMessage eldestMetric = null;
-		if (this.metrics.size() >= this.metricsTableMaxSizeValue) {
+		if (this.metrics.size() >= this.metricsTableMaxSize) {
 			for(Entry<String, MetricMessage> entry : this.metrics.entrySet()) {
 				if(eldestMetric == null) {
 					eldestMetric = entry.getValue();
@@ -107,6 +122,7 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 		}		
 	}
 	
+
 	/**
 	 * Method that calculates the congestion weighted metric built out of the
 	 * current bufferOccupancy reading aggregated with metrics received from other
@@ -145,20 +161,19 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 			MetricDetails metricDetails, String exclude) {
 		//Current simulation time used to calculate the metric's decay. 
 		double currentTime = SimClock.getTime();
-		//Array of the decay weight for each one of the metric in the metrics property.
-		//In the first position we place the node's decay weight which is 1 (no decay)
 		
 		Map<String, Double> metricDecayWeights = new HashMap<String, Double>();
 		CongestionMetric congestionMetric;
-		double doubleWeightedAverageForCongestion = 0;		
-		int sumOfAllTheMetricsAggregations = this.getSumOfAllAggregations(exclude);
-		int nrofAggregatedMetrics = 1; //our own metric.
-		
-		//We include our reading.		
-		sumOfAllTheMetricsAggregations++;		
+		double doubleWeightedAverageForCongestion = 0;	
+
 		double sumOfAllDecayWeights = this.getSumOfAllDecayWeights(currentTime, metricDecayWeights, exclude);
 		//We include the current node's congestion reading decay weight which is 1 (no decay).
 		sumOfAllDecayWeights++;
+		
+		int sumOfAllTheMetricsAggregations = this.getSumOfAllAggregations(exclude);
+		int nrofAggregatedMetrics = 1; //our own metric.		
+		//We include our reading.		
+		sumOfAllTheMetricsAggregations++;		
 
 		// aggregating the current's node congestion reading
 		doubleWeightedAverageForCongestion += this.getDoubleWeightedAverageForAMeasure(congestionReading, 1,
@@ -199,11 +214,12 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	 * @return
 	 */
 	private double getDoubleWeightedAverageForAMeasure(double congestionReading, 
-			int readingAggregations, int sumOfAggregations, double readingDecay, 
+			double readingAggregations, double sumOfAggregations, double readingDecay, 
 			double sumOfDecays) {
-		return (congestionReading 
+		double doubleWeightedAverage = congestionReading 
 				* (alpha*(readingAggregations/sumOfAggregations)
-				+(1-alpha)*(readingDecay/sumOfDecays)));
+				+(1-alpha)*(readingDecay/sumOfDecays)); 
+		return doubleWeightedAverage;
 	}
 	
 	/**
@@ -222,8 +238,8 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 		Map<String, Double> metricDecayWeights = new HashMap<String, Double>();
 		CongestionMetric congestionMetric;
 		double doubleWeightedAverageForCongestion = 0;
-		int sumOfAllTheMetricsAggregations = getSumOfAllAggregations(null);
 		double sumOfAllDecayWeights = getSumOfAllDecayWeights(currentTime, metricDecayWeights, null);
+		int sumOfAllTheMetricsAggregations = getSumOfAllAggregations(null);
 		for (Map.Entry<String, MetricMessage> entry : metrics.entrySet()) {
 			MetricMessage metric = entry.getValue();
 			double metricDecayWeight = metricDecayWeights.get(metric.getFrom().toString()); 
@@ -238,7 +254,10 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	
 	/**
 	 * Returns the sum of all decay weights of the metrics in the metrics map. It stores
-	 * in a map indexed by the host id all the decay weights. 
+	 * in a map indexed by the host id all the decay weights. If the decay of an 
+	 * entry is <= decayThreshold, this entry is removed from the metrics table and 
+	 * it is not considered in the decay sum. Therefore this method should be 
+	 * called at the very beginning of an average calculation operation.
 	 * @param currentTime the current simulation time.
 	 * @param metricDecayWeights Map of the decay weight for each one of the 
 	 * metric in the metrics list. 
@@ -248,15 +267,23 @@ public class DoubleWeightedAverageCongestionMetricAggregator {
 	private double getSumOfAllDecayWeights(double currentTime, Map<String, Double> metricDecayWeights, String exclude) {		
 		double decayWeight;
 		double sumOfAllDecays = 0;
+		Map.Entry<String, MetricMessage> entry;
 		
-		for (Map.Entry<String, MetricMessage> entry : this.metrics.entrySet()) {
+		for(Iterator<Map.Entry<String, MetricMessage>> entrySetIterator = this.metrics.entrySet().iterator(); entrySetIterator.hasNext();) {
+			entry = entrySetIterator.next();
 			if(exclude == null || !entry.getKey().equals(exclude)) {
 				decayWeight = decay.getDecayWeightAt(currentTime - entry.getValue().getCreationTime());
-				metricDecayWeights.put(entry.getValue().getFrom().toString(), decayWeight);
-				sumOfAllDecays += decayWeight; 
+				decayWeight = BigDecimal.valueOf(decayWeight)
+				.setScale(2, RoundingMode.HALF_DOWN).doubleValue();
+				if(decayWeight <= this.decayTheshold) {
+					entrySetIterator.remove();
+				}else {
+					metricDecayWeights.put(entry.getValue().getFrom().toString(), decayWeight);
+					sumOfAllDecays += decayWeight; 	
+				}
 			}
-		}
-		
+			
+		}			
 		return sumOfAllDecays;
 	}
 	
