@@ -163,7 +163,7 @@ public class LREngine extends DirectiveEngine {
 		this.receivedCtrlMsgInDirectiveCycle = true;
 				
 		if(currentTime >= this.aggregationIntervalEndTime) {
-			MetricDetails aggrMetricDetails = new MetricDetails();
+			MetricDetails aggrMetricDetails = new MetricDetails(currentTime);
 			double congestionAvg = this.metricAggregator.getDoubleWeightedAverageForMetric(this.router.getBufferOccupancy(), aggrMetricDetails).getCongestionValue();
 			this.directiveDetails.addMetricUsed(aggrMetricDetails, this.aggrIntervalCounter);
 			this.lrCongestionInputs.add(BigDecimal.valueOf(congestionAvg)
@@ -259,7 +259,7 @@ public class LREngine extends DirectiveEngine {
 	public DirectiveDetails generateDirective(ControlMessage message, boolean isTimeOut) {
 		double currentTime = SimClock.getTime();//DEBUG
 		if(isTimeOut && !this.hasDirectiveBeenPredicted && this.receivedCtrlMsgInDirectiveCycle){
-			this.congestionPrediction = this.metricAggregator.getDoubleWeightedAverageForMetric(this.router.getBufferOccupancy(), new MetricDetails()).getCongestionValue();
+			this.congestionPrediction = this.metricAggregator.getDoubleWeightedAverageForMetric(this.router.getBufferOccupancy(), new MetricDetails(currentTime)).getCongestionValue();
 		}
 		return super.generateDirective(message, isTimeOut);
 	}
