@@ -19,7 +19,7 @@ import routing.MessageRouter;
  * warm up period are ignored.
  */
 public class DropReport extends Report implements MessageListener {
-	private static String LOG_HEADER="simTime | node | alive"; 
+	private static String LOG_HEADER="simTime | node | ID | alive"; 
 	/**
 	 * Constructor.
 	 */
@@ -39,7 +39,7 @@ public class DropReport extends Report implements MessageListener {
 		if (isWarmupID(m.getId()) || isWarmDownID(m.getId())) {
 			return;
 		} else if(dropped) {
-			this.write(String.format("%.2f %d %s", this.getSimTime(), where.getAddress(), m.getProperty(MessageRouter.MSG_PROP_ALIVE)));
+			this.write(String.format("%.2f %d %s %s", this.getSimTime(), where.getAddress(), m.getId(), m.getProperty(MessageRouter.MSG_PROP_ALIVE)));
 		}		
 	}
 
