@@ -22,16 +22,6 @@ public abstract class DirectiveEngine {
 	 * It is used to decrement by a ratio the number of copies of the msg(L). */	
 	protected static final String MULTIPLICATIVE_DECREASE_S =  "multiplicativeDecrease";
 	
-
-	/** metricGenerationInterval -setting id ({@value}) in the control name space. */
-	//protected static final String METRICS_GENERATION_INTERVAL_S = "metricGenerationInterval";
-	
-	/** directiveGenerationInterval -setting id ({@value}) in the control name space. */
-	protected static final String DIRECTIVE_GENERATION_INTERVAL_S = "directiveGenerationInterval";
-	
-	/**Default value for the setting {@link #DIRECTIVE_GENERATION_INTERVAL_S} */
-	protected static final int DEF_DIRECTIVE_GENERATION_INTERVAL_S = 600;
-	
 	/** metric time to live -setting id ({@value}) in the control name space */
 	protected static final String METRIC_TTL_S = "metricTtl";
 
@@ -145,9 +135,6 @@ public abstract class DirectiveEngine {
 	 */
 	protected CongestionState congestionState;
 	
-	/*Generation interval of a directive*/
-	protected int directiveGenerationInterval;
-	
 			
 	/**
 	 * Initializes the property settings.
@@ -178,8 +165,6 @@ public abstract class DirectiveEngine {
 				engineSettings.getDouble(CONGESTION_THRMAX_S) : DEF_CONGESTION_THRMAX;
 		this.congestionThrMin = engineSettings.contains(CONGESTION_THRMIN_S) ? 
 				engineSettings.getDouble(CONGESTION_THRMIN_S) : DEF_CONGESTION_THRMIN;
-		this.directiveGenerationInterval = engineSettings.contains(DIRECTIVE_GENERATION_INTERVAL_S) ? 
-				engineSettings.getInt(DIRECTIVE_GENERATION_INTERVAL_S) : DEF_DIRECTIVE_GENERATION_INTERVAL_S;
 	}
 		
 	/*
