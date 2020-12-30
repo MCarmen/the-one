@@ -24,10 +24,13 @@ public abstract class DirectiveEngine {
 	
 
 	/** metricGenerationInterval -setting id ({@value}) in the control name space. */
-	protected static final String METRICS_GENERATION_INTERVAL_S = "metricGenerationInterval";
+	//protected static final String METRICS_GENERATION_INTERVAL_S = "metricGenerationInterval";
 	
 	/** directiveGenerationInterval -setting id ({@value}) in the control name space. */
 	protected static final String DIRECTIVE_GENERATION_INTERVAL_S = "directiveGenerationInterval";
+	
+	/**Default value for the setting {@link #DIRECTIVE_GENERATION_INTERVAL_S} */
+	protected static final int DEF_DIRECTIVE_GENERATION_INTERVAL_S = 600;
 	
 	/** metric time to live -setting id ({@value}) in the control name space */
 	protected static final String METRIC_TTL_S = "metricTtl";
@@ -142,6 +145,9 @@ public abstract class DirectiveEngine {
 	 */
 	protected CongestionState congestionState;
 	
+	/*Generation interval of a directive*/
+	protected int directiveGenerationInterval;
+	
 			
 	/**
 	 * Initializes the property settings.
@@ -155,7 +161,7 @@ public abstract class DirectiveEngine {
 		this.congestionState = CongestionState.INITIAL;
 		
 		this.settings.setSecondaryNamespace(Controller.CONTROL_NS);
-		this.settings.restoreSecondaryNamespace();		
+		//this.settings.restoreSecondaryNamespace();		
 		this.additiveIncrease = (engineSettings.contains(ADDITIVE_INCREASE_S)) ? 
 				engineSettings.getDouble(ADDITIVE_INCREASE_S) : DEF_ADDITIVE_INCREASE;
 		this.multiplicativeDecrease = (engineSettings.contains(MULTIPLICATIVE_DECREASE_S)) ? 
@@ -171,7 +177,9 @@ public abstract class DirectiveEngine {
 		this.congestionThrMax = engineSettings.contains(CONGESTION_THRMAX_S) ? 
 				engineSettings.getDouble(CONGESTION_THRMAX_S) : DEF_CONGESTION_THRMAX;
 		this.congestionThrMin = engineSettings.contains(CONGESTION_THRMIN_S) ? 
-				engineSettings.getDouble(CONGESTION_THRMIN_S) : DEF_CONGESTION_THRMIN;						
+				engineSettings.getDouble(CONGESTION_THRMIN_S) : DEF_CONGESTION_THRMIN;
+		this.directiveGenerationInterval = engineSettings.contains(DIRECTIVE_GENERATION_INTERVAL_S) ? 
+				engineSettings.getInt(DIRECTIVE_GENERATION_INTERVAL_S) : DEF_DIRECTIVE_GENERATION_INTERVAL_S;
 	}
 		
 	/*
