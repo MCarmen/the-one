@@ -27,13 +27,7 @@ import routing.control.util.LinearRegression;
  * the congestion in the future.
  */
 public class LREngine extends DirectiveEngine {
-	
-	/** {@value} -setting id in the LinearRegressionEngine name space. {@see #nrofPredictors} */
-	private static final String NROF_LRCONGESTION_INPUTS_S = "nrofLRCongestionInputs"; 
-	
-	/** Default value for the property {@link #nrofLRCongestionInputs}. */
-	private static final int NROF_LRCONGESTION_INPUTS_DEF = 20;
-	
+		
 	/** {@value} setting id in the LinearRegressionEngine name space. */
 	private static final String MAX_NROF_LRCONGESTION_INPUTS_S = "maxNrofLRCongestionInputs";
 	
@@ -59,12 +53,7 @@ public class LREngine extends DirectiveEngine {
 	
 	/** Default namespace for the metrics aggregation. */
 	public static final String METRIC_AGGR_NS_DEF = "metricDoubleWeightedAvg";
-	
-	/** The number of congestion readings needed to calculate 
-	 * the linear regression. If this number is not achieved the congestion 
-	 * estimation is performed using the accumulated mobile average.*/
-	private int nrofLRCongestionInputs; 
-	
+		
 	/**
 	 * The max number of congestion readings to be used to calculate the linear
 	 * regression. By default is set to NOT_SET_VALUE indicating that there is no limit.
@@ -135,7 +124,6 @@ public class LREngine extends DirectiveEngine {
 		
 		this.directiveDetails = (LRDirectiveDetails)this.newEmptyDirectiveDetails();
 		this.predictionTimeFactor = (engineSettings.contains(PREDICTIONTIME_FACTOR_S)) ? engineSettings.getInt(PREDICTIONTIME_FACTOR_S) : LREngine.PREDICTIONTIME_FACTOR_DEF; 
-		this.nrofLRCongestionInputs = (engineSettings.contains(NROF_LRCONGESTION_INPUTS_S)) ? engineSettings.getInt(NROF_LRCONGESTION_INPUTS_S) : LREngine.NROF_LRCONGESTION_INPUTS_DEF;
 		this.maxNrofLRCongestionInputs = (engineSettings.contains(MAX_NROF_LRCONGESTION_INPUTS_S)) ? engineSettings.getInt(MAX_NROF_LRCONGESTION_INPUTS_S) : (int)LREngine.NOT_SET_VALUE; 
 		this.aggregationInterval = (engineSettings.contains(AGGREGATION_INTERVAL_S)) ? engineSettings.getInt(AGGREGATION_INTERVAL_S) : AGGREGATION_INTERVAL_DEF;
 		String aggregationNs = engineSettings.contains(METRIC_AGGR_NS_S) ? engineSettings.getSetting(METRIC_AGGR_NS_S) : METRIC_AGGR_NS_DEF;
@@ -168,7 +156,7 @@ public class LREngine extends DirectiveEngine {
 					.add(BigDecimal.valueOf(currentTime).setScale(2, RoundingMode.HALF_UP).doubleValue());
 			if (this.lrCongestionInputs.size() > 0) {			
 				// this.predictionTimeFactor times the cicle of generating a prediction.
-				this.predictedFor = currentTime + this.aggregationInterval * this.predictionTimeFactor * this.nrofLRCongestionInputs;
+				this.predictedFor = currentTime + this.aggregationInterval * this.predictionTimeFactor;
 				this.calculateCongestionPredictionAt(this.predictedFor);
 				//sliding the window.
 				LREngine.popNIfNecessary(this.lrCongestionInputs, this.maxNrofLRCongestionInputs);
