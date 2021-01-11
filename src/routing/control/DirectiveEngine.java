@@ -53,10 +53,7 @@ public abstract class DirectiveEngine {
 	/** decrementCopiesRatio's default value if it is not specified in the settings 
 	 ({@value}) */
 	protected static final double DEF_MULTIPLICATIVE_DECREASE = 0.25;
-	
-	/** meanDeviation's default value if it is not specified in the settings ({@value}) */
-	protected static final int DEF_MEAN_DEVIATION_FACTOR = 2;
-	
+		
 	/** metricTTL's default value if it is not specified in the settings ({@value}) */
 	protected static final int DEF_METRIC_TTL = 0;
 	
@@ -138,17 +135,15 @@ public abstract class DirectiveEngine {
 			
 	/**
 	 * Initializes the property settings.
-	 * @param engineSettings settings corresponding to the namespace control.engine.
-	 * which has as a subnamespace the 'DirectiveEngine' namespace.
+	 * @param engineSettings settings corresponding to the namespace of the value of the 
+	 * setting control.engine which has as a subnamespace the 'DirectiveEngine' namespace.
 	 * @param router, the router who has initialized this directiveEngine.
 	 */
 	public DirectiveEngine(Settings engineSettings, SprayAndWaitControlRouter router) {
 		this.settings = engineSettings;
 		this.router = router;
 		this.congestionState = CongestionState.INITIAL;
-		
-		this.settings.setSecondaryNamespace(Controller.CONTROL_NS);
-		//this.settings.restoreSecondaryNamespace();		
+	
 		this.additiveIncrease = (engineSettings.contains(ADDITIVE_INCREASE_S)) ? 
 				engineSettings.getDouble(ADDITIVE_INCREASE_S) : DEF_ADDITIVE_INCREASE;
 		this.multiplicativeDecrease = (engineSettings.contains(MULTIPLICATIVE_DECREASE_S)) ? 
