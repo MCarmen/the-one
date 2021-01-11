@@ -123,8 +123,8 @@ public class MetricDetails {
 	}
 	
 	public String toString() {
-		//return this.toString(" ");
-		return this.toString("\n");
+		return this.toString(" ");
+		//return this.toString("\n");
 	}
 	
 	/**
