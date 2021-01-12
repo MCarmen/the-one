@@ -1,1 +1,288 @@
-../default_settings/default_settings_control.txt
+#
+# Default settings for the simulation
+#
+
+## Scenario settings
+# controlMode: True if the scenario is running in control mode. False otherwise. (Default = false).
+Scenario.name = to_be_specifically_specified
+Scenario.simulateConnections = false
+Scenario.updateInterval = 0.1
+# 10000s ~ 3h
+#Scenario.endTime = 10000
+Scenario.controlMode = false
+
+## Interface-specific settings:
+# type : which interface class the interface belongs to
+# For different types, the sub-parameters are interface-specific
+# For SimpleBroadcastInterface, the parameters are:
+# transmitSpeed : transmit speed of the interface (bytes per second) 
+# transmitRange : range of the interface (meters)
+
+# High speed, long range, interface for group 4
+highspeedInterface.type = SimpleBroadcastInterface
+#highspeedInterface.transmitSpeed = 10M
+highspeedInterface.transmitSpeed = 100M
+highspeedInterface.transmitRange = 100
+
+
+# Define n different node groups
+Scenario.nrofHostGroups = 1
+
+## Group-specific settings:
+# groupID : Group's identifier. Used as the prefix of host names
+# nrofHosts: number of hosts in the group
+# movementModel: movement model of the hosts (valid class name from movement package)
+# waitTime: minimum and maximum wait times (seconds) after reaching destination
+# speed: minimum and maximum speeds (m/s) when moving on a path
+# bufferSize: size of the message buffer (bytes)
+# router: router used to route messages (valid class name from routing package)
+# activeTimes: Time intervals when the nodes in the group are active (start1, end1, start2, end2, ...)
+# msgTtl : TTL (minutes) of the messages created by this host group, default=infinite
+# type: Set to "controller" if the node is a controller. If this setting is not 
+# specified, which is the default case, the node is not a controller.
+
+## Group and movement model specific settings
+# pois: Points Of Interest indexes and probabilities (poiIndex1, poiProb1, poiIndex2, poiProb2, ... )
+#       for ShortestPathMapBasedMovement
+# okMaps : which map nodes are OK for the group (map file indexes), default=all 
+#          for all MapBasedMovent models
+# routeFile: route's file path - for MapRouteMovement
+# routeType: route's type - for MapRouteMovement
+
+# Common settings for all groups
+#Group.router = EpidemicRouter
+#Group.router = SprayAndWaitRouter
+Group.bufferSize = 30M
+#Group.movementModel = ShortestPathMapBasedMovement
+Group.movementModel = StationaryMovement
+Group.nodeLocation = 0,1
+
+Group.nrofInterfaces = 1
+Group.interface1 = highspeedInterface
+
+# Walking speeds
+
+# Message TTL of 300 minutes (5 hours)
+#Group.msgTtl = 100
+#Group.sendQueue = FIFO
+
+#Group.nrofHosts = 230
+Group.groupID = pedestrians
+
+
+## Message creation parameters 
+# How many event generators
+Events.nrof = 2
+# Class of the first event generator
+Events1.class = MessageEventGenerator
+# (following settings are specific for the MessageEventGenerator class)
+# Creation interval in seconds (one new message every 25 to 35 seconds)
+Events1.interval = 25,35
+Events1.intervalPeriod = 7200
+# Message sizes (500kB - 1MB)
+# Events1.size = 500k,1M
+Events1.size = 1M
+# range of message source/destination addresses
+#Events1.hosts = 0,230
+#Events1.tohosts = 0,230
+# Message ID prefix
+Events1.prefix = M
+
+# Events2 deppends on the scenario
+
+## Movement model settings
+# seed for movement models' pseudo random number generator (default = 0)
+MovementModel.rngSeed = 1
+# World's size for Movement Models without implicit size (width, height; meters)
+#MovementModel.worldSize = 4500, 3400
+MovementModel.worldSize = 0, 0
+# How long time to move hosts in the world before real simulation
+#MovementModel.warmup = 1000
+
+
+## Reports - all report names have to be valid report classes
+
+# Number of decimal places to be displayed in the reports (default = 4)
+Report.precision=2
+# length of the warm up period (simulated seconds)
+Report.warmup = 0
+# length of the warm down period (simulated seconds). By default is 0.
+# In this case no warmdown is considered.
+# Report.warmDown =  int value
+Report.warmdown = 0
+# default directory of reports (can be overridden per Report with output setting)
+Report.reportDir = reports/
+# how many reports to load
+Report.nrofReports = 2
+# Report classes to load
+Report.report1 = MessageStatsReport
+Report.report2 = MessageDelayReport
+
+
+## Default settings for some routers settings
+#epidemic
+#Report.reportDir = reports/epidemic
+
+##sprayandwait
+# SprayAndWaitRouter.controlCopiesLimited boolean to specify if the directives
+# have to set the copies field (different from L field) to a value. If true, 
+# The value will be nrofCopies. If false, will the the value of the field L set 
+# after a directive has been applied, initially will be nrofCopies.
+
+#SprayAndWaitRouter.binaryMode = true
+#SprayAndWaitRouter.nrofCopies = [1;10;20;30;40;50;60;70;80;90;100]
+#SprayAndWaitRouter.controlCopiesLimited = true
+#Report.reportDir = [reports/spray/1; reports/spray/10; reports/spray/20; reports/spray/30; reports/spray/40; reports/spray/50; reports/spray/60; reports/spray/70; reports/spray/80; reports/spray/90; reports/spray/100]
+
+#prophet
+#ProphetRouter.secondsInTimeUnit = 30
+#ProphetRouter.secondsInTimeUnit = 30
+#ProphetRouter.beta= [0.0;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;1]
+#Report.reportDir = [reports/prophet/beta00;reports/prophet/beta01;reports/prophet/beta02;reports/prophet/beta03;reports/prophet/beta04;reports/prophet/beta05;reports/prophet/beta06;reports/prophet/beta07;reports/prophet/beta08;reports/prophet/beta09;reports/prophet/beta1;]
+
+
+## Optimization settings -- these affect the speed of the simulation
+## see World class for details.
+Optimization.cellSizeMult = 5
+Optimization.randomizeUpdateOrder = true
+
+
+
+# Define POI data files
+
+
+
+## control specific settings 
+# engine: If not specified, by default is "AggregattionEngine"
+# warmup: time in seconds before the control system starts. This time is 
+# time: he events will be generated between this period of time in seconds. Not before nor after.
+# needed in order to have full network activity (default = 0).  
+# metricAggregationNS: Name space for the specific settings used to aggregate the metrics received by a node.
+
+control.engine = LREngine
+control.warmup = 3000
+control.time = 0,172800
+control.metricAggregationNS = metricDoubleWeightedAvg
+control.receivedMetricsMaxTableSize = 50
+
+##Control Engine specific settings
+# maxCopies: Number of maximum copies of a message (default = -1). If the default
+# value is set, this setting is not considered.
+# function (default = 1).
+# congestionThrMax: Maximum value of the congestion window.
+# congestionThrMin: Minimum value of the congestion window.
+#DirectiveEngine.maxCopies = 50
+DirectiveEngine.congestionThrMax = 0.9
+DirectiveEngine.congestionThrMin = 0.5
+DirectiveEngine.additiveIncrease = 5
+DirectiveEngine.multiplicativeDecrease = 0.25
+
+##Control EWMAEngine specific settings
+# congestionAlpha: Alpha used to aggregate congestion. This is the weight of the new value.
+# nrofCopiesAlpha: Alpha used to aggregate the nrofCopies obtanined by 
+# aggregating directives, to the nrofcopies calculated by the controller.
+# directivesAlpha: Alpha used to aggregate the directives received.
+# additiveIncrease: additive value to the nrofcopies of the message.
+# multiplicativeDecrease: Decrement factor ofer the nrofcopies of the message.
+EWMAEngine.congestionAlpha = 0.2
+EWMAEngine.nrofCopiesAlpha = 0.2
+EWMAEngine.directivesAlpha = 0.2
+
+##Control LREngine specific settings
+# nrofLRCongestionInputs: LR inputs (y dimension). Each LR input is calculated aggregating 
+# using an EWMA the congestion readings gathered during a window time. 
+# maxNrofLRCongestionInputs: Maximum number of inputs used to calculate the LR.
+# predictionTimeFactor: Multiplicative factor applied to the metric generation interval unit, 
+# to calculate the time in the future when we want to foresee the congestion
+# interval: Time while the controller receives congestion readings and aggregates them using 
+# an EWMA. (default control.metricGenerationInterval)
+# metricAggregationNS: Name space for the specific settings used to aggregate the metrics received by the controller.
+LREngine.nrofLRCongestionInputs = 5
+LREngine.maxNrofLRCongestionInputs = 100
+LREngine.predictionTimeFactor = 4
+LREngine.interval = 60
+LREngine.metricAggregationNS = metricDoubleWeightedAvg
+
+
+##decay function general settings
+# decay.function: util.LogLogisticDecay
+# decay.reductionFactor: The reduction to be applied for each step.
+# decay.reductionFrequency: How often we apply the reduction. (default=1)
+# decay.startDecayAt: From which value in the x-axis we start to apply
+# the decay in seconds(default=0).
+decay.function = control.util.LogLogisticDecay
+decay.reductionFactor = 0.03
+decay.reductionFrequency = 1
+decay.startDecayAt = 0
+
+
+
+##Metric Double weighted average general settings
+##Used when a metric is calculated using a double average.
+# metricDoubleWeightedAvg.alpha: Weight to be applied to one of the factors. The other
+# factor will be weighted with 1-alpha weight.
+# decayNS the decay name space used by the decayment function used in the double weighted avg.
+# metricsTableMaxSize: The maximum number of metrics that can be used for the average calculation.(default: no limit.)
+# decayThreshold Used to minimise the long queue effect produced by having lots of old metrics with a big number of 
+# aggregations.Metrics with a decayment <= decayThreshold are not used to calculate the double weighted average.
+# If not set no decay threshold is applied.
+metricDoubleWeightedAvg.alpha = 0.2
+metricDoubleWeightedAvg.decayNS = decay
+metricDoubleWeightedAvg.metricsTableMaxSize = 50
+metricDoubleWeightedAvg.decayThreshold = 0.1
+
+
+# Define n different node groups
+Scenario.nrofHostGroups = 2
+
+## Group-specific settings:
+
+## Message creation parameters 
+# How many event generators
+Events.nrof = 3
+
+# Class of the event generator to create metrics
+# Events3.class = control.MetricMessageEventGenerator
+# (following settings are specific for the MessageEventGenerator class)
+# Creation interval in seconds
+# Events3.interval = 60
+# Events3.size = 30
+#The events will be generated between this period of time in seconds. Not before nor after.
+#We will wait to generate control messages untill the lower limit. This time is 
+# needed in order to have full network activity. No metrics will be generated after
+#the upper limit. The upper limit has to be <= the simulation time. To generate
+#messages all along the simulation do not specify this setting.
+# Events3.time = 3000,172800
+# Message ID prefix
+# Events3.prefix = S
+
+# Class of the third event generator to create directives
+Events3.class = control.DirectiveMessageEventGenerator
+# (following settings are specific for the MessageEventGenerator class)
+# Creation interval in seconds
+Events3.interval = 90
+# Message size (500kB)
+Events3.size = 5
+#The events will be generated between this period of time in seconds. Not before nor after.
+Events3.time=3000,172800
+# Message ID prefix
+Events3.prefix = D
+
+
+## Reports - all report names have to be valid report classes
+
+Report.nrofReports = 7
+# Report classes to load
+# Report.report2 = control.ControlStatsReport
+# Report.report3 = control.MetricStatsReport
+# Report.report4 = control.DirectiveStatsReport
+Report.report2 = control.UnicastMessageStatsReport
+#Report.report2 = control.BroadcastMessageStatsReport
+Report.report3 = control.directive.ReceivedDirectiveReport
+Report.report4 = control.directive.NewDirectiveReport
+Report.report5 = control.CreatedDataMessagesBySprayAndWaitRouterReport
+Report.report6 = control.directive.AppliedDirectiveToBufferedMessagesReport
+Report.report7 = control.metric.NewMetricReport
+#Report.report8 = DropReport
+#Report.report9 = control.DataMessageDelayReport
+#Report.report11 = MessageDetailedReport
