@@ -154,13 +154,13 @@ public class LREngine extends DirectiveEngine {
 					.setScale(2, RoundingMode.HALF_UP).doubleValue());
 			this.lrTimeInputs
 					.add(BigDecimal.valueOf(currentTime).setScale(2, RoundingMode.HALF_UP).doubleValue());
+			//sliding the window.
+			LREngine.popNIfNecessary(this.lrCongestionInputs, this.maxNrofLRCongestionInputs);
+			LREngine.popNIfNecessary(this.lrTimeInputs, this.maxNrofLRCongestionInputs);			
 			if (this.lrCongestionInputs.size() > 0) {			
 				// this.predictionTimeFactor times the cicle of generating a prediction.
 				this.predictedFor = currentTime + this.aggregationInterval * this.predictionTimeFactor;
-				this.calculateCongestionPredictionAt(this.predictedFor);
-				//sliding the window.
-				LREngine.popNIfNecessary(this.lrCongestionInputs, this.maxNrofLRCongestionInputs);
-				LREngine.popNIfNecessary(this.lrTimeInputs, this.maxNrofLRCongestionInputs);
+				this.calculateCongestionPrediction();
 				// The createNewDirective method calls the engine.generateDirective.
 				((SprayAndWaitControlRouter) this.router)
 						.createNewDirectiveMessage(new DirectiveMessage(this.router.getHost()), false);
@@ -196,14 +196,14 @@ public class LREngine extends DirectiveEngine {
 	 * @param time We want to calculate the congestion prediction at that time.
   	 *	
 	 */
-	private void calculateCongestionPredictionAt(double time) {	
+	private void calculateCongestionPrediction() {	
 		double[] congestionReadingsArr = listToPrimitiveTypeArray(this.lrCongestionInputs);
 		double[] timesArr = listToPrimitiveTypeArray(this.lrTimeInputs);
 		double congestionPrediction;
 
 		if(this.lrCongestionInputs.size() > 1) {
 			LinearRegression lr = new LinearRegression(timesArr, congestionReadingsArr);
-			congestionPrediction = lr.predict(time);
+			congestionPrediction = lr.predict(this.predictedFor);
 			this.slope = lr.slope();
 			this.coeficientOfDetermination = lr.R2();			
 		}else {
