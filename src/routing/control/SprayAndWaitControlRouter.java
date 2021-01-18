@@ -83,8 +83,8 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	protected SprayAndWaitControlRouter(SprayAndWaitControlRouter r) {
 		super(r);
 		this.amIController = r.amIController;
-		this.metricsSensed = r.metricsSensed;
 		this.time = r.time;
+		this.metricsSensed = r.metricsSensed;
 	}
 	
 	/**
@@ -104,8 +104,8 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 		Settings aggregationSettings = new Settings(aggregationNs);
 		DoubleWeightedAverageCongestionMetricAggregator metricAggregator = 
 			new DoubleWeightedAverageCongestionMetricAggregator(aggregationSettings);
+		this.time = (control_s.contains(CONTROL_TIME_S)) ? control_s.getCsvDoubles(CONTROL_TIME_S, 2) : null;		
 		this.metricsSensed = new MetricsSensed(this.getBufferSize(), metricAggregator);
-		this.time = (control_s.contains(CONTROL_TIME_S)) ? control_s.getCsvDoubles(CONTROL_TIME_S, 2) : null;
 	}
 	
 	@Override
@@ -267,6 +267,28 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	}
 	
 	
+	/**
+	 * Method that checks if the setting control.time is set and 
+	 * whether the currentSimulation time < time[0]. 
+	 * @return true if the control.time setting is set and if the current 
+	 * simulation time is < time[0]. 
+	 */
+	public boolean isWarmup() {
+		return ((this.time != null) && (SimClock.getTime() < this.time[0]));
+	}
+
+	/**
+	 * Method that checks if the setting control.time is set and 
+	 * whether the currentSimulation time > time[1]. 
+	 * @return true if the control.time setting is set and if the current 
+	 * simulation time is > time[1]. 
+	 */
+	public boolean isWarmdown() {
+		return ((this.time != null) && (SimClock.getTime() > this.time[1]));
+	}	
+	
+	
+	
 	@Override
 	/**
 	 * This method is called synchronously through an event.
@@ -294,14 +316,16 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * message being created.
 	 */
 	public boolean createNewDirectiveMessage(DirectiveMessage msg, boolean sync) {
+		boolean msgHasBeenCreated = false; 
 		DirectiveDetails directiveDetails;
-		directiveDetails = this.controller.fillMessageWithDirective(msg, sync);
-		boolean msgHasBeenCreated = (directiveDetails != null) ? true : false;
-		if (msgHasBeenCreated) {
-			this.lastAppliedDirective = msg;
-			this.reportDirectiveCreated(directiveDetails);
+		if(!isWarmup() && !isWarmdown()) {
+			directiveDetails = this.controller.fillMessageWithDirective(msg, sync);
+			msgHasBeenCreated = (directiveDetails != null) ? true : false;
+			if (msgHasBeenCreated) {
+				this.lastAppliedDirective = msg;
+				this.reportDirectiveCreated(directiveDetails);
+			}			
 		}
-
 		return msgHasBeenCreated;
 	}
 
@@ -327,12 +351,15 @@ public class SprayAndWaitControlRouter extends SprayAndWaitRouter {
 	 * @return A boolean indicating whether the the message has been created or not.
 	 */
 	public boolean createNewMetricMessage(MetricMessage msg, String exclude) {
-		MetricDetails metricDetails = this.metricsSensed.fillMessageWithMetric(msg, this.getBufferOccupancy(), exclude);	
-		boolean msgHasBeenCreated = (metricDetails != null) ? true : false;
-		if(msgHasBeenCreated) {
-			this.reportNewMetric(metricDetails);
+		boolean msgHasBeenCreated = false;
+		if (!isWarmup() && !isWarmdown()) {
+			MetricDetails metricDetails = this.metricsSensed.fillMessageWithMetric(msg, this.getBufferOccupancy(),
+					exclude);
+			if (metricDetails != null) {
+				msgHasBeenCreated = true;
+				this.reportNewMetric(metricDetails);
+			}
 		}
-		
 		return msgHasBeenCreated;
 	}
 	
