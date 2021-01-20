@@ -67,14 +67,13 @@ public class AppliedDirectiveToBufferedMessagesReport extends Report implements 
 	
 	@Override
 	public void done() {
-		StringBuilder strBuilder = new StringBuilder();
-		strBuilder.append(("Applied directives for scenario " + getScenarioName() +
-				"\nsim_time: " + format(getSimTime())));
-		strBuilder.append("\nSimTime | Applied to | Directive ID | nrofCopies | msg | decreaseIter | L | newL \n");
+		String str = "Applied directives for scenario " + getScenarioName() +
+				"\nsim_time: " + format(getSimTime());
+		str += "\nSimTime | Applied to | Directive ID | nrofCopies | msg | decreaseIter | L | newL \n";
+		this.write(str);
 		for(BufferedMessageUpdate msgUpdate : this.updatedBufferedMessagesPerNode) {
-			strBuilder.append(String.format("%s\n", msgUpdate));
+			this.write(String.format("%s\n", msgUpdate));
 		}		
-		this.write(strBuilder.toString());
 		super.done();
 	}
 }
