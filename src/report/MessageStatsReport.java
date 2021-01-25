@@ -37,6 +37,7 @@ public class MessageStatsReport extends Report implements MessageListener {
 	private int nrofResponseReqCreated;
 	private int nrofResponseDelivered;
 	private int nrofDelivered;
+	private double maxLatency;
 
 	/**
 	 * Constructor.
@@ -63,6 +64,7 @@ public class MessageStatsReport extends Report implements MessageListener {
 		this.nrofResponseReqCreated = 0;
 		this.nrofResponseDelivered = 0;
 		this.nrofDelivered = 0;
+		this.maxLatency = 0;
 	}
 
 
@@ -99,10 +101,14 @@ public class MessageStatsReport extends Report implements MessageListener {
 
 		this.nrofRelayed++;
 		if (finalTarget) {
-			this.latencies.add(getSimTime() -
-				this.creationTimes.get(m.getId()) );
+			double latency = getSimTime() -
+					this.creationTimes.get(m.getId());
+			this.latencies.add(latency);
 			this.nrofDelivered++;
 			this.hopCounts.add(m.getHops().size() - 1);
+			if (this.maxLatency < latency) {
+				this.maxLatency = latency;
+			}
 
 			if (m.isResponse()) {
 				this.rtt.add(getSimTime() -	m.getRequest().getCreationTime());
@@ -182,6 +188,7 @@ public class MessageStatsReport extends Report implements MessageListener {
 			"\noverhead_ratio: " + format(overHead) +
 			"\nlatency_avg: " + getAverage(this.latencies) +
 			"\nlatency_med: " + getMedian(this.latencies) +
+			"\nlatency_max: " +	format(this.maxLatency) +  
 			"\nhopcount_avg: " + getIntAverage(this.hopCounts) +
 			"\nhopcount_med: " + getIntMedian(this.hopCounts) +
 			"\nbuffertime_avg: " + getAverage(this.msgBufferTime) +
