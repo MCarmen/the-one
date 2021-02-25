@@ -91,7 +91,7 @@ public class LREngine extends DirectiveEngine {
 	
 	/** 
 	 * Window time while the received congestion readings are aggregated using 
-	 * an EWMA.
+	 * a double weighted average.
 	 */
 	private int aggregationInterval;
 	
