@@ -117,14 +117,23 @@ public class MessageDetailedReport extends Report implements MessageListener{
 	
 	@Override
 	public void done() {
-		this.write(String.format("Message stats for scenario  %s: id | creationTime | origin | destination | "+
-		" deliveredTo | latency | isResponse | rtt | droppedAt | removedAt | abortedAt | hops | bufferTimeAt", 
+		this.write(String.format("Message stats for scenario  %s:\n" + MessageDetailedReport.getBasicToStringHeader(), 
 				this.getScenarioName()));
 		
 		for(Entry<String, MessageStatistics>msgStatsEntry : this.messageStats.entrySet()) {
 			this.write(String.format("%s %s", msgStatsEntry.getKey(), msgStatsEntry.getValue()));
 		}
 		super.done();
+	}
+	
+	private static String getCompleteToStringHeader() {
+		return "id | creationTime | origin | destination | " +
+				" deliveredTo | latency | isResponse | rtt | droppedAt | "+
+				"removedAt | abortedAt | hops | bufferTimeAt";
+	}
+	
+	private static String getBasicToStringHeader() {
+		return "id | creationTime | origin | destination | latency ";
 	}
 	
 	/**
@@ -162,12 +171,19 @@ public class MessageDetailedReport extends Report implements MessageListener{
 
 		public String toString() {
 
+			/*
 			return String.format("%.1f | %d | %d | %s | %s | %s | %s | %s | %s", 
 					this.creationTime, this.origin, this.destination, 
 					this.deliveredTo, this.droppedAt, this.removedAt, 
 					this.abortedAt, this.hopsToString(), 
 					this.msgBufferTime);
-
+			*/
+			return this.toBasicString();
+		}
+		
+		public String toBasicString() {
+			return String.format("%.1f | %d | %d | %.2f", 
+					this.creationTime, this.origin, this.destination,this.deliveredTo.get(0).latency);
 		}
 		
 		public class DeliveredDetails{
