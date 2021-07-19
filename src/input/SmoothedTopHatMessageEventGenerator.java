@@ -46,7 +46,7 @@ public class SmoothedTopHatMessageEventGenerator extends MessageEventGenerator {
 		if(sthmegSettings.contains(PHYSICAL_REGION_S)) {
 			this.pr = sthmegSettings.getCsvInts(PHYSICAL_REGION_S);
 		}
-		this.msgDistributionFunc = new SmoothedTopHatFunction(this.msgInterval[0], this.msgInterval[1], this.reductionFrequency, this.pr[0], this.pr[1]); 
+		this.msgDistributionFunc = new SmoothedTopHatFunction(this.msgInterval[1], this.msgInterval[0], this.reductionFrequency, this.pr[0], this.pr[1]); 
 	}
 	
 	/**
@@ -61,6 +61,7 @@ public class SmoothedTopHatMessageEventGenerator extends MessageEventGenerator {
 		//(int)Math.round(clockTime) 
 		double oneDayMod = (Math.round(SimClock.getTime()/oneHourInSec))%24;
 		int timeDiff = (int)Math.round(this.msgDistributionFunc.get(oneDayMod));	
+		System.out.println(String.format("Sim time %.2f in hours %.2f time diff %d", SimClock.getTime(), oneDayMod, timeDiff)); //DEBUG
 		return timeDiff;		
 	}
 
