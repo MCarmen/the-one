@@ -61,7 +61,7 @@ public class SmoothedTopHatMessageEventGenerator extends MessageEventGenerator {
 		//(int)Math.round(clockTime) 
 		double oneDayMod = (Math.round(SimClock.getTime()/oneHourInSec))%24;
 		int timeDiff = (int)Math.round(this.msgDistributionFunc.get(oneDayMod));	
-		System.out.println(String.format("Sim time %.2f in hours %.2f time diff %d", SimClock.getTime(), oneDayMod, timeDiff)); //DEBUG
+		//System.out.println(String.format("Sim time %.2f in hours %.2f time diff %d", SimClock.getTime(), oneDayMod, timeDiff)); //DEBUG
 		return timeDiff;		
 	}
 
