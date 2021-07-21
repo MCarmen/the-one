@@ -80,7 +80,7 @@ public class MessageEventGenerator implements EventQueue {
 	 */
 	public MessageEventGenerator(Settings s){
 		this.sizeRange = s.getCsvInts(MESSAGE_SIZE_S);
-		this.msgInterval = s.getCsvInts(MESSAGE_INTERVAL_S);
+		this.setMsgInterval(s);
 		this.hostRange = s.getCsvRanges(HOST_RANGE_S);
 		this.idPrefix = s.getSetting(MESSAGE_ID_PREFIX_S);
 
@@ -136,7 +136,16 @@ public class MessageEventGenerator implements EventQueue {
 			rng.nextInt(msgInterval[1] - msgInterval[0]));
 	}
 	 
-	
+	/**
+	 * Method that retrieves from the settings the msg interval. By default the
+	 * format is [int,int]. Other generators could use other formats. In that case 
+	 * those generators should overwrite this method to fulfill the msgInterval with the 
+	 * format [int,int]. 
+	 * @param s the generator settings.
+	 */
+	protected void setMsgInterval(Settings s) {
+		this.msgInterval = s.getCsvInts(MESSAGE_INTERVAL_S);
+	}
 
 	/**
 	 * Method that returns in a plain array of int, all the addresses of the hosts
