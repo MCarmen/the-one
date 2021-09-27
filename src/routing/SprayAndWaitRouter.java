@@ -226,6 +226,14 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		return initialNrofCopies;
 	}
 	
+	/**
+	 * @return the current nrofCopies (L) configured in the {@link SprayAndWaitRoutingPropertyMap}
+	 * map.
+	 */
+	public int getNrofCopies() {
+		return this.routingProperties.get(SprayAndWaitRoutingPropertyMap.MSG_COUNT_PROPERTY);
+	}
+	
 	protected void updateDecreaseIterations(Message msg){
 		if(msg.containsProperty​(MSG_PROP_DECREASE_ITERATIONS)) {
 			msg.updateProperty(MSG_PROP_DECREASE_ITERATIONS, (int)msg.getProperty(MSG_PROP_DECREASE_ITERATIONS) + 1);
