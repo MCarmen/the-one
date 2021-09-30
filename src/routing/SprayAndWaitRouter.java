@@ -187,7 +187,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 	 * Called just before a transfer is finalized (by
 	 * {@link ActiveRouter#update()}).
 	 * Reduces the number of copies we have left for a message.
-	 * In binary Spray and Wait, sending host is left with floor(n/2) copies,
+	 * In binary Spray and Wait, sending host is left with ceil(n/2) copies,
 	 * but in standard mode, nrof copies left is reduced by one.
 	 * This method might be overriden by subclasses.
 	 */
@@ -207,7 +207,7 @@ public class SprayAndWaitRouter extends ActiveRouter {
 		if (isBinary) {
 			/* in binary S'n'W the sending node keeps floor(n/2) copies */
 			if (nrofCopies > 1) {
-				nrofCopies = (int)Math.floor(nrofCopies/2.0);	
+				nrofCopies = (int)Math.ceil(nrofCopies/2.0);	
 				this.updateDecreaseIterations(msg);
 			}
 		}
