@@ -182,10 +182,10 @@ public class MessageDetailedReport extends Report implements MessageListener{
 		}
 		
 		public String toBasicString() {
-			return String.format("%.1f | %d | %d | %.2f", 
-					this.creationTime, this.origin, this.destination,this.deliveredTo.get(0).latency);
+			return String.format("%.1f | %d | %d | %.2f", this.creationTime, this.origin, this.destination,
+					(this.deliveredTo.size() > 0) ? this.deliveredTo.get(0).latency : 100000.0);
 		}
-		
+				
 		public class DeliveredDetails{
 			private int deliveredTo;
 			private double latency;
