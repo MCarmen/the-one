@@ -56,12 +56,52 @@ public class Coord implements Cloneable, Comparable<Coord> {
 	 * @param other The other coordinate
 	 * @return The distance between this and another coordinate
 	 */
-	public double distance(Coord other) {
+	public double distanceOriginal(Coord other) {
 		double dx = this.x - other.x;
 		double dy = this.y - other.y;
 
 		return Math.sqrt(dx*dx + dy*dy);
 	}
+
+    /**
+     * Returns the distance to another coordinate, for satellites positions
+     * @param other The other coordinate
+     * @return The distance between this and another coordinate
+     */
+    public double distance(Coord other) {
+        /*OBTAINING THE LATITUDE AND LONGITUDE FROM THE
+         INTERNAL REPRESENTATION COORDINATES FOR EACH POINT */
+        int precisionFactor = 100;
+        double thisLon = (this.x - 180) / precisionFactor;
+        double thisLat = (90 - this.y) / precisionFactor;
+        double otherLon = (other.x - 180) / precisionFactor;
+        double otherLat = (90 - other.y) / precisionFactor;
+
+        /*TRANSFORMING THE LAT LON DEGREES INTO RADS*/
+        double thisLonRad = (thisLon * Math.PI) / 180;
+        double thisLatRad = (thisLat * Math.PI) / 180;
+        double otherLonRad = (otherLon * Math.PI) / 180;
+        double otherLatRad = (otherLat * Math.PI) / 180;
+
+        float rEarth = 6370;
+        float altitude = 800;
+        float r = rEarth + altitude;
+
+        /*GENERATING CARTESIAN POSITION AND CALCULATING DELTA*/
+        double thisX = r * Math.cos(thisLatRad) * Math.cos(thisLonRad);
+        double otherX = r * Math.cos(otherLatRad) * Math.cos(otherLonRad);
+        double thisY = r * Math.cos(thisLatRad) * Math.sin(thisLonRad);
+        double otherY = r * Math.cos(otherLatRad) * Math.sin(otherLonRad);
+        double thisZ = r * Math.sin(thisLatRad);
+        double otherZ = r * Math.sin(otherLatRad);
+        double dX = thisX - otherX;
+        double dY = thisY - otherY;
+        double dZ = thisZ - otherZ;
+
+        double distance = Math.sqrt(dX*dX + dY*dY + dZ*dZ);
+
+        return distance;
+    }
 
 	/**
 	 * Returns the x coordinate
