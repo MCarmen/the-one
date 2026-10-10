@@ -224,6 +224,15 @@ public abstract class MovementModel {
 	}
 
 	/**
+	 * Returns the ID that identifies the node in the movement data (e.g., in
+	 * an external locations file), if the model has one
+	 * @return The ID of the node or null if the model has no IDs
+	 */
+	public String getNodeId() {
+		return null;
+	}
+
+	/**
 	 * Returns true if this node is active at the moment (false if not)
 	 * @return true if this node is active (false if not)
 	 */

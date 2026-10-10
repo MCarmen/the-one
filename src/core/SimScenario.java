@@ -9,7 +9,9 @@ import input.EventQueueHandler;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import movement.MapBasedMovement;
 import movement.MovementModel;
@@ -320,6 +322,8 @@ public class SimScenario implements Serializable {
 	 */
 	protected void createHosts() {
 		this.hosts = new ArrayList<DTNHost>();
+		// hosts created so far with each group ID, to number them from 1
+		Map<String, Integer> groupCounts = new HashMap<String, Integer>();
 
 		for (int i=1; i<=nrofGroups; i++) {
 			List<NetworkInterface> interfaces =
@@ -398,6 +402,15 @@ public class SimScenario implements Serializable {
 				DTNHost host = new DTNHost(this.messageListeners,
 						this.movementListeners,	gid, interfaces, comBus,
 						mmProto, mRouterProto);
+				// name is the group ID and the ID of the host in its
+				// movement data (e.g., station-KIR) or, if it has none, the
+				// number of the host in the group (from 1) instead of its
+				// network address
+				int number = groupCounts.getOrDefault(gid, 0) + 1;
+				groupCounts.put(gid, number);
+				String movementId = host.getMovementId();
+				host.setName(movementId != null ? gid + "-" + movementId :
+						gid + number);
 				hosts.add(host);
 			}
 		}

@@ -197,6 +197,15 @@ public class DTNHost implements Comparable<DTNHost> {
 	}
 
 	/**
+	 * Returns the ID that identifies this host in its movement data (e.g.,
+	 * in an external locations file).
+	 * @return The ID or null if the movement model has no IDs
+	 */
+	public String getMovementId() {
+		return this.movement.getNodeId();
+	}
+
+	/**
 	 * Returns the ID of the group this host belongs to.
 	 * @return The group ID (the name of the host without its address)
 	 */

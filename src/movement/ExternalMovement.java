@@ -73,6 +73,8 @@ public class ExternalMovement extends MovementModel {
 	private boolean isActive;
 	/** altitude (km) for the locations that have none */
 	private double altitude;
+	/** ID of the node in the external locations file */
+	private String nodeId;
 
 	static {
 		DTNSim.registerForReset(ExternalMovement.class.getCanonicalName());
@@ -130,6 +132,7 @@ public class ExternalMovement extends MovementModel {
 			this.latestPathStartTime = initTime;
 
 			// puts the new model to model map for later updates
+			this.nodeId = initLoc.getKey();
 			idMapping.put(initLoc.getKey(), this);
 			isActive = true;
 		}
@@ -166,6 +169,11 @@ public class ExternalMovement extends MovementModel {
 	@Override
 	public boolean isActive() {
 		return isActive;
+	}
+
+	@Override
+	public String getNodeId() {
+		return this.nodeId;
 	}
 
 	/**
