@@ -28,6 +28,13 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 	/** ground link (satellite to ground station only) -setting id
 	 * ({@value}). Default is false */
 	public static final String GROUND_LINK_S = "groundLink";
+	/** minimum elevation (degrees) of the satellite seen from the ground
+	 * node for a ground link -setting id ({@value}). Default is 0 */
+	public static final String MIN_ELEVATION_S = "minElevation";
+	/** half-angle (degrees) of the cone covered by the satellite antenna,
+	 * pointing to the nadir, for a ground link -setting id ({@value}).
+	 * Default is 90 (no limit) */
+	public static final String BEAM_ANGLE_S = "beamAngle";
 
 	/**
 	 * Sub-namespace for the network related settings in the Group namespace
@@ -63,6 +70,8 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 	protected double oldTransmitRange;
 	protected int transmitSpeed;
 	protected boolean groundLink; // only links ground nodes with satellites
+	protected double minElevation; // degrees, for ground links
+	protected double beamAngle; // degrees, for ground links
 	protected ConnectivityOptimizer optimizer = null;
 	/** scanning interval, or 0.0 if n/a */
 	private double scanInterval;
@@ -97,6 +106,8 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 		this.transmitRange = s.getDouble(TRANSMIT_RANGE_S);
 		this.transmitSpeed = s.getInt(TRANSMIT_SPEED_S);
 		this.groundLink = s.getBoolean(GROUND_LINK_S, false);
+		this.minElevation = s.getDouble(MIN_ELEVATION_S, 0);
+		this.beamAngle = s.getDouble(BEAM_ANGLE_S, 90);
 		ensurePositiveValue(transmitRange, TRANSMIT_RANGE_S);
 		ensurePositiveValue(transmitSpeed, TRANSMIT_SPEED_S);
 	}
@@ -120,6 +131,8 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 		this.transmitRange = ni.transmitRange;
 		this.transmitSpeed = ni.transmitSpeed;
 		this.groundLink = ni.groundLink;
+		this.minElevation = ni.minElevation;
+		this.beamAngle = ni.beamAngle;
 		this.scanInterval = ni.scanInterval;
 		this.ah = ni.ah;
 
@@ -214,11 +227,28 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 
 	/**
 	 * Returns true if this interface only links ground nodes with satellites
-	 * (its range is a distance over the Earth surface)
 	 * @return True for a ground link interface
 	 */
 	public boolean isGroundLink() {
 		return this.groundLink;
+	}
+
+	/**
+	 * Returns the minimum elevation of the satellite seen from the ground
+	 * node for a ground link
+	 * @return The minimum elevation (degrees)
+	 */
+	public double getMinElevation() {
+		return this.minElevation;
+	}
+
+	/**
+	 * Returns the half-angle of the cone covered by the satellite antenna
+	 * (pointing to the nadir) for a ground link
+	 * @return The beam half-angle (degrees)
+	 */
+	public double getBeamAngle() {
+		return this.beamAngle;
 	}
 
 	/**
@@ -379,26 +409,36 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 	}
 
 	/**
-	 * Returns the distance (km) between the hosts of this and another
-	 * interface. For a ground link interface it is the distance over the
-	 * Earth surface between the ground node and the point below the
-	 * satellite, and infinite if the hosts are not one ground node and one
-	 * satellite. Otherwise it is the straight line (3D) distance.
+	 * Returns the straight line (3D) distance (km) between the hosts of this
+	 * and another interface, or infinite if they can not see each other:
+	 * for a ground link interface, if the hosts are not one ground node and
+	 * one satellite, the ground node is out of the cone of the satellite
+	 * antenna or the satellite is below the minimum elevation; otherwise,
+	 * if the Earth is between both hosts.
 	 * @param anotherInterface The another interface
 	 * @return The distance between both hosts
 	 */
 	protected double distanceTo(NetworkInterface anotherInterface) {
 		DTNHost other = anotherInterface.getHost();
+		Coord myLoc = this.host.getLocation();
+		Coord otherLoc = other.getLocation();
 
 		if (this.groundLink) {
 			if (this.host.isGroundNode() == other.isGroundNode()) {
 				return Double.POSITIVE_INFINITY;
 			}
-			return this.host.getLocation().surfaceDistance(
-					other.getLocation());
+			boolean onGround = this.host.isGroundNode();
+			Coord ground = onGround ? myLoc : otherLoc;
+			Coord satellite = onGround ? otherLoc : myLoc;
+			if (satellite.nadirAngle(ground) > this.beamAngle ||
+					ground.elevation(satellite) < this.minElevation) {
+				return Double.POSITIVE_INFINITY;
+			}
 		}
-		return this.host.getLocation().distance(other.getLocation(),
-				this.host.getAltitude(), other.getAltitude());
+		else if (!myLoc.hasLineOfSight(otherLoc)) {
+			return Double.POSITIVE_INFINITY;
+		}
+		return myLoc.distance(otherLoc);
 	}
 
 	/**

@@ -24,7 +24,6 @@ public class DTNHost implements Comparable<DTNHost> {
 
 	private Coord location; 	// where is the host
 	private Coord destination;	// where is it going
-	private double altitude = Coord.DEFAULT_ALTITUDE; // km over the Earth
 	private String groupId;	// group this host belongs to
 
 	private MessageRouter router;
@@ -210,15 +209,7 @@ public class DTNHost implements Comparable<DTNHost> {
 	 * @return The altitude (km), 0 for ground nodes
 	 */
 	public double getAltitude() {
-		return this.altitude;
-	}
-
-	/**
-	 * Sets the altitude of this host over the Earth surface.
-	 * @param altitude The altitude (km), 0 for ground nodes
-	 */
-	public void setAltitude(double altitude) {
-		this.altitude = altitude;
+		return this.location.getZ();
 	}
 
 	/**
@@ -226,7 +217,7 @@ public class DTNHost implements Comparable<DTNHost> {
 	 * @return True for ground nodes, false for satellites
 	 */
 	public boolean isGroundNode() {
-		return this.altitude <= 0;
+		return getAltitude() <= 0;
 	}
 
 	/**
@@ -410,7 +401,7 @@ public class DTNHost implements Comparable<DTNHost> {
 	public void move(double timeIncrement) {
 		double possibleMovement;
 		double distance;
-		double dx, dy;
+		double dx, dy, dz;
 
 		if (!isMovementActive() || SimClock.getTime() < this.nextTimeToMove) {
 			return;
@@ -440,7 +431,9 @@ public class DTNHost implements Comparable<DTNHost> {
 				this.location.getX());
 		dy = (possibleMovement/distance) * (this.destination.getY() -
 				this.location.getY());
-		this.location.translate(dx, dy);
+		dz = (possibleMovement/distance) * (this.destination.getZ() -
+				this.location.getZ());
+		this.location.translate(dx, dy, dz);
 	}
 
 	/**

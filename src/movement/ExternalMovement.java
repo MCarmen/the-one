@@ -29,6 +29,13 @@ public class ExternalMovement extends MovementModel {
 	public static final String MOVEMENT_FILE_S = "file";
 	/** number of preloaded intervals per preload run -setting id ({@value})*/
 	public static final String NROF_PRELOAD_S = "nrofPreload";
+	/** does the external locations file have the altitude (km) of each
+	 * location after its x and y -setting id ({@value}). Default is false */
+	public static final String ALTITUDE_IN_FILE_S = "altitudeInFile";
+	/** altitude (km) of the group's nodes when the location data has no
+	 * altitude -setting id ({@value}), read from the group's namespace.
+	 * Default is 0 (ground nodes). */
+	public static final String ALTITUDE_S = "altitude";
 
 	/** default initial location for excess nodes */
 	private static final Coord DEF_INIT_LOC = new Coord(0,0);
@@ -64,6 +71,8 @@ public class ExternalMovement extends MovementModel {
 
 	/** is this node active */
 	private boolean isActive;
+	/** altitude (km) for the locations that have none */
+	private double altitude;
 
 	static {
 		DTNSim.registerForReset(ExternalMovement.class.getCanonicalName());
@@ -76,6 +85,7 @@ public class ExternalMovement extends MovementModel {
 	 */
 	public ExternalMovement(Settings settings) {
 		super(settings);
+		this.altitude = settings.getDouble(ALTITUDE_S, 0);
 
 		if (idMapping == null) {
 			// run these the first time object is created or after reset call
@@ -83,6 +93,7 @@ public class ExternalMovement extends MovementModel {
 			idMapping = new HashMap<String, ExternalMovement>();
 			inputFileName = s.getSetting(MOVEMENT_FILE_S);
 			reader = new ExternalMovementReader(inputFileName);
+			reader.setReadAltitude(s.getBoolean(ALTITUDE_IN_FILE_S, false));
 
 			initLocations = reader.readNextMovements();
 			initTime = reader.getLastTimeStamp();
@@ -104,16 +115,18 @@ public class ExternalMovement extends MovementModel {
 	 * location queue.
 	 * @param mm The movement model to copy from
 	 */
-	private ExternalMovement(MovementModel mm) {
+	private ExternalMovement(ExternalMovement mm) {
 		super(mm);
 
 		pathQueue = new LinkedList<Tuple<Double, Path>>();
 		latestPath = null;
+		this.altitude = mm.altitude;
 
 		if (initLocations.size() > 0) { // we have location data left
 			// gets a new location from the list
 			Tuple<String, Coord> initLoc = initLocations.remove(0);
-			this.intialLocation = this.latestLocation = initLoc.getValue();
+			this.intialLocation = this.latestLocation =
+				withAltitude(initLoc.getValue());
 			this.latestPathStartTime = initTime;
 
 			// puts the new model to model map for later updates
@@ -164,6 +177,7 @@ public class ExternalMovement extends MovementModel {
 	 */
 	private void addLocation(Coord loc, double time) {
 		assert samplingInterval > 0 : "Non-positive sampling interval!";
+		loc = withAltitude(loc);
 
 		if (loc.equals(latestLocation)) { // node didn't move
 			if (latestPath != null) {
@@ -185,6 +199,19 @@ public class ExternalMovement extends MovementModel {
 		latestPath.addWaypoint(loc, speed);
 
 		this.latestLocation = loc;
+	}
+
+	/**
+	 * Gives the altitude of this node's group to a location read without
+	 * altitude
+	 * @param loc The location read from the file
+	 * @return The location with its altitude set
+	 */
+	private Coord withAltitude(Coord loc) {
+		if (!reader.hasAltitude()) {
+			return new Coord(loc.getX(), loc.getY(), this.altitude);
+		}
+		return loc;
 	}
 
 	/**

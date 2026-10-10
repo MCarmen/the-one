@@ -68,9 +68,11 @@ public class NodeGraphic extends PlayFieldGraphic {
 	/**
 	 * Returns the outline on the map of the area covered by an interface of
 	 * this node. The area is a spherical cap around the node: for a ground
-	 * link interface, the surface points within the range (distance over the
-	 * Earth surface); otherwise, the points at the node's altitude within the
-	 * range (straight line distance).
+	 * link interface, the points below the satellites that the ground node
+	 * sees over the minimum elevation, inside the cone of the satellite
+	 * antenna and within the range (for a ground node, satellites at
+	 * {@link Coord#DEFAULT_ALTITUDE}); otherwise, the
+	 * points at the node's altitude within the range and in line of sight.
 	 * @param ni The network interface
 	 * @param lonOffset Longitude (degrees) to shift the outline
 	 * @return The outline of the covered area
@@ -78,13 +80,31 @@ public class NodeGraphic extends PlayFieldGraphic {
 	private Path2D.Double coverageArea(NetworkInterface ni, double lonOffset) {
 		Coord loc = node.getLocation();
 		double range = ni.getTransmitRange();
+		double earthR = Coord.EARTH_RADIUS;
 		double angle; // central angle (rad) between the node and the border
 
 		if (ni.isGroundLink()) {
-			angle = range / Coord.EARTH_RADIUS;
+			double r = earthR + (node.isGroundNode() ?
+					Coord.DEFAULT_ALTITUDE : node.getAltitude());
+			double minElev = Math.toRadians(ni.getMinElevation());
+			double elevAngle = Math.acos(earthR * Math.cos(minElev) / r) -
+					minElev;
+			/* central angle of the border of the antenna cone, or of the
+			 * horizon if the cone is wider than the Earth seen from r */
+			double beam = Math.toRadians(ni.getBeamAngle());
+			double sinBorder = r * Math.sin(beam) / earthR;
+			double beamAngle = sinBorder >= 1 ? Math.acos(earthR / r) :
+					Math.asin(sinBorder) - beam;
+			/* central angle where the slant distance equals the range */
+			double cosRange = (earthR*earthR + r*r - range*range) /
+					(2 * earthR * r);
+			double rangeAngle = Math.acos(Math.max(-1, Math.min(1, cosRange)));
+			angle = Math.min(elevAngle, Math.min(beamAngle, rangeAngle));
 		} else {
-			double r = Coord.EARTH_RADIUS + node.getAltitude();
-			angle = 2 * Math.asin(Math.min(1, range / (2 * r)));
+			double r = earthR + node.getAltitude();
+			double rangeAngle = 2 * Math.asin(Math.min(1, range / (2 * r)));
+			double sightAngle = 2 * Math.acos(Math.min(1, earthR / r));
+			angle = Math.min(rangeAngle, sightAngle);
 		}
 		angle = Math.min(angle, Math.PI);
 

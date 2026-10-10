@@ -27,9 +27,12 @@ import core.SettingsError;
  * in the file.
  * <P>
  * Following lines' syntax should be:<BR>
- * <CODE>time id xPos yPos</CODE><BR>
+ * <CODE>time id xPos yPos [zPos]</CODE><BR>
  * where <CODE>time</CODE> is the time when a node with <CODE>id</CODE> should
- * be at location <CODE>(xPos, yPos)</CODE>.
+ * be at location <CODE>(xPos, yPos)</CODE>. <CODE>zPos</CODE> is the
+ * altitude (km) of the node, only read if {@link #setReadAltitude(boolean)}
+ * is on, and it is not normalized; otherwise the z coordinate is 0 and any
+ * extra values in the line are ignored.
  * </P>
  * <P>
  * All lines must be sorted by time. Sampling interval (time difference between
@@ -49,6 +52,7 @@ public class ExternalMovementReader {
 	private double minY;
 	private double maxY;
 	private boolean normalize;
+	private boolean hasAltitude;
 
 
 	/**
@@ -117,6 +121,7 @@ public class ExternalMovementReader {
 		String id = lineScan.next();
 		double x = lineScan.nextDouble();
 		double y = lineScan.nextDouble();
+		double z = readAltitude(lineScan);
 
 		if (normalize) {
 			time -= minTime;
@@ -135,7 +140,7 @@ public class ExternalMovementReader {
 			}
 
 			// add previous line's tuple
-			moves.add(new Tuple<String, Coord>(id, new Coord(x,y)));
+			moves.add(new Tuple<String, Coord>(id, new Coord(x,y,z)));
 
 			lineScan = new Scanner(lastLine);
 
@@ -144,6 +149,7 @@ public class ExternalMovementReader {
 				id = lineScan.next();
 				x = lineScan.nextDouble();
 				y = lineScan.nextDouble();
+				z = readAltitude(lineScan);
 			} catch (Exception e) {
 				throw new SettingsError("Invalid line '" + lastLine + "'");
 			} finally {
@@ -158,10 +164,39 @@ public class ExternalMovementReader {
 		}
 
 		if (!scanner.hasNextLine()) {	// add the last tuple of the file
-			moves.add(new Tuple<String, Coord>(id, new Coord(x,y)));
+			moves.add(new Tuple<String, Coord>(id, new Coord(x,y,z)));
 		}
 
 		return moves;
+	}
+
+	/**
+	 * Reads the altitude of a location line, if the file has altitudes
+	 * @param lineScan Scanner of the line, after the y coordinate
+	 * @return The altitude or 0 if the file has no altitudes
+	 */
+	private double readAltitude(Scanner lineScan) {
+		if (hasAltitude) {
+			return lineScan.nextDouble();
+		}
+		return 0;
+	}
+
+	/**
+	 * Sets reading of the altitude (z coordinate) of every location line
+	 * on/off. Default is off.
+	 * @param readAltitude If true, the lines have altitude (false -> off).
+	 */
+	public void setReadAltitude(boolean readAltitude) {
+		this.hasAltitude = readAltitude;
+	}
+
+	/**
+	 * Returns true if the altitude of the location lines is read
+	 * @return True if the locations have altitude (z coordinate)
+	 */
+	public boolean hasAltitude() {
+		return this.hasAltitude;
 	}
 
 	/**
