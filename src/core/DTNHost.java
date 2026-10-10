@@ -24,6 +24,8 @@ public class DTNHost implements Comparable<DTNHost> {
 
 	private Coord location; 	// where is the host
 	private Coord destination;	// where is it going
+	private double altitude = Coord.DEFAULT_ALTITUDE; // km over the Earth
+	private String groupId;	// group this host belongs to
 
 	private MessageRouter router;
 	private MovementModel movement;
@@ -58,6 +60,7 @@ public class DTNHost implements Comparable<DTNHost> {
 		this.comBus = comBus;
 		this.location = new Coord(0,0);
 		this.address = getNextAddress();
+		this.groupId = groupId;
 		this.name = groupId+address;
 		this.net = new ArrayList<NetworkInterface>();
 
@@ -192,6 +195,38 @@ public class DTNHost implements Comparable<DTNHost> {
 	 */
 	public Coord getLocation() {
 		return this.location;
+	}
+
+	/**
+	 * Returns the ID of the group this host belongs to.
+	 * @return The group ID (the name of the host without its address)
+	 */
+	public String getGroupId() {
+		return this.groupId;
+	}
+
+	/**
+	 * Returns the altitude of this host over the Earth surface.
+	 * @return The altitude (km), 0 for ground nodes
+	 */
+	public double getAltitude() {
+		return this.altitude;
+	}
+
+	/**
+	 * Sets the altitude of this host over the Earth surface.
+	 * @param altitude The altitude (km), 0 for ground nodes
+	 */
+	public void setAltitude(double altitude) {
+		this.altitude = altitude;
+	}
+
+	/**
+	 * Returns true if this host is on the Earth surface (altitude 0).
+	 * @return True for ground nodes, false for satellites
+	 */
+	public boolean isGroundNode() {
+		return this.altitude <= 0;
 	}
 
 	/**

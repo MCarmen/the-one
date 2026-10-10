@@ -63,44 +63,105 @@ public class Coord implements Cloneable, Comparable<Coord> {
 		return Math.sqrt(dx*dx + dy*dy);
 	}
 
+    /** Earth radius (km) */
+    public static final double EARTH_RADIUS = 6370;
+    /** Default altitude (km) of a node over the Earth surface */
+    public static final double DEFAULT_ALTITUDE = 800;
+    /** Internal coordinates are geographic degrees multiplied by this */
+    public static final int PRECISION_FACTOR = 100;
+
     /**
-     * Returns the distance to another coordinate, for satellites positions
+     * Returns the distance to another coordinate, for satellites positions.
+     * Both points are assumed to be at {@link #DEFAULT_ALTITUDE}.
      * @param other The other coordinate
      * @return The distance between this and another coordinate
      */
     public double distance(Coord other) {
-        /*OBTAINING THE LATITUDE AND LONGITUDE FROM THE
-         INTERNAL REPRESENTATION COORDINATES FOR EACH POINT */
-        int precisionFactor = 100;
-        double thisLon = (this.x - 180) / precisionFactor;
-        double thisLat = (90 - this.y) / precisionFactor;
-        double otherLon = (other.x - 180) / precisionFactor;
-        double otherLat = (90 - other.y) / precisionFactor;
+        return distance(other, DEFAULT_ALTITUDE, DEFAULT_ALTITUDE);
+    }
 
+    /**
+     * Returns the straight line (3D) distance to another coordinate, each
+     * point placed at its own altitude over the Earth surface
+     * @param other The other coordinate
+     * @param thisAltitude Altitude (km) of this point
+     * @param otherAltitude Altitude (km) of the other point
+     * @return The distance (km) between this and another coordinate
+     */
+    public double distance(Coord other, double thisAltitude,
+            double otherAltitude) {
+        double[] thisPos = toCartesian(EARTH_RADIUS + thisAltitude);
+        double[] otherPos = other.toCartesian(EARTH_RADIUS + otherAltitude);
+        double dX = thisPos[0] - otherPos[0];
+        double dY = thisPos[1] - otherPos[1];
+        double dZ = thisPos[2] - otherPos[2];
+
+        return Math.sqrt(dX*dX + dY*dY + dZ*dZ);
+    }
+
+    /**
+     * Returns the distance over the Earth surface (great circle) between the
+     * points right below this coordinate and another one, ignoring altitude
+     * @param other The other coordinate
+     * @return The surface distance (km) between both points
+     */
+    public double surfaceDistance(Coord other) {
+        /*CHORD BETWEEN BOTH POINTS ON A UNIT SPHERE GIVES THE CENTRAL ANGLE*/
+        double[] thisPos = toCartesian(1);
+        double[] otherPos = other.toCartesian(1);
+        double dX = thisPos[0] - otherPos[0];
+        double dY = thisPos[1] - otherPos[1];
+        double dZ = thisPos[2] - otherPos[2];
+        double chord = Math.sqrt(dX*dX + dY*dY + dZ*dZ);
+        double angle = 2 * Math.asin(Math.min(1, chord / 2));
+
+        return EARTH_RADIUS * angle;
+    }
+
+    /**
+     * Creates a coordinate from geographic degrees. Longitudes out of the
+     * [-180, 180] range give coordinates out of the map, which is useful for
+     * drawing shapes that cross the map border.
+     * @param lon Longitude (degrees)
+     * @param lat Latitude (degrees)
+     * @return The coordinate in the internal representation
+     */
+    public static Coord fromGeographic(double lon, double lat) {
+        return new Coord((lon + 180) * PRECISION_FACTOR,
+                (90 - lat) * PRECISION_FACTOR);
+    }
+
+    /**
+     * Returns the longitude of this coordinate
+     * @return Longitude (degrees)
+     */
+    public double getLongitude() {
+        return this.x / PRECISION_FACTOR - 180;
+    }
+
+    /**
+     * Returns the latitude of this coordinate
+     * @return Latitude (degrees)
+     */
+    public double getLatitude() {
+        return 90 - this.y / PRECISION_FACTOR;
+    }
+
+    /**
+     * Converts this coordinate to Earth centered cartesian coordinates
+     * @param r Distance (km) from the Earth center
+     * @return Array with the x, y and z cartesian coordinates
+     */
+    private double[] toCartesian(double r) {
         /*TRANSFORMING THE LAT LON DEGREES INTO RADS*/
-        double thisLonRad = (thisLon * Math.PI) / 180;
-        double thisLatRad = (thisLat * Math.PI) / 180;
-        double otherLonRad = (otherLon * Math.PI) / 180;
-        double otherLatRad = (otherLat * Math.PI) / 180;
+        double lonRad = (getLongitude() * Math.PI) / 180;
+        double latRad = (getLatitude() * Math.PI) / 180;
 
-        float rEarth = 6370;
-        float altitude = 800;
-        float r = rEarth + altitude;
-
-        /*GENERATING CARTESIAN POSITION AND CALCULATING DELTA*/
-        double thisX = r * Math.cos(thisLatRad) * Math.cos(thisLonRad);
-        double otherX = r * Math.cos(otherLatRad) * Math.cos(otherLonRad);
-        double thisY = r * Math.cos(thisLatRad) * Math.sin(thisLonRad);
-        double otherY = r * Math.cos(otherLatRad) * Math.sin(otherLonRad);
-        double thisZ = r * Math.sin(thisLatRad);
-        double otherZ = r * Math.sin(otherLatRad);
-        double dX = thisX - otherX;
-        double dY = thisY - otherY;
-        double dZ = thisZ - otherZ;
-
-        double distance = Math.sqrt(dX*dX + dY*dY + dZ*dZ);
-
-        return distance;
+        return new double[] {
+            r * Math.cos(latRad) * Math.cos(lonRad),
+            r * Math.cos(latRad) * Math.sin(lonRad),
+            r * Math.sin(latRad)
+        };
     }
 
 	/**

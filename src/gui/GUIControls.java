@@ -31,6 +31,7 @@ import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
 import core.Coord;
+import core.Settings;
 import core.SimClock;
 
 /**
@@ -87,6 +88,10 @@ public class GUIControls extends JPanel implements ActionListener, ChangeListene
 	public static final double ZOOM_MIN = 0.001;
 	/** Highest value for the zoom level */
 	public static final double ZOOM_MAX = 10;
+	/** Initial zoom level -setting id ({@value}) in the GUI namespace */
+	public static final String ZOOM_S = "zoom";
+	/** Initial zoom level if it is not set */
+	public static final double DEFAULT_ZOOM = 1.0;
 
 	/** index of initial update speed setting */
 	public static final int INITIAL_SPEED_SELECTION = 3;
@@ -141,8 +146,11 @@ public class GUIControls extends JPanel implements ActionListener, ChangeListene
 		this.screenShotButton = new JButton(TEXT_SCREEN_SHOT);
 		this.guiUpdateChooser = new JComboBox<String>(UP_SPEEDS);
 
-		this.zoomSelector = new JSpinner(new SpinnerNumberModel(1.0, ZOOM_MIN,
-				ZOOM_MAX, 0.001));
+		Settings s = new Settings(MainWindow.GUI_NS);
+		double initialZoom = s.getDouble(ZOOM_S, DEFAULT_ZOOM);
+		initialZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, initialZoom));
+		this.zoomSelector = new JSpinner(new SpinnerNumberModel(initialZoom,
+				ZOOM_MIN, ZOOM_MAX, 0.001));
 
 		this.add(simTimeField);
 		this.add(sepsField);

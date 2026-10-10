@@ -6,7 +6,8 @@ package gui.playfield;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.geom.Ellipse2D;
+import java.awt.Shape;
+import java.awt.geom.Path2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +37,9 @@ public class NodeGraphic extends PlayFieldGraphic {
 
 	private static Color highlightedNodeColor = Color.MAGENTA;
 
+	/** number of points of the coverage area outline */
+	private static final int COVERAGE_POINTS = 72;
+
 	private DTNHost node;
 
 	public NodeGraphic(DTNHost node) {
@@ -62,6 +66,70 @@ public class NodeGraphic extends PlayFieldGraphic {
 	}
 
 	/**
+	 * Returns the outline on the map of the area covered by an interface of
+	 * this node. The area is a spherical cap around the node: for a ground
+	 * link interface, the surface points within the range (distance over the
+	 * Earth surface); otherwise, the points at the node's altitude within the
+	 * range (straight line distance).
+	 * @param ni The network interface
+	 * @param lonOffset Longitude (degrees) to shift the outline
+	 * @return The outline of the covered area
+	 */
+	private Path2D.Double coverageArea(NetworkInterface ni, double lonOffset) {
+		Coord loc = node.getLocation();
+		double range = ni.getTransmitRange();
+		double angle; // central angle (rad) between the node and the border
+
+		if (ni.isGroundLink()) {
+			angle = range / Coord.EARTH_RADIUS;
+		} else {
+			double r = Coord.EARTH_RADIUS + node.getAltitude();
+			angle = 2 * Math.asin(Math.min(1, range / (2 * r)));
+		}
+		angle = Math.min(angle, Math.PI);
+
+		double lat1 = Math.toRadians(loc.getLatitude());
+		double lon1 = loc.getLongitude() + lonOffset;
+		Path2D.Double outline = new Path2D.Double();
+		double firstLon = 0;
+		double lon = 0;
+
+		/* destination point for each bearing from the node */
+		for (int i = 0; i <= COVERAGE_POINTS; i++) {
+			double bearing = 2 * Math.PI * i / COVERAGE_POINTS;
+			double lat2 = Math.asin(Math.sin(lat1) * Math.cos(angle) +
+					Math.cos(lat1) * Math.sin(angle) * Math.cos(bearing));
+			double dLon = Math.toDegrees(Math.atan2(
+					Math.sin(bearing) * Math.sin(angle) * Math.cos(lat1),
+					Math.cos(angle) - Math.sin(lat1) * Math.sin(lat2)));
+			double newLon = lon1 + dLon;
+
+			/* keep the longitude continuous instead of jumping at +-180 */
+			if (i > 0) {
+				while (newLon - lon > 180) newLon -= 360;
+				while (newLon - lon < -180) newLon += 360;
+			}
+			lon = newLon;
+			Coord c = Coord.fromGeographic(lon, Math.toDegrees(lat2));
+
+			if (i == 0) {
+				firstLon = lon;
+				outline.moveTo(scale(c.getX()), scale(c.getY()));
+			} else {
+				outline.lineTo(scale(c.getX()), scale(c.getY()));
+			}
+		}
+
+		/* if the area contains a pole, the outline goes around the whole
+		 * map and is left open: its copies at +-360 continue it */
+		if (Math.abs(lon - firstLon) < 180) {
+			outline.closePath();
+		}
+
+		return outline;
+	}
+
+	/**
 	 * Visualize node's location, radio ranges and connections
 	 * @param g2 The graphic context to draw to
 	 */
@@ -72,24 +140,31 @@ public class NodeGraphic extends PlayFieldGraphic {
 			ArrayList<NetworkInterface> interfaces =
 				new ArrayList<NetworkInterface>();
 			interfaces.addAll(node.getInterfaces());
+			// copies out of the map must not be seen
+			Shape oldClip = g2.getClip();
+			Coord mapEnd = Coord.fromGeographic(180, -90);
+			g2.clipRect(0, 0, scale(mapEnd.getX()), scale(mapEnd.getY()));
+
 			for (NetworkInterface ni : interfaces) {
-				double range = ni.getTransmitRange();
-				Ellipse2D.Double coverage;
-
-				coverage = new Ellipse2D.Double(scale(loc.getX()-range),
-						scale(loc.getY()-range), scale(range * 2),
-						scale(range * 2));
-
-				// draw the "range" circle
+				// draw the "range" area, also its copies at both sides of
+				// the map for the parts that cross the +-180 longitude border
 				g2.setColor(rangeColor);
-				g2.draw(coverage);
+				for (int copy = -1; copy <= 1; copy++) {
+					g2.draw(coverageArea(ni, copy * 360));
+				}
 			}
+			g2.setClip(oldClip);
 		}
 
 		if (drawConnections) {
 			g2.setColor(conColor);
 			Coord c1 = node.getLocation();
+			Coord mapEnd = Coord.fromGeographic(180, -90);
+			double mapWidth = mapEnd.getX();
 			ArrayList<Connection> conList = new ArrayList<Connection>();
+			// parts of the lines out of the map must not be seen
+			Shape oldClip = g2.getClip();
+			g2.clipRect(0, 0, scale(mapEnd.getX()), scale(mapEnd.getY()));
 			// create a copy to prevent concurrent modification exceptions
 			conList.addAll(node.getConnections());
 			for (Connection c : conList) {
@@ -100,9 +175,22 @@ public class NodeGraphic extends PlayFieldGraphic {
 					continue; /* disconnected before drawn */
 				}
 				c2 = otherNode.getLocation();
+				double dx = c2.getX() - c1.getX();
+
+				if (Math.abs(dx) <= mapWidth / 2) {
+					g2.drawLine(scale(c1.getX()), scale(c1.getY()),
+							scale(c2.getX()), scale(c2.getY()));
+					continue;
+				}
+				// the short way crosses the +-180 longitude border: draw
+				// the line from both ends, each one leaving the map
+				double shift = Math.signum(dx) * mapWidth;
 				g2.drawLine(scale(c1.getX()), scale(c1.getY()),
+						scale(c2.getX() - shift), scale(c2.getY()));
+				g2.drawLine(scale(c1.getX() + shift), scale(c1.getY()),
 						scale(c2.getX()), scale(c2.getY()));
 			}
+			g2.setClip(oldClip);
 		}
 
 

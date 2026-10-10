@@ -25,6 +25,9 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 	public static final String TRANSMIT_SPEED_S = "transmitSpeed";
 	/** scanning interval -setting id ({@value})*/
 	public static final String SCAN_INTERVAL_S = "scanInterval";
+	/** ground link (satellite to ground station only) -setting id
+	 * ({@value}). Default is false */
+	public static final String GROUND_LINK_S = "groundLink";
 
 	/**
 	 * Sub-namespace for the network related settings in the Group namespace
@@ -59,6 +62,7 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 	protected double transmitRange;
 	protected double oldTransmitRange;
 	protected int transmitSpeed;
+	protected boolean groundLink; // only links ground nodes with satellites
 	protected ConnectivityOptimizer optimizer = null;
 	/** scanning interval, or 0.0 if n/a */
 	private double scanInterval;
@@ -92,6 +96,7 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 
 		this.transmitRange = s.getDouble(TRANSMIT_RANGE_S);
 		this.transmitSpeed = s.getInt(TRANSMIT_SPEED_S);
+		this.groundLink = s.getBoolean(GROUND_LINK_S, false);
 		ensurePositiveValue(transmitRange, TRANSMIT_RANGE_S);
 		ensurePositiveValue(transmitSpeed, TRANSMIT_SPEED_S);
 	}
@@ -114,6 +119,7 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 		this.interfacetype = ni.interfacetype;
 		this.transmitRange = ni.transmitRange;
 		this.transmitSpeed = ni.transmitSpeed;
+		this.groundLink = ni.groundLink;
 		this.scanInterval = ni.scanInterval;
 		this.ah = ni.ah;
 
@@ -204,6 +210,15 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 	 */
 	public double getTransmitRange() {
 		return this.transmitRange;
+	}
+
+	/**
+	 * Returns true if this interface only links ground nodes with satellites
+	 * (its range is a distance over the Earth surface)
+	 * @return True for a ground link interface
+	 */
+	public boolean isGroundLink() {
+		return this.groundLink;
 	}
 
 	/**
@@ -360,8 +375,30 @@ abstract public class NetworkInterface implements ModuleCommunicationListener {
 			smallerRange = myRange;
 		}
 
-		return this.host.getLocation().distance(
-				anotherInterface.getHost().getLocation()) <= smallerRange;
+		return distanceTo(anotherInterface) <= smallerRange;
+	}
+
+	/**
+	 * Returns the distance (km) between the hosts of this and another
+	 * interface. For a ground link interface it is the distance over the
+	 * Earth surface between the ground node and the point below the
+	 * satellite, and infinite if the hosts are not one ground node and one
+	 * satellite. Otherwise it is the straight line (3D) distance.
+	 * @param anotherInterface The another interface
+	 * @return The distance between both hosts
+	 */
+	protected double distanceTo(NetworkInterface anotherInterface) {
+		DTNHost other = anotherInterface.getHost();
+
+		if (this.groundLink) {
+			if (this.host.isGroundNode() == other.isGroundNode()) {
+				return Double.POSITIVE_INFINITY;
+			}
+			return this.host.getLocation().surfaceDistance(
+					other.getLocation());
+		}
+		return this.host.getLocation().distance(other.getLocation(),
+				this.host.getAltitude(), other.getAltitude());
 	}
 
 	/**

@@ -70,6 +70,8 @@ public class SimScenario implements Serializable {
 	public static final String INTERFACENAME_S = "interface";
 	/** application name in the group -setting id ({@value})*/
 	public static final String GAPPNAME_S = "application";
+	/** altitude (km) of the group's hosts -setting id ({@value})*/
+	public static final String ALTITUDE_S = "altitude";
 
 	/** package where to look for movement models */
 	private static final String MM_PACKAGE = "movement.";
@@ -329,6 +331,7 @@ public class SimScenario implements Serializable {
 			String gid = s.getSetting(GROUP_ID_S);
 			int nrofHosts = s.getInt(NROF_HOSTS_S);
 			int nrofInterfaces = s.getInt(NROF_INTERF_S);
+			double altitude = s.getDouble(ALTITUDE_S, Coord.DEFAULT_ALTITUDE);
 			int appCount;
 
 			// creates prototypes of MessageRouter and MovementModel
@@ -398,6 +401,7 @@ public class SimScenario implements Serializable {
 				DTNHost host = new DTNHost(this.messageListeners,
 						this.movementListeners,	gid, interfaces, comBus,
 						mmProto, mRouterProto);
+				host.setAltitude(altitude);
 				hosts.add(host);
 			}
 		}

@@ -134,7 +134,7 @@ public class DistanceCapacityInterface extends NetworkInterface {
 		int index;
 
 		/* distance to the other interface */
-		distance = ni.getLocation().distance(this.getLocation());
+		distance = distanceTo(ni);
 
 		if (distance >= this.transmitRange) {
 			return 0;

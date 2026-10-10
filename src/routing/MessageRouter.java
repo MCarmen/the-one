@@ -382,7 +382,7 @@ public abstract class MessageRouter {
 		Message aMessage = (outgoing==null)?(incoming):(outgoing);
 		// If the application re-targets the message (changes 'to')
 		// then the message is not considered as 'delivered' to this host.
-		isFinalRecipient = aMessage.getTo() == this.host;
+		isFinalRecipient = isFinalRecipient(aMessage);
 		isFirstDelivery = isFinalRecipient &&
 		!isDeliveredMessage(aMessage);
 
@@ -404,6 +404,17 @@ public abstract class MessageRouter {
 		}
 
 		return aMessage;
+	}
+
+	/**
+	 * Returns true if this host is the final recipient of the message.
+	 * Subclasses can override this to deliver a message to other hosts
+	 * than the one in its "to" field.
+	 * @param m The message to check
+	 * @return True if this host is the final recipient of the message
+	 */
+	protected boolean isFinalRecipient(Message m) {
+		return m.getTo() == this.host;
 	}
 
 	/**

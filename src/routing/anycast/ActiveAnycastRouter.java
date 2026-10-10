@@ -348,7 +348,7 @@ public abstract class ActiveAnycastRouter extends MessageAnycastRouter {
 		for (Message m : getMessageCollection()) {
 			for (Connection con : getConnections()) {
 				DTNHost to = con.getOtherNode(getHost());
-				if (m.getTo() == to) {
+				if (m.getTo() == to || anycastCompare(m.getTo(), to)) {
 					forTuples.add(new Tuple<Message, Connection>(m,con));
 				}
 			}
